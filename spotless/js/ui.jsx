@@ -291,7 +291,7 @@ const LikeButton = ({ trackId, size = 30, always = false }) => {
   // Оценка ставится, окно остаётся открытым — закрывает его только сам человек
   const commit = (n) => { app.setRating(trackId, n); buzz(14); setDraft(null); };
   const tap = () => {
-    const willLike = !(st.liked || st.rating != null);
+    const willLike = st.rating == null;
     setOpen(false);
     app.toggleLike(trackId);
     if (willLike) { buzz(10); setJustLiked(true); }
@@ -333,8 +333,10 @@ const LikeButton = ({ trackId, size = 30, always = false }) => {
   };
   const onCancel = () => { const s = g.current; if (s) clearTimeout(s.timer); g.current = null; setDraft(null); };
 
-  const lit = st.liked || st.rating != null;
-  const neg = st.rating != null && st.rating < 5;
+  const lit = st.rating != null;
+  const neg = lit && st.rating < 5;
+  // Цифра у сердечка — только для осознанной оценки: быстрый лайк и так читается по сердечку
+  const showNum = lit && st.rating !== app.likeRating;
   const label = st.rating != null ? `${app.t.yourRating}: ${st.rating}` : app.t.like; // состояние — в aria-pressed
   return (
     <span style={{ position: "relative", display: "inline-flex" }}>
@@ -353,7 +355,7 @@ const LikeButton = ({ trackId, size = 30, always = false }) => {
       >
         <Ic d={neg ? ICONS.heartOff : ICONS.heart} size={size * 0.56} fill={!neg && lit ? "currentColor" : "none"} sw={1.8} />
       </button>
-      {st.rating != null && (
+      {showNum && (
         <span className="rate-n mono" style={{
           position: "absolute", top: -2, right: -4, fontSize: 10, fontWeight: 500,
           color: neg ? "var(--bad)" : "var(--text)", pointerEvents: "none",

@@ -17,7 +17,7 @@ const App = () => {
   const [theme, setThemeRaw] = React.useState(saved.uiVersion === 2 ? (saved.theme || "dot") : "dot");
   const [lang, setLang] = React.useState(saved.lang || "ru");
   const [currency, setCurrency] = React.useState(saved.currency || "usd");
-  const [settings, setSettings] = React.useState(saved.settings || { island: "pill", density: "n", accent: null, wallpaper: null });
+  const [settings, setSettings] = React.useState(saved.settings || { island: "pill", density: "n", accent: null, wallpaper: null, likeRating: 10 });
   const [onboarded, setOnboarded] = React.useState(saved.onboarded === true);
   // Плеер
   const [player, setPlayer] = React.useState({ trackId: "gl1", playing: true, pct: 0.34, shuffle: 0, repeat: false });
@@ -92,33 +92,38 @@ const App = () => {
   const queueIds = queue;
 
   // API
-  // —— Реакция на трек: лайк и оценка ——
-  // Одно место правды. Инвариант: оценка 5–10 — трек в любимых, 1–4 — «не нравится» (не в любимых),
-  // без оценки — просто лайк или ничего. Состояние считается из переданного снимка (stateFrom),
-  // чтобы функциональные обновления не читали устаревшее замыкание.
+  // —— Реакция на трек: оценка ——
+  // Лайк — это тоже оценка. Единственный источник правды — число 1–10 или null:
+  //   5–10 — трек в любимых; 1–4 — «не нравится»; null — вы его не оценивали.
+  // Быстрый тап по сердечку ставит «оценку быстрого лайка» (настройка, по умолчанию 10).
+  // Лайк без числа (данные из базы, старые сохранения) читается как оценка быстрого лайка.
+  // Состояние считается из переданного снимка (stateFrom), чтобы функциональные обновления
+  // не читали устаревшее замыкание.
+  const likeRating = settings.likeRating != null ? settings.likeRating : 10;
   const stateFrom = (all, id) => {
     const base = DB.trackIndex[id] || {};
     const o = all[id] || {};
-    const rating = o.rating !== undefined ? o.rating : (base.rating != null ? base.rating : null);
-    const liked = rating != null ? rating >= 5 : (o.liked != null ? o.liked : !!base.liked);
-    return { liked, rating, playlists: o.playlists || [] };
+    let rating = "rating" in o ? o.rating : (base.rating != null ? base.rating : null);
+    const likedFlag = "liked" in o ? o.liked : !!base.liked;
+    if (rating == null && likedFlag) rating = likeRating;
+    return { rating, liked: rating != null && rating >= 5, playlists: o.playlists || [] };
   };
   const trackState = (id) => stateFrom(trackStates, id);
   const patchTrack = (id, patch) => setTrackStates(all => ({ ...all, [id]: { ...stateFrom(all, id), ...patch } }));
-  // Тап по сердечку: пустое — лайк; горящее (лайк или любая оценка) — снять всё одним касанием.
-  // Оценку жалко терять случайно, поэтому в тосте есть «Вернуть».
+  // Оценка 1–10 или null. null — «Убрать оценку»: как будто вы трек вообще не оценивали.
+  const setRating = (id, r) => patchTrack(id, r == null ? { rating: null, liked: false } : { rating: r, liked: r >= 5 });
+  // Тап по сердечку: пустое — оценка быстрого лайка; горящее — снять оценку одним касанием.
+  // Осознанно выставленную оценку (не равную быстрой) жалко потерять случайно — в тосте «Вернуть».
   const toggleLike = (id) => {
     const s = trackState(id);
-    if (s.liked || s.rating != null) {
-      patchTrack(id, { liked: false, rating: null });
-      if (s.rating != null) toast(t.ratingRemoved(s.rating), { label: t.undo, run: () => patchTrack(id, { liked: s.liked, rating: s.rating }) });
+    if (s.rating != null) {
+      setRating(id, null);
+      if (s.rating !== likeRating) toast(t.ratingRemoved(s.rating), { label: t.undo, run: () => setRating(id, s.rating) });
     } else {
-      patchTrack(id, { liked: true });
+      setRating(id, likeRating);
       hint("rate", t.holdHint);
     }
   };
-  // Оценка 1–10 или null («Убрать оценку»: лайк остаётся, если оценка была 5+)
-  const setRating = (id, r) => patchTrack(id, r == null ? { rating: null } : { rating: r, liked: r >= 5 });
 
   // —— Плейлисты ——
   // Базовый состав лежит в DB (tracks), пользовательские добавления — в trackStates,
@@ -324,7 +329,7 @@ const App = () => {
     player, playTrack, togglePlay, nextTrack, prevTrack, toggleShuffle, toggleRepeat, seek, seekTo, fmtTime,
     panel, setPanel, full, setFull, mini, setMini, fullTab, setFullTab, queueIds, volume, setVolume,
     queue, addToQueue, removeFromQueue, moveInQueue, playContext,
-    trackState, toggleLike, setRating, trackPlaylists, togglePlaylist,
+    trackState, toggleLike, setRating, likeRating, trackPlaylists, togglePlaylist,
     allPlaylists, findPl, playlistTracks, likedIds, removeFromPlaylist, createPlaylist, deletePlaylist,
     followed, toggleFollow,
     downloads, toggleDl, toggleDlAlbum, toggleDlList,

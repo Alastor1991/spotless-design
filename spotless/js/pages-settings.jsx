@@ -183,6 +183,7 @@ const PageSettings = () => {
   const sections = [
     ["appearance", t.stAppearance, "sparkle"],
     ["playback", t.stPlayback, "volume"],
+    ["ratings", t.stRatings, "heart"],
     ["lang", t.stLang, "globe"],
     ["help", t.stHelp, "bell"],
     ["account", t.stAccount, "user"],
@@ -313,6 +314,15 @@ const PageSettings = () => {
             </SettingRow>
             <SettingRow label={t.stCurrency} note={t.stCurrencyNote}>
               <Seg value={app.currency} onChange={app.setCurrency} options={[["usd", "$ USD"], ["eur", "€ EUR"], ["gbp", "£ GBP"]]} />
+            </SettingRow>
+          </div>
+        )}
+
+        {section === "ratings" && (
+          <div className="fade-up">
+            <SettingRow label={t.stLikeRating} note={t.stLikeRatingNote}>
+              <Seg value={app.likeRating} onChange={(v) => app.setSettings({ ...S, likeRating: v })}
+                options={[5, 6, 7, 8, 9, 10].map(n => [n, String(n)])} />
             </SettingRow>
           </div>
         )}

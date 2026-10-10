@@ -196,7 +196,7 @@ const Onboarding = () => {
 
   // Шаг 4 — три карточки
   const cards = [
-    { icon: "heart", title: t.obTour1t, sub: t.obTour1s, demo: "rating" },
+    { icon: "heart", title: t.obTour1t, sub: t.obTour1s(app.likeRating), demo: "rating" },
     { icon: "plus", title: t.obTour2t, sub: t.obTour2s, demo: null },
     { icon: "dollar", title: t.obTour3t, sub: t.obTour3s, demo: null },
   ];
