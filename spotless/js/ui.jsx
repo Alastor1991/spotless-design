@@ -215,24 +215,34 @@ const useLongPress = (onLong, ms = 450) => {
 //  • LikeButton — тап = лайк/снять; удержание = окно оценки. Не отпуская палец, можно вести
 //    по шкале: кнопка держит захват указателя и сама считает значение по прямоугольнику шкалы.
 //  • RatingPop — окно со шкалой. Рендерится в body (портал) и гасит свои события, чтобы родители
-//    (мини-плеер, строки, жесты полного экрана) их не видели.
+//    (мини-плеер, строки, жесты полного экрана) их не видели. Само не закрывается:
+//    только тап мимо, чёрточка сверху или Esc — оценку можно спокойно поправлять.
 const HOLD_MS = 350;        // удержание до окна оценки
 const SLOP = 10;            // px: меньше — дрожание пальца, а не движение
-const RATE_LINGER = 1100;   // мс: после выбора окно ещё видно — можно поправить
 
 const rateAt = (el, x) => {
   const r = el.getBoundingClientRect();
   return Math.max(1, Math.min(10, Math.floor((x - r.left) / (r.width / 10)) + 1));
 };
 
-const RateScale = React.forwardRef(({ value, external = null, onCommit, variant = "pop", showValue = false, label }, ref) => {
+// onPreview — значение «на ходу» (палец/мышь над шкалой, null — превью кончилось): по нему родитель
+// обновляет свою крупную цифру, чтобы она двигалась вместе с точками.
+const RateScale = React.forwardRef(({ value, external = null, onCommit, onPreview, variant = "pop", showValue = false, label }, ref) => {
   const app = useApp();
   const el = React.useRef(null);
   React.useImperativeHandle(ref, () => el.current);
-  const [local, setLocal] = React.useState(null);
+  const [local, setLocalState] = React.useState(null);
+  const localRef = React.useRef(null);
   const pressing = React.useRef(false);
   const shown = external != null ? external : local != null ? local : value;
-  const preview = (n, tick) => setLocal(prev => { if (prev !== n && tick) buzz(6); return n; });
+  const setLocal = (n, tick) => {
+    if (localRef.current === n) return;
+    localRef.current = n;
+    setLocalState(n);
+    if (onPreview) onPreview(n);
+    if (tick && n != null) buzz(6);
+  };
+  const preview = setLocal;
   const stop = (e) => e.stopPropagation();
   return (
     <span ref={el} className={"rate-scale rate-" + variant} role="slider" tabIndex={0}
@@ -273,15 +283,13 @@ const LikeButton = ({ trackId, size = 30, always = false }) => {
   const [open, setOpen] = React.useState(false);
   const [draft, setDraft] = React.useState(null);
   const [justLiked, setJustLiked] = React.useState(false);
-  const closeTimer = React.useRef(null);
   // Жест: press → (отпустил быстро) тап | (держит HOLD_MS) armed → (сдвинул > SLOP) scrub → отпустил = оценка
   const g = React.useRef(null);
 
-  const cancelClose = () => clearTimeout(closeTimer.current);
-  const closeLater = (ms) => { cancelClose(); closeTimer.current = setTimeout(() => setOpen(false), ms); };
-  React.useEffect(() => () => { cancelClose(); if (g.current) clearTimeout(g.current.timer); }, []);
+  React.useEffect(() => () => { if (g.current) clearTimeout(g.current.timer); }, []);
 
-  const commit = (n) => { app.setRating(trackId, n); buzz(14); setDraft(null); closeLater(RATE_LINGER); };
+  // Оценка ставится, окно остаётся открытым — закрывает его только сам человек
+  const commit = (n) => { app.setRating(trackId, n); buzz(14); setDraft(null); };
   const tap = () => {
     const willLike = !(st.liked || st.rating != null);
     setOpen(false);
@@ -296,7 +304,7 @@ const LikeButton = ({ trackId, size = 30, always = false }) => {
     const s = { id: e.pointerId, x: e.clientX, y: e.clientY, phase: "press" };
     s.timer = setTimeout(() => {
       s.phase = "armed"; s.x = s.lastX != null ? s.lastX : s.x; s.y = s.lastY != null ? s.lastY : s.y;
-      cancelClose(); setDraft(null); setOpen(true); buzz(14);
+      setDraft(null); setOpen(true); buzz(14);
     }, HOLD_MS);
     g.current = s;
   };
@@ -353,9 +361,9 @@ const LikeButton = ({ trackId, size = 30, always = false }) => {
       )}
       {open && (
         <RatingPop trackId={trackId} anchor={btnRef} scaleRef={scaleRef} draft={draft}
-          onCommit={commit} onInteract={cancelClose}
+          onCommit={commit}
           onClear={() => { app.setRating(trackId, null); setOpen(false); }}
-          close={() => { cancelClose(); setDraft(null); setOpen(false); }} />
+          close={() => { setDraft(null); setOpen(false); }} />
       )}
     </span>
   );
@@ -428,14 +436,16 @@ const usePopClamp = () => {
   return [ref, dx];
 };
 
-// Окно оценки. Позиционируется от кнопки, рендерится в body. Тап мимо или Esc — закрыть;
-// после выбора окно ещё RATE_LINGER мс на экране, любое касание внутри продлевает его.
-const RatingPop = ({ trackId, anchor, scaleRef, draft, onCommit, onClear, onInteract, close }) => {
+// Окно оценки. Позиционируется от кнопки, рендерится в body. Закрывается тапом мимо,
+// чёрточкой сверху (тап или смахнуть) и Esc. Крупная цифра показывает значение на ходу:
+// при ведении от сердечка (draft) и при ведении/наведении по самой шкале (preview).
+const RatingPop = ({ trackId, anchor, scaleRef, draft, onCommit, onClear, close }) => {
   const app = useApp();
   const st = app.trackState(trackId);
   const [pos, setPos] = React.useState(null);
+  const [preview, setPreview] = React.useState(null);
   const popRef = React.useRef(null);
-  const shown = draft != null ? draft : st.rating;
+  const shown = draft != null ? draft : preview != null ? preview : st.rating;
 
   React.useLayoutEffect(() => {
     if (!popRef.current || !anchor.current) return;
@@ -462,13 +472,16 @@ const RatingPop = ({ trackId, anchor, scaleRef, draft, onCommit, onClear, onInte
   const wall = (e) => e.stopPropagation();
   return ReactDOM.createPortal(
     <div ref={popRef} className="pop fade-up ratepop" role="dialog" aria-label={app.t.yourRating}
-      onPointerDown={(e) => { wall(e); onInteract(); }} onPointerMove={wall} onPointerUp={wall} onClick={wall} onContextMenu={(e) => e.preventDefault()}
+      onPointerDown={wall} onPointerMove={wall} onPointerUp={wall} onClick={wall} onContextMenu={(e) => e.preventDefault()}
       style={{ position: "fixed", left: pos ? pos.left : -9999, top: pos ? pos.top : -9999, zIndex: 300 }}>
+      <button className="ratepop-grip" aria-label={app.t.close}
+        onPointerDown={(e) => { try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {} }}
+        onClick={close}><span></span></button>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <span className="mlabel">{app.t.yourRating}</span>
         <span className="dots" style={{ fontSize: 30, minWidth: 40, textAlign: "right", color: shown && shown < 5 ? "var(--bad)" : "var(--text)" }}>{shown || "–"}</span>
       </div>
-      <RateScale ref={scaleRef} value={st.rating} external={draft} onCommit={onCommit} />
+      <RateScale ref={scaleRef} value={st.rating} external={draft} onPreview={setPreview} onCommit={onCommit} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginTop: 10 }}>
         <span style={{ fontSize: 12, color: "var(--mut)", lineHeight: 1.45 }}>{app.t.ratingHint}</span>
         {st.rating != null && (

@@ -742,7 +742,11 @@ button { touch-action: manipulation; }
 
 /* Шкала оценки (RateScale): одна и та же в окне оценки, в «пилюле» полного экрана и в панели плеера.
    Состояния точек — классы is-*, чтобы не пересекаться с глобальными (.pop, .on и т.п.) */
-.ratepop { width: min(300px, calc(100vw - 20px)); padding: 12px 14px 12px; }
+.ratepop { width: min(300px, calc(100vw - 20px)); padding: 6px 14px 12px; }
+/* Чёрточка сверху — закрыть (тап или смахнуть вниз) */
+.ratepop-grip { display: flex; align-items: center; justify-content: center; width: 64px; height: 22px; margin: 0 auto 2px; border-radius: 11px; touch-action: none; }
+.ratepop-grip span { width: 34px; height: 4px; border-radius: 2px; background: var(--bg3); transition: background 0.12s; }
+.ratepop-grip:hover span, .ratepop-grip:active span { background: var(--mut2); }
 .rate-scale { display: inline-flex; align-items: center; gap: 8px; touch-action: none; cursor: pointer; user-select: none; -webkit-user-select: none; border-radius: 12px; outline-offset: 4px; }
 .rate-cells { display: flex; flex: 1; }
 .rate-cell { flex: 1; display: flex; align-items: center; justify-content: center; }
@@ -810,7 +814,8 @@ button { touch-action: manipulation; }
   .modal.ctx-sheet .sheet-grip { margin: -14px -8px 4px; }
   .ctx-sheet button { padding: 13px 14px !important; font-size: 15px !important; border-radius: 12px !important; gap: 14px !important; }
   .ctx-sheet button svg { width: 19px; height: 19px; }
-  .ratepop { padding: 14px 16px; }
+  .ratepop { padding: 6px 16px 14px; }
+  .ratepop-grip { height: 26px; }
   .rate-pop .rate-cell { height: 42px; }
   .rate-pop .rate-cell > i { width: 18px; height: 18px; }
   .shell.phone .main { overscroll-behavior-y: contain; }
