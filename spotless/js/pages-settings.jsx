@@ -109,7 +109,7 @@ const TxModal = ({ close }) => {
   const app = useApp();
   const t = app.t;
   const rows = [
-    { d: app.lang === "ru" ? "12 июня" : "Jun 12", title: app.lang === "ru" ? "Ежемесячная поддержка" : "Monthly support", amount: -5.0, fee: 0.012 },
+    { d: app.lang === "ru" ? "12 июня" : "Jun 12", title: app.lang === "ru" ? "Ежемесячный платёж артистам" : "Monthly support", amount: -5.0, fee: 0.012 },
     { d: app.lang === "ru" ? "9 июня" : "Jun 9", title: app.lang === "ru" ? "Донат · Молоко и мёд" : "Tip · Молоко и мёд", amount: -1.0, fee: 0.011 },
     { d: app.lang === "ru" ? "3 июня" : "Jun 3", title: app.lang === "ru" ? "Донат · Грунт" : "Tip · Грунт", amount: -1.0, fee: 0.012 },
     { d: app.lang === "ru" ? "1 июня" : "Jun 1", title: app.lang === "ru" ? "Пополнение с карты" : "Top up from card", amount: 10.0, fee: 0.24 },
@@ -371,7 +371,7 @@ const PageSettings = () => {
               <span className="mono" style={{ fontSize: 12.5, color: "var(--mut)" }}>spl1q…e7xw4</span>
               <button className="iconbtn" style={{ width: 30, height: 30 }} onClick={() => app.toast(t.copied)}><Ic d={ICONS.copy} size={14} /></button>
             </SettingRow>
-            <SettingRow label={t.stTx} note={app.lang === "ru" ? "Июнь: 1 поддержка ($5) + 2 доната ($2) · комиссия сети $0,012" : "June: 1 support ($5.00) + 2 donations ($2.00) · network fee $0.012"}>
+            <SettingRow label={t.stTx} note={app.lang === "ru" ? "Июнь: $5 ежемесячно + 2 доната ($2) · комиссия сети $0,012" : "June: 1 support ($5.00) + 2 donations ($2.00) · network fee $0.012"}>
               <button className="more" style={{ display: "flex", gap: 4, alignItems: "center" }} onClick={() => setTxOpen(true)}>{t.stTxAll}<Ic d={ICONS.chevR} size={14} /></button>
             </SettingRow>
             <SettingRow label={t.stPeers} note="12 peers · DHT ok · relay off">

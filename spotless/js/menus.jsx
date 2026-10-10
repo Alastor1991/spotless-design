@@ -173,7 +173,7 @@ const BellPop = ({ close }) => {
   const items = [
     { hue: 15, icon: "note", title: ru ? "Новый сингл «Кассета 04»" : "New single “Кассета 04”", sub: ru ? "Танец Бруно · вчера" : "Танец Бруно · yesterday", go: () => app.go("album", "cassette") },
     { hue: 35, icon: "users", title: ru ? "Аня К. добавила 2 трека" : "Anya K. added 2 tracks", sub: ru ? "в «Кухня по выходным»" : "to “Weekend Kitchen”", go: () => app.go("playlist", "kitchen") },
-    { hue: 95, icon: "wallet", title: ru ? "Пора пополнить счёт" : "Time to top up", sub: ru ? "баланс $3,40 — в два касания" : "balance $3.40 — two taps", go: () => app.openTopUp() },
+    { hue: 95, icon: "wallet", title: ru ? "Пора пополнить счёт" : "Time to top up", sub: ru ? "на балансе $3,40 — пополнить можно в два касания" : "balance $3.40 — two taps", go: () => app.openTopUp() },
     { hue: 145, icon: "heart", title: ru ? "«Молоко и мёд» говорят спасибо" : "Молоко и мёд says thanks", sub: ru ? "за донат $1" : "for your $1.00 tip", go: () => app.go("artist", "milk") },
   ];
   return (

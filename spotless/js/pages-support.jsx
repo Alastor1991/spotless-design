@@ -1,4 +1,4 @@
-// Spotless — «Моя поддержка» + модалки доната и пополнения.
+// Spotless — раздел «Артистам» (кому идут ваши деньги) + модалки доната и пополнения.
 
 const fmtUsd = (n, lang) => fmtMoney(n, lang);
 const BALANCE = 7.35;
@@ -35,14 +35,14 @@ const PageSupport = () => {
   // Цена одной точки растёт с суммой, чтобы самая длинная полоса помещалась в строку
   const unit = [0.05, 0.1, 0.25, 0.5, 1].find(u => split[0].amount / u <= 38) || 1;
   return (
-    <div className="fade-in" data-screen-label="Моя поддержка">
+    <div className="fade-in" data-screen-label="Артистам">
       <div style={{ margin: "14px 0 24px" }}>
         <div className="mlabel" style={{ marginBottom: 12 }}>{t.june} · {t.currentMonth}</div>
-        <h1 style={{ fontSize: "clamp(38px, 6cqi, 60px)", fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 0.9 }}>{t.supTitle}</h1>
+        <h1 style={{ fontSize: "clamp(34px, 6cqi, 60px)", fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1, textWrap: "balance" }}>{t.supTitle}</h1>
       </div>
 
       <div className="sup-grid">
-        {/* Ежемесячная поддержка */}
+        {/* Сумма в месяц */}
         <section className="widget" style={{ display: "flex", gap: 32, flexWrap: "wrap", padding: "26px 28px" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <span className="mlabel">{t.everyMonth}</span>
