@@ -227,7 +227,7 @@ const PlayerDock = () => {
           <span className="mlabel" style={{ fontSize: 9 }}>{t.dkRate}</span>
           <span className="row" style={{ gap: 2 }}>
             <LikeButton trackId={tr.id} always={true} size={32} />
-            <span style={{ margin: "0 8px 0 4px" }}><RateDots value={st.rating} size={5} gap={2} on="var(--text)" /></span>
+            <span style={{ margin: "0 4px 0 2px", display: "inline-flex" }}><RateScale value={st.rating} variant="inline" onCommit={(n) => app.setRating(tr.id, n)} /></span>
             <PlusButton trackId={tr.id} size={32} />
             <DonateButton target={{ kind: "track", id: tr.id }} size={32} />
           </span>
@@ -523,9 +523,9 @@ const FullScreen = () => {
 
       <div className="fs-ctrl" style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 10, height: 48, padding: "0 16px 0 6px", borderRadius: 24, boxShadow: "inset 0 0 0 1px var(--bg3)" }}>
+          <span className="like-pill" style={{ display: "inline-flex", alignItems: "center", gap: 10, height: 48, padding: "0 16px 0 6px", borderRadius: 24, boxShadow: "inset 0 0 0 1px var(--bg3)" }}>
             <LikeButton trackId={tr.id} always={true} size={38} />
-            <RateDots value={st.rating} size={6} gap={4} />
+            <RateScale value={st.rating} variant="inline" showValue={true} onCommit={(n) => app.setRating(tr.id, n)} />
           </span>
           <PlusButton trackId={tr.id} size={48} className="ring" />
           <DLButton trackId={tr.id} size={48} className="ring" />
@@ -661,14 +661,13 @@ const MobilePlayer = () => {
   const al = DB.albums[tr.album];
   const ar = DB.artists[tr.artist];
   const docked = app.settings.island === "panel";
-  const stop = (e) => e.stopPropagation();
   // Жесты: вбок — следующий/предыдущий трек, вверх — развернуть. Тап тоже разворачивает.
   const rowRef = React.useRef(null);
   const g = React.useRef(null);
-  const swallow = React.useRef(false);
+  // Капсула сама распознаёт тап и свайпы; кнопки внутри (лайк, play) и полоса перемотки — не её зона.
+  // На клик не опираемся: он всплывает от детей и может прийти не туда.
   const onDown = (e) => {
-    swallow.current = false; // гасим только клик, рождённый самим жестом
-    if (e.target.closest("button, .dotbar.seek")) return;
+    if (e.target.closest("button, [role=slider], .dotbar.seek")) return;
     g.current = { x: e.clientX, y: e.clientY, dx: 0, dy: 0 };
   };
   const onMove = (e) => {
@@ -685,14 +684,16 @@ const MobilePlayer = () => {
     const s = g.current; g.current = null; if (!s) return;
     const r = rowRef.current;
     if (r) { r.style.transition = "transform .22s cubic-bezier(.2,.8,.2,1), opacity .22s"; r.style.transform = ""; r.style.opacity = ""; }
-    if (Math.abs(s.dx) > 64 && Math.abs(s.dx) > Math.abs(s.dy) * 1.2) { swallow.current = true; buzz(8); s.dx < 0 ? app.nextTrack() : app.prevTrack(); }
-    else if (s.dy < -36 && Math.abs(s.dy) > Math.abs(s.dx)) { swallow.current = true; app.setFull(true); }
+    if (Math.abs(s.dx) > 64 && Math.abs(s.dx) > Math.abs(s.dy) * 1.2) { buzz(8); s.dx < 0 ? app.nextTrack() : app.prevTrack(); }
+    else if (s.dy < -36 && Math.abs(s.dy) > Math.abs(s.dx)) app.setFull(true);
+    else if (Math.hypot(s.dx, s.dy) < SLOP) app.setFull(true); // тап
   };
   return (
     <div className={"mplayer" + (docked ? " docked" : app.settings.island === "square" ? " square" : "")} data-screen-label="Мини-плеер (телефон)"
       onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { g.current = null; }}
-      onClick={() => { if (swallow.current) { swallow.current = false; return; } app.setFull(true); }} role="button" aria-label={app.t.openFull + ": " + tr.t}>
-      {docked && <div onClick={stop} style={{ display: "flex" }}><DotBar pct={app.player.pct} pitch={6} onSeek={app.seek} label={app.lang === "ru" ? "Перемотка" : "Seek"} /></div>}
+      role="button" tabIndex={0} aria-label={app.t.openFull + ": " + tr.t}
+      onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); app.setFull(true); } }}>
+      {docked && <div style={{ display: "flex" }}><DotBar pct={app.player.pct} pitch={6} onSeek={app.seek} label={app.lang === "ru" ? "Перемотка" : "Seek"} /></div>}
       <div className="mp-row" ref={rowRef}>
         <span key={"c" + tr.id} className="mp-swap" style={{ display: "inline-flex", flexShrink: 0 }}><Cover art={al.id} hue={al.hue} size={42} round={true} /></span>
         <div key={"t" + tr.id} className="mp-swap" style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: docked ? 3 : 6 }}>
@@ -701,8 +702,8 @@ const MobilePlayer = () => {
             ? <span className="mlabel" style={{ fontSize: 10, letterSpacing: "0.08em" }}>{ar.name} · {app.fmtTime(app.player.pct).padStart(5, "0")}</span>
             : <DotBar pct={app.player.pct} pitch={5} r={1.4} label={app.lang === "ru" ? "Прогресс трека" : "Track progress"} />}
         </div>
-        <span onClick={stop} style={{ display: "inline-flex" }}><LikeButton trackId={tr.id} always={true} size={44} /></span>
-        <span onClick={stop} style={{ display: "inline-flex" }}><PlayBtn size={44} /></span>
+        <LikeButton trackId={tr.id} always={true} size={44} />
+        <PlayBtn size={44} />
       </div>
     </div>
   );
@@ -823,7 +824,7 @@ const FullScreenPhone = () => {
         </div>
         <span className="fsp-like" style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 44, padding: "0 14px 0 2px", borderRadius: 22, boxShadow: "inset 0 0 0 1px var(--bg3)", flexShrink: 0 }}>
           <LikeButton trackId={tr.id} always={true} size={40} />
-          <RateDots value={st.rating} size={5} gap={3} />
+          <RateScale value={st.rating} variant="inline" showValue={true} onCommit={(n) => app.setRating(tr.id, n)} />
         </span>
       </div>
 

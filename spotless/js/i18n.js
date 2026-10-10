@@ -21,6 +21,7 @@ window.I18N = {
     // Оценка
     yourRating: "Ваша оценка", ratingHint: "Оценки делают рекомендации точнее",
     holdHint: "Удерживайте — оценка от 1 до 10", removeRating: "Убрать оценку",
+    ratingRemoved: (n) => `Оценка ${n} снята`, undo: "Вернуть",
     // Плеер
     nowPlaying: "Сейчас играет", queue: "Очередь", lyrics: "Текст", devices: "Устройства",
     miniPlayer: "Мини-плеер", restorePlayer: "Развернуть плеер",
@@ -172,6 +173,7 @@ window.I18N = {
     podcastsSoon: "Podcasts are coming — with creator support too",
     yourRating: "Your rating", ratingHint: "Ratings make recommendations sharper",
     holdHint: "Hold to rate from 1 to 10", removeRating: "Remove rating",
+    ratingRemoved: (n) => `Rating ${n} removed`, undo: "Undo",
     nowPlaying: "Now playing", queue: "Queue", lyrics: "Lyrics", devices: "Devices",
     miniPlayer: "Mini player", restorePlayer: "Restore player",
     nextUp: "Next up", fromAlbum: "From the album", aboutArtist: "About the artist",

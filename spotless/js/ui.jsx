@@ -208,77 +208,155 @@ const useLongPress = (onLong, ms = 450) => {
   };
 };
 
-// Сердечко: тап = лайк; удержание = шкала 1–10. Не отпуская палец, можно сразу вести
-// по шкале — оценка меняется на ходу, ставится при отпускании.
+// ---------- Лайк и оценка ----------
+// Модель — в app: toggleLike (тап) и setRating (1–10 или null). Здесь только взаимодействие:
+//  • RateScale — сама шкала 1–10: палец (тап и ведение), мышь (наведение и клик), клавиатура.
+//    Ничего не знает о том, где живёт: в окне оценки, в «пилюле» полного экрана, в панели плеера.
+//  • LikeButton — тап = лайк/снять; удержание = окно оценки. Не отпуская палец, можно вести
+//    по шкале: кнопка держит захват указателя и сама считает значение по прямоугольнику шкалы.
+//  • RatingPop — окно со шкалой. Рендерится в body (портал) и гасит свои события, чтобы родители
+//    (мини-плеер, строки, жесты полного экрана) их не видели.
+const HOLD_MS = 350;        // удержание до окна оценки
+const SLOP = 10;            // px: меньше — дрожание пальца, а не движение
+const RATE_LINGER = 1100;   // мс: после выбора окно ещё видно — можно поправить
+
+const rateAt = (el, x) => {
+  const r = el.getBoundingClientRect();
+  return Math.max(1, Math.min(10, Math.floor((x - r.left) / (r.width / 10)) + 1));
+};
+
+const RateScale = React.forwardRef(({ value, external = null, onCommit, variant = "pop", showValue = false, label }, ref) => {
+  const app = useApp();
+  const el = React.useRef(null);
+  React.useImperativeHandle(ref, () => el.current);
+  const [local, setLocal] = React.useState(null);
+  const pressing = React.useRef(false);
+  const shown = external != null ? external : local != null ? local : value;
+  const preview = (n, tick) => setLocal(prev => { if (prev !== n && tick) buzz(6); return n; });
+  const stop = (e) => e.stopPropagation();
+  return (
+    <span ref={el} className={"rate-scale rate-" + variant} role="slider" tabIndex={0}
+      aria-label={label || app.t.yourRating} aria-valuemin={1} aria-valuemax={10} aria-valuenow={shown || 0}
+      aria-valuetext={shown ? `${shown} / 10` : app.t.removeRating}
+      onPointerDown={(e) => { stop(e); if (e.button !== 0) return; e.currentTarget.setPointerCapture(e.pointerId); pressing.current = true; preview(rateAt(el.current, e.clientX), true); }}
+      onPointerMove={(e) => { stop(e); if (pressing.current) preview(rateAt(el.current, e.clientX), true); else if (e.pointerType === "mouse") preview(rateAt(el.current, e.clientX), false); }}
+      onPointerUp={(e) => { stop(e); if (!pressing.current) return; pressing.current = false; const n = rateAt(el.current, e.clientX); setLocal(null); onCommit(n); }}
+      onPointerCancel={() => { pressing.current = false; setLocal(null); }}
+      onPointerLeave={(e) => { if (!pressing.current && e.pointerType === "mouse") setLocal(null); }}
+      onClick={stop}
+      onKeyDown={(e) => {
+        const cur = shown || 0;
+        const k = { ArrowRight: Math.min(10, cur + 1), ArrowUp: Math.min(10, cur + 1), ArrowLeft: Math.max(1, cur - 1), ArrowDown: Math.max(1, cur - 1), Home: 1, End: 10 }[e.key];
+        if (k != null) { e.preventDefault(); setLocal(k); }
+        if (e.key === "Enter" && local != null) { e.preventDefault(); setLocal(null); onCommit(local); }
+      }}>
+      <span className="rate-cells">
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => {
+          const on = shown && n <= shown;
+          return (
+            <span key={n} className="rate-cell">
+              <i className={on ? (shown < 5 ? "is-bad" : "is-on") : ""} style={{ transform: n === shown && (local != null || external != null) ? "scale(1.3)" : "none" }}></i>
+            </span>
+          );
+        })}
+      </span>
+      {showValue && <span className="rate-val mono" aria-hidden="true">{shown || "–"}</span>}
+    </span>
+  );
+});
+
 const LikeButton = ({ trackId, size = 30, always = false }) => {
   const app = useApp();
   const st = app.trackState(trackId);
-  const [open, setOpen] = React.useState(null); // null | { scrub }
-  const [burst, setBurst] = React.useState(0);
   const btnRef = React.useRef(null);
-  const timer = React.useRef(null);
-  const longFired = React.useRef(false);
-  const startPt = React.useRef(null);
+  const scaleRef = React.useRef(null);
+  const [open, setOpen] = React.useState(false);
+  const [draft, setDraft] = React.useState(null);
+  const [justLiked, setJustLiked] = React.useState(false);
+  const closeTimer = React.useRef(null);
+  // Жест: press → (отпустил быстро) тап | (держит HOLD_MS) armed → (сдвинул > SLOP) scrub → отпустил = оценка
+  const g = React.useRef(null);
 
-  const down = (e) => {
-    e.stopPropagation();
-    if (e.button != null && e.button !== 0) return;
-    longFired.current = false;
-    startPt.current = [e.clientX, e.clientY];
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => { longFired.current = true; buzz(14); setOpen({ scrub: true }); }, 350);
+  const cancelClose = () => clearTimeout(closeTimer.current);
+  const closeLater = (ms) => { cancelClose(); closeTimer.current = setTimeout(() => setOpen(false), ms); };
+  React.useEffect(() => () => { cancelClose(); if (g.current) clearTimeout(g.current.timer); }, []);
+
+  const commit = (n) => { app.setRating(trackId, n); buzz(14); setDraft(null); closeLater(RATE_LINGER); };
+  const tap = () => {
+    const willLike = !(st.liked || st.rating != null);
+    setOpen(false);
+    app.toggleLike(trackId);
+    if (willLike) { buzz(10); setJustLiked(true); }
   };
-  const move = (e) => {
-    // до срабатывания удержания заметный сдвиг — это не нажатие
-    if (!longFired.current && startPt.current && Math.hypot(e.clientX - startPt.current[0], e.clientY - startPt.current[1]) > 12) {
-      clearTimeout(timer.current); startPt.current = null;
+
+  const onDown = (e) => {
+    e.stopPropagation();
+    if (e.button !== 0 || g.current) return;
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+    const s = { id: e.pointerId, x: e.clientX, y: e.clientY, phase: "press" };
+    s.timer = setTimeout(() => {
+      s.phase = "armed"; s.x = s.lastX != null ? s.lastX : s.x; s.y = s.lastY != null ? s.lastY : s.y;
+      cancelClose(); setDraft(null); setOpen(true); buzz(14);
+    }, HOLD_MS);
+    g.current = s;
+  };
+  const onMove = (e) => {
+    const s = g.current;
+    if (!s || e.pointerId !== s.id) return;
+    e.stopPropagation();
+    s.lastX = e.clientX; s.lastY = e.clientY;
+    const d = Math.hypot(e.clientX - s.x, e.clientY - s.y);
+    if (s.phase === "press" && d > SLOP) { clearTimeout(s.timer); g.current = null; return; } // это не нажатие, а движение
+    if (s.phase === "armed" && d > SLOP) s.phase = "scrub";
+    if (s.phase === "scrub" && scaleRef.current) {
+      const n = rateAt(scaleRef.current, e.clientX);
+      setDraft(prev => { if (prev !== n) buzz(6); return n; });
     }
   };
-  const up = (e) => {
+  const onUp = (e) => {
+    const s = g.current;
+    if (!s || e.pointerId !== s.id) return;
     e.stopPropagation();
-    clearTimeout(timer.current);
-    if (!longFired.current && !open && startPt.current) {
-      const willLike = !(st.liked || st.rating != null);
-      app.toggleLike(trackId);
-      if (willLike) { buzz(10); setBurst(Date.now()); }
-    }
-    startPt.current = null;
+    clearTimeout(s.timer);
+    g.current = null;
+    if (s.phase === "press") tap();
+    else if (s.phase === "scrub" && scaleRef.current) commit(rateAt(scaleRef.current, e.clientX));
+    // armed без движения: окно остаётся открытым — дальше можно тапать и водить по шкале
   };
-  React.useEffect(() => {
-    if (!burst) return;
-    const id = setTimeout(() => setBurst(0), 650);
-    return () => clearTimeout(id);
-  }, [burst]);
+  const onCancel = () => { const s = g.current; if (s) clearTimeout(s.timer); g.current = null; setDraft(null); };
+
   const lit = st.liked || st.rating != null;
   const neg = st.rating != null && st.rating < 5;
-  const label = st.rating != null ? `${app.t.yourRating}: ${st.rating}` : (st.liked ? app.t.liked || app.t.like : app.t.like);
+  const label = st.rating != null ? `${app.t.yourRating}: ${st.rating}` : app.t.like; // состояние — в aria-pressed
   return (
     <span style={{ position: "relative", display: "inline-flex" }}>
       <button ref={btnRef}
-        className={"iconbtn likebtn" + (neg ? " neg" : lit ? " hot" : "") + (burst ? " pop" : "")}
+        className={"iconbtn likebtn" + (neg ? " neg" : lit ? " hot" : "") + (justLiked ? " just-liked" : "")}
         style={{ width: size, height: size, opacity: (always || lit) ? 1 : undefined }}
-        title={app.t.holdHint} aria-label={label} aria-pressed={lit}
-        onPointerDown={down} onPointerMove={move} onPointerUp={up}
-        onPointerCancel={() => { clearTimeout(timer.current); startPt.current = null; }}
+        title={app.t.holdHint} aria-label={label} aria-pressed={lit} aria-haspopup="dialog" aria-expanded={open}
+        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
         onContextMenu={(e) => e.preventDefault()}
         onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); app.toggleLike(trackId); } }}
+        onAnimationEnd={() => setJustLiked(false)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tap(); }
+          if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); setOpen(true); }
+        }}
       >
-        <Ic d={neg ? ICONS.heartOff : ICONS.heart} size={size * 0.56}
-          fill={!neg && (st.liked || st.rating != null) ? "currentColor" : "none"} sw={1.8} />
+        <Ic d={neg ? ICONS.heartOff : ICONS.heart} size={size * 0.56} fill={!neg && lit ? "currentColor" : "none"} sw={1.8} />
       </button>
-      {burst > 0 && (
-        <span className="burst" key={burst} aria-hidden="true">
-          {[0, 1, 2, 3, 4, 5, 6, 7].map(i => <i key={i} style={{ "--a": `${i * 45}deg` }}></i>)}
-        </span>
-      )}
       {st.rating != null && (
         <span className="rate-n mono" style={{
           position: "absolute", top: -2, right: -4, fontSize: 10, fontWeight: 500,
           color: neg ? "var(--bad)" : "var(--text)", pointerEvents: "none",
         }}>{st.rating}</span>
       )}
-      {open && <RatingPop trackId={trackId} anchor={btnRef} scrub={open.scrub} close={() => setOpen(null)} />}
+      {open && (
+        <RatingPop trackId={trackId} anchor={btnRef} scaleRef={scaleRef} draft={draft}
+          onCommit={commit} onInteract={cancelClose}
+          onClear={() => { app.setRating(trackId, null); setOpen(false); }}
+          close={() => { cancelClose(); setDraft(null); setOpen(false); }} />
+      )}
     </span>
   );
 };
@@ -350,104 +428,56 @@ const usePopClamp = () => {
   return [ref, dx];
 };
 
-// Шкала оценки. Рендерится в body (портал), позиционируется от кнопки:
-// так её не обрезают прокручиваемые списки и анимированные контейнеры.
-// Мышь: наведение показывает значение, клик ставит. Палец: ведите по шкале — значение
-// меняется на ходу с лёгкой вибрацией на каждом делении, ставится при отпускании.
-const RatingPop = ({ trackId, anchor, scrub, close }) => {
+// Окно оценки. Позиционируется от кнопки, рендерится в body. Тап мимо или Esc — закрыть;
+// после выбора окно ещё RATE_LINGER мс на экране, любое касание внутри продлевает его.
+const RatingPop = ({ trackId, anchor, scaleRef, draft, onCommit, onClear, onInteract, close }) => {
   const app = useApp();
   const st = app.trackState(trackId);
-  const [hov, setHov] = React.useState(null);
   const [pos, setPos] = React.useState(null);
   const popRef = React.useRef(null);
-  const scaleRef = React.useRef(null);
-  const hovRef = React.useRef(null);
-  const done = React.useRef(false);
-  const shown = hov != null ? hov : st.rating;
+  const shown = draft != null ? draft : st.rating;
 
   React.useLayoutEffect(() => {
-    if (!popRef.current || !anchor || !anchor.current) return;
+    if (!popRef.current || !anchor.current) return;
     const a = anchor.current.getBoundingClientRect();
     const p = popRef.current.getBoundingClientRect();
-    const vw = window.innerWidth;
-    const left = Math.max(10, Math.min(vw - 10 - p.width, a.left + a.width / 2 - p.width / 2));
+    const left = Math.max(10, Math.min(window.innerWidth - 10 - p.width, a.left + a.width / 2 - p.width / 2));
     let top = a.top - p.height - 12;
     if (top < 10) top = a.bottom + 12;
     setPos({ left, top });
   }, []);
-
-  const valAt = (x) => {
-    const r = scaleRef.current.getBoundingClientRect();
-    return Math.max(1, Math.min(10, Math.floor((x - r.left) / (r.width / 10)) + 1));
-  };
-  const live = (n) => { if (n !== hovRef.current) { hovRef.current = n; setHov(n); if (n != null) buzz(6); } };
-  const commit = (n) => {
-    if (done.current) return;
-    done.current = true;
-    if (n != null) { app.setRating(trackId, n); buzz(14); }
-    close();
-  };
-
-  // Палец ещё на сердечке после удержания: слушаем движение по всему окну.
-  // Фаза перехвата обязательна — кнопка сердечка гасит всплытие своих событий.
   React.useEffect(() => {
-    if (!scrub) return;
-    let moved = false;
-    const mv = (e) => { if (!scaleRef.current) return; moved = true; live(valAt(e.clientX)); };
-    const up = () => { if (moved) commit(hovRef.current); };
-    window.addEventListener("pointermove", mv, true);
-    window.addEventListener("pointerup", up, true);
-    return () => { window.removeEventListener("pointermove", mv, true); window.removeEventListener("pointerup", up, true); };
-  }, []);
-  // Тап мимо закрывает; Esc тоже
-  React.useEffect(() => {
-    const h = (e) => { if (popRef.current && !popRef.current.contains(e.target)) close(); };
-    const k = (e) => { if (e.key === "Escape") close(); };
-    const id = setTimeout(() => window.addEventListener("pointerdown", h, true), 0);
-    window.addEventListener("keydown", k);
-    return () => { clearTimeout(id); window.removeEventListener("pointerdown", h, true); window.removeEventListener("keydown", k); };
+    const outside = (e) => {
+      if (popRef.current && popRef.current.contains(e.target)) return;
+      if (anchor.current && anchor.current.contains(e.target)) return; // сердечко решает само
+      close();
+    };
+    const key = (e) => { if (e.key === "Escape") close(); };
+    window.addEventListener("pointerdown", outside, true); // перехват: многие элементы гасят всплытие
+    window.addEventListener("keydown", key);
+    return () => { window.removeEventListener("pointerdown", outside, true); window.removeEventListener("keydown", key); };
   }, []);
 
-  const node = (
+  // Граница событий: портал всплывает по дереву React к родителям сердечка — не пускаем
+  const wall = (e) => e.stopPropagation();
+  return ReactDOM.createPortal(
     <div ref={popRef} className="pop fade-up ratepop" role="dialog" aria-label={app.t.yourRating}
-      onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => { wall(e); onInteract(); }} onPointerMove={wall} onPointerUp={wall} onClick={wall} onContextMenu={(e) => e.preventDefault()}
       style={{ position: "fixed", left: pos ? pos.left : -9999, top: pos ? pos.top : -9999, zIndex: 300 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <span className="mlabel">{app.t.yourRating}</span>
         <span className="dots" style={{ fontSize: 30, minWidth: 40, textAlign: "right", color: shown && shown < 5 ? "var(--bad)" : "var(--text)" }}>{shown || "–"}</span>
       </div>
-      <div ref={scaleRef} className="rate-scale" role="slider" aria-valuemin={1} aria-valuemax={10} aria-valuenow={shown || 0} tabIndex={0}
-        onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); live(valAt(e.clientX)); }}
-        onPointerMove={(e) => { if (e.pointerType === "mouse" && !e.buttons) { const n = valAt(e.clientX); if (n !== hovRef.current) { hovRef.current = n; setHov(n); } } else live(valAt(e.clientX)); }}
-        onPointerUp={(e) => commit(valAt(e.clientX))}
-        onPointerLeave={(e) => { if (e.pointerType === "mouse" && !e.buttons) { hovRef.current = null; setHov(null); } }}
-        onKeyDown={(e) => {
-          const cur = hovRef.current != null ? hovRef.current : (st.rating || 0);
-          if (e.key === "ArrowRight") { e.preventDefault(); live(Math.min(10, cur + 1)); }
-          if (e.key === "ArrowLeft") { e.preventDefault(); live(Math.max(1, cur - 1)); }
-          if (e.key === "Enter") { e.preventDefault(); commit(hovRef.current); }
-        }}>
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => {
-          const on = shown && n <= shown;
-          return (
-            <span key={n} className="rate-cell">
-              <span style={{
-                background: on ? (shown < 5 ? "var(--bad)" : "var(--hot)") : "var(--dot-off)",
-                transform: n === shown && hov != null ? "scale(1.3)" : "none",
-              }}></span>
-            </span>
-          );
-        })}
-      </div>
+      <RateScale ref={scaleRef} value={st.rating} external={draft} onCommit={onCommit} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginTop: 10 }}>
         <span style={{ fontSize: 12, color: "var(--mut)", lineHeight: 1.45 }}>{app.t.ratingHint}</span>
         {st.rating != null && (
-          <button className="more" style={{ fontSize: 12, flexShrink: 0 }} onClick={() => { done.current = true; app.setRating(trackId, null); close(); }}>{app.t.removeRating}</button>
+          <button className="more" style={{ fontSize: 12, flexShrink: 0 }} onClick={onClear}>{app.t.removeRating}</button>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
-  return ReactDOM.createPortal(node, document.body);
 };
 
 // Плюсик: поповер со списком плейлистов.
@@ -646,19 +676,27 @@ const MediaCard = ({ title, sub, hue, art, round, onClick, onPlay, ctx }) => {
 const Toasts = () => {
   const app = useApp();
   return (
-    <div className="toasts" role="status" aria-live="polite" style={{ position: "fixed", bottom: 116, left: "50%", transform: "translateX(-50%)", zIndex: 200, display: "flex", flexDirection: "column", gap: 8, alignItems: "center", pointerEvents: "none" }}>
+    <div className="toasts" role="status" aria-live="polite" style={{ position: "fixed", bottom: 116, left: 16, right: 16, zIndex: 200, display: "flex", flexDirection: "column", gap: 8, alignItems: "center", pointerEvents: "none" }}>
       {app.toasts.map(t => (
         <div key={t.id} className="fade-up" style={{
           background: "var(--text)", color: "var(--bg0)", borderRadius: 99,
-          padding: "11px 22px", fontSize: 13.5, fontWeight: 500, boxShadow: "var(--island-shadow)",
-          maxWidth: "calc(100vw - 32px)", textAlign: "center",
-        }}>{t.msg}</div>
+          padding: t.action ? "6px 6px 6px 22px" : "11px 22px", fontSize: 13.5, fontWeight: 500, boxShadow: "var(--island-shadow)",
+          maxWidth: "calc(100vw - 32px)", textAlign: "center", display: "flex", alignItems: "center", gap: 12,
+        }}>
+          <span style={{ textWrap: "balance" }}>{t.msg}</span>
+          {t.action && (
+            <button onClick={() => { t.action.run(); app.dismissToast(t.id); }} style={{
+              pointerEvents: "auto", minHeight: 36, padding: "0 16px", borderRadius: 99, fontWeight: 600,
+              background: "var(--bg0)", color: "var(--text)",
+            }}>{t.action.label}</button>
+          )}
+        </div>
       ))}
     </div>
   );
 };
 
-Object.assign(window, { buzz, isTouchUI, useLongPress, SheetGrip, Marquee, AppCtx, useApp, Ic, ICONS, Cover, coverBg, ALBUM_ART, ARTIST_ART, DotBar, DotTime, RateDots, useWidth, LikeButton, RatingPop, PlusButton, DonateButton, DLButton, TrackRow, MediaCard, Toasts, usePopClamp });
+Object.assign(window, { buzz, isTouchUI, useLongPress, SheetGrip, Marquee, RateScale, AppCtx, useApp, Ic, ICONS, Cover, coverBg, ALBUM_ART, ARTIST_ART, DotBar, DotTime, RateDots, useWidth, LikeButton, RatingPop, PlusButton, DonateButton, DLButton, TrackRow, MediaCard, Toasts, usePopClamp });
 
 // Деньги: в русском интерфейсе — десятичная запятая ($1,90), в английском — точка
 const fmtMoney = (n, lang, keepZeros) => {

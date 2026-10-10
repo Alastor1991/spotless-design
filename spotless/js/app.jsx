@@ -92,22 +92,33 @@ const App = () => {
   const queueIds = queue;
 
   // API
-  const trackState = (id) => {
+  // —— Реакция на трек: лайк и оценка ——
+  // Одно место правды. Инвариант: оценка 5–10 — трек в любимых, 1–4 — «не нравится» (не в любимых),
+  // без оценки — просто лайк или ничего. Состояние считается из переданного снимка (stateFrom),
+  // чтобы функциональные обновления не читали устаревшее замыкание.
+  const stateFrom = (all, id) => {
     const base = DB.trackIndex[id] || {};
-    const o = trackStates[id] || {};
-    return {
-      liked: o.liked != null ? o.liked : !!base.liked,
-      rating: o.rating !== undefined ? o.rating : (base.rating != null ? base.rating : null),
-      playlists: o.playlists || [],
-    };
+    const o = all[id] || {};
+    const rating = o.rating !== undefined ? o.rating : (base.rating != null ? base.rating : null);
+    const liked = rating != null ? rating >= 5 : (o.liked != null ? o.liked : !!base.liked);
+    return { liked, rating, playlists: o.playlists || [] };
   };
-  const patchTrack = (id, patch) => setTrackStates(s => ({ ...s, [id]: { ...trackState(id), ...patch } }));
+  const trackState = (id) => stateFrom(trackStates, id);
+  const patchTrack = (id, patch) => setTrackStates(all => ({ ...all, [id]: { ...stateFrom(all, id), ...patch } }));
+  // Тап по сердечку: пустое — лайк; горящее (лайк или любая оценка) — снять всё одним касанием.
+  // Оценку жалко терять случайно, поэтому в тосте есть «Вернуть».
   const toggleLike = (id) => {
-    const v = !trackState(id).liked;
-    patchTrack(id, { liked: v });
-    if (v) hint("rate", t.holdHint);
+    const s = trackState(id);
+    if (s.liked || s.rating != null) {
+      patchTrack(id, { liked: false, rating: null });
+      if (s.rating != null) toast(t.ratingRemoved(s.rating), { label: t.undo, run: () => patchTrack(id, { liked: s.liked, rating: s.rating }) });
+    } else {
+      patchTrack(id, { liked: true });
+      hint("rate", t.holdHint);
+    }
   };
-  const setRating = (id, r) => patchTrack(id, { rating: r, liked: r == null ? trackState(id).liked : r >= 5 });
+  // Оценка 1–10 или null («Убрать оценку»: лайк остаётся, если оценка была 5+)
+  const setRating = (id, r) => patchTrack(id, r == null ? { rating: null } : { rating: r, liked: r >= 5 });
 
   // —— Плейлисты ——
   // Базовый состав лежит в DB (tracks), пользовательские добавления — в trackStates,
@@ -290,11 +301,13 @@ const App = () => {
     setHints(h => ({ ...h, [key]: 1 }));
     setTimeout(() => toast(msg), 700);
   };
-  const toast = (msg) => {
+  // Тост; action — { label, run } для «Вернуть» и подобного: такой живёт дольше
+  const toast = (msg, action) => {
     const id = Date.now() + Math.random();
-    setToasts(ts => [...ts, { id, msg }]);
-    setTimeout(() => setToasts(ts => ts.filter(x => x.id !== id)), 2400);
+    setToasts(ts => [...ts, { id, msg, action }]);
+    setTimeout(() => setToasts(ts => ts.filter(x => x.id !== id)), action ? 4500 : 2400);
   };
+  const dismissToast = (id) => setToasts(ts => ts.filter(x => x.id !== id));
   const setTheme = (th) => setThemeRaw(th);
   const setAccent = (h) => setSettings(s => ({ ...s, accent: h }));
   const setWallpaper = (h) => setSettings(s => ({ ...s, wallpaper: h, wallpaperImg: null }));
@@ -325,7 +338,7 @@ const App = () => {
     device, setDevice,
     notifRead, setNotifRead, hint,
     lyricsFor: DB.lyricsFor,
-    toasts, toast, finishOnboarding,
+    toasts, toast, dismissToast, finishOnboarding,
   };
 
   if (!onboarded) {

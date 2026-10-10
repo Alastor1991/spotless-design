@@ -113,7 +113,9 @@ const ContextMenu = () => {
         <MenuRow icon="queue" label={t.addToQueue} onClick={() => { app.addToQueue(c.id); X(); }} />
         <MenuRow icon="plus" label={t.addToPlaylist} chev={true} onClick={() => setSub("pl")} />
         <MenuDivider />
-        <MenuRow icon={st.liked ? "heartOff" : "heart"} label={st.liked ? t.unlike : t.like} onClick={() => { app.toggleLike(c.id); X(); }} />
+        <MenuRow icon={st.liked || st.rating != null ? "heartOff" : "heart"}
+          label={st.rating != null ? t.removeRating : st.liked ? t.unlike : t.like}
+          onClick={() => { st.rating != null ? app.setRating(c.id, null) : app.toggleLike(c.id); X(); }} />
         <MenuRow icon="downloadCircle" label={dl ? t.dlRemove : t.download} onClick={() => { app.toggleDl(c.id); X(); }} />
         <MenuRow icon="dollar" label={t.donate} onClick={() => { app.openDonate({ kind: "track", id: c.id }); X(); }} />
         <MenuDivider />
