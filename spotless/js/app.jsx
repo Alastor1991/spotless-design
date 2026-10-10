@@ -267,6 +267,8 @@ const App = () => {
   const [ctx, setCtx] = React.useState(null);
   const openCtx = (e, payload) => { e.preventDefault(); e.stopPropagation(); setCtx({ x: e.clientX, y: e.clientY, ...payload }); };
   const openCtxAt = (el, payload) => { const r = el.getBoundingClientRect(); setCtx({ x: r.left, y: r.bottom + 8, ...payload }); };
+  // Долгое нажатие пальцем: меню у точки касания
+  const openCtxPoint = (x, y, payload) => setCtx({ x, y, ...payload });
   const closeCtx = () => setCtx(null);
   // Устройства, уведомления, одноразовые подсказки
   const [device, setDevice] = React.useState("this");
@@ -319,7 +321,7 @@ const App = () => {
     donateTarget, openDonate, closeDonate,
     topUp, openTopUp, closeTopUp,
     createPl, openCreatePl, closeCreatePl,
-    ctx, openCtx, openCtxAt, closeCtx,
+    ctx, openCtx, openCtxAt, openCtxPoint, closeCtx,
     device, setDevice,
     notifRead, setNotifRead, hint,
     lyricsFor: DB.lyricsFor,
@@ -468,6 +470,26 @@ const TopBar = () => {
   const app = useApp();
   const t = app.t;
   const [bellOpen, setBellOpen] = React.useState(false);
+  // Телефон: когда заголовок страницы уезжает под шапку, его имя появляется в самой шапке,
+  // а на страницах с большой кнопкой «Слушать» — и маленькая её копия
+  const barRef = React.useRef(null);
+  const [sc, setSc] = React.useState({ edge: false, title: null, play: false });
+  React.useEffect(() => {
+    if (!app.phone || !barRef.current) return;
+    const m = barRef.current.closest(".main");
+    if (!m) return;
+    const h = () => {
+      const bar = barRef.current.getBoundingClientRect();
+      const h1 = m.querySelector("h1");
+      const pb = m.querySelector(".playbig");
+      const past = h1 && h1.getBoundingClientRect().bottom < bar.bottom - 4;
+      const next = { edge: m.scrollTop > 2, title: past ? h1.textContent : null, play: !!(pb && pb.getBoundingClientRect().bottom < bar.bottom) };
+      setSc(p => (p.edge === next.edge && p.title === next.title && p.play === next.play) ? p : next);
+    };
+    h();
+    m.addEventListener("scroll", h, { passive: true });
+    return () => m.removeEventListener("scroll", h);
+  }, [app.phone, app.route.page, app.route.id]);
   const bell = (
     <span style={{ position: "relative", display: "inline-flex" }}>
       <button className={"iconbtn" + (bellOpen ? " lit" : "")} style={{ width: 44, height: 44 }} title={t.notifTitle} aria-label={t.notifTitle} aria-expanded={bellOpen}
@@ -489,20 +511,30 @@ const TopBar = () => {
   // Телефон: на вкладках — логотип, внутри разделов — «Назад»; настройки — шестерёнкой
   if (app.phone) {
     const isTab = MOB_TABS.some(([p]) => p === app.route.page);
+    const playFromPage = () => { const b = barRef.current && barRef.current.closest(".main").querySelector(".playbig"); if (b) b.click(); };
     return (
-      <div className="topbar">
-        {isTab ? (
-          <button style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 4 }} onClick={() => app.go("home")} aria-label="Spotless">
-            <span className="dots" style={{ fontSize: 20, letterSpacing: "0.02em" }}>SPOTLESS</span>
-            <span className="hot-dot"></span>
-          </button>
-        ) : (
-          <button className="iconbtn ring" style={{ width: 44, height: 44 }} aria-label={app.lang === "ru" ? "Назад" : "Back"}
+      <div ref={barRef} className={"topbar" + (sc.edge ? " edge" : "")}>
+        {!isTab && (
+          <button className="iconbtn ring" style={{ width: 44, height: 44, flexShrink: 0 }} aria-label={app.lang === "ru" ? "Назад" : "Back"}
             onClick={() => app.history.length ? app.goBack() : app.go("home")}>
             <Ic d={ICONS.back} size={18} />
           </button>
         )}
-        <div style={{ flex: 1 }}></div>
+        {/* Логотип и заголовок делят одно место: при прокрутке одно сменяет другое */}
+        <div className={"tb-mid" + (sc.title ? " on" : "")}>
+          {isTab && (
+            <button className="tb-logo" onClick={() => app.go("home")} aria-label="Spotless">
+              <span className="dots" style={{ fontSize: 20, letterSpacing: "0.02em" }}>SPOTLESS</span>
+              <span className="hot-dot"></span>
+            </button>
+          )}
+          <div className="tb-title" aria-hidden={!sc.title}>
+            <span>{sc.title}</span>
+            {sc.play && (
+              <button className="tb-play" aria-label={app.t.play} onClick={playFromPage}><Ic d={ICONS.play} size={14} fill="currentColor" /></button>
+            )}
+          </div>
+        </div>
         {bell}
         <button className={"iconbtn" + (app.route.page === "settings" ? " lit" : "")} style={{ width: 44, height: 44 }} title={t.settings} aria-label={t.settings} onClick={() => app.go("settings")}>
           <Ic d={ICONS.gear} size={19} />
@@ -550,11 +582,22 @@ const MobileNav = () => {
   const cur = TAB_OF[app.route.page];
   if (cur) last.current = cur;
   const active = cur || last.current;
+  // Каждая вкладка помнит, где вы остановились; повторный тап по открытой — плавно наверх
+  const memo = React.useRef({});
+  const tap = (p) => {
+    const m = document.querySelector(".main");
+    if (app.route.page === p) { if (m) m.scrollTo({ top: 0, behavior: "smooth" }); return; }
+    if (m && MOB_TABS.some(([q]) => q === app.route.page)) memo.current[app.route.page] = m.scrollTop;
+    buzz(5);
+    app.go(p);
+    const y = memo.current[p];
+    if (y) requestAnimationFrame(() => requestAnimationFrame(() => { const mm = document.querySelector(".main"); if (mm) mm.scrollTop = y; }));
+  };
   return (
     <nav className="mobnav" aria-label={app.lang === "ru" ? "Разделы" : "Sections"}>
       {MOB_TABS.map(([p, ic]) => (
         <button key={p} className={"mn-item" + (active === p ? " active" : "")} aria-current={app.route.page === p ? "page" : undefined}
-          onClick={() => app.go(p)}>
+          onClick={() => tap(p)}>
           <Ic d={ICONS[ic]} size={22} />
           <span className="mn-label">{active === p && <span className="hot-dot"></span>}{p === "support" ? t.navSupport : t[p]}</span>
         </button>

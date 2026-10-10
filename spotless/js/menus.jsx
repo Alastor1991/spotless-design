@@ -20,6 +20,37 @@ const MenuRow = ({ icon, label, danger, chev, check, onClick }) => (
 
 const MenuDivider = () => <div className="divider" style={{ margin: "5px 4px" }}></div>;
 
+// Шапка меню-листа на телефоне: что именно мы сейчас настраиваем
+const CtxHead = ({ c }) => {
+  const app = useApp();
+  const t = app.t;
+  const ru = app.lang === "ru";
+  let art, hue, title, sub, round = false;
+  if (c.kind === "track") {
+    const tr = DB.trackIndex[c.id]; const al = DB.albums[tr.album];
+    art = al.id; hue = al.hue; title = tr.t; sub = DB.artists[tr.artist].name + " · " + al.title;
+  } else if (c.kind === "album") {
+    const al = DB.albums[c.id];
+    art = al.id; hue = al.hue; title = al.title; sub = t[al.type] + " · " + DB.artists[al.artist].name;
+  } else if (c.kind === "artist") {
+    const ar = DB.artists[c.id];
+    art = "ar:" + ar.id; hue = ar.hue; title = ar.name; sub = ru ? "Артист" : "Artist"; round = true;
+  } else if (c.kind === "playlist") {
+    const pl = app.findPl(c.id);
+    if (!pl) return null;
+    hue = pl.hue; title = ru ? pl.name : (pl.nameEn || pl.name); sub = `${app.playlistTracks(c.id).length} ${t.tracksN}`;
+  } else return null;
+  return (
+    <div className="ctx-head">
+      <Cover art={art} hue={hue} size={48} radius={10} round={round} />
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 16, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</div>
+        <div className="mlabel" style={{ marginTop: 5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sub}</div>
+      </div>
+    </div>
+  );
+};
+
 // Глобальное контекстное меню. Открывается ПКМ (строки, карточки) и кнопками «⋯».
 const ContextMenu = () => {
   const app = useApp();
@@ -29,7 +60,8 @@ const ContextMenu = () => {
   const [pos, setPos] = React.useState(null);
   const ref = React.useRef(null);
 
-  React.useEffect(() => { setSub(null); }, [c]);
+  const openedAt = React.useRef(0);
+  React.useEffect(() => { setSub(null); openedAt.current = Date.now(); }, [c]);
   React.useLayoutEffect(() => {
     if (!c || !ref.current) return;
     const r = ref.current.getBoundingClientRect();
@@ -40,11 +72,13 @@ const ContextMenu = () => {
   }, [c, sub]);
   React.useEffect(() => {
     if (!c) return;
-    const close = () => app.closeCtx();
+    // Меню могло открыться долгим нажатием: первые мгновения игнорируем «отпускание» пальца
+    const opened = Date.now();
+    const close = (e) => { if (Date.now() - opened < 400) return; if (ref.current && ref.current.contains(e.target)) return; app.closeCtx(); };
     const key = (e) => { if (e.key === "Escape") app.closeCtx(); };
-    window.addEventListener("mousedown", close);
+    window.addEventListener("pointerdown", close, true);
     window.addEventListener("keydown", key);
-    return () => { window.removeEventListener("mousedown", close); window.removeEventListener("keydown", key); };
+    return () => { window.removeEventListener("pointerdown", close, true); window.removeEventListener("keydown", key); };
   }, [c]);
 
   if (!c) return null;
@@ -147,6 +181,19 @@ const ContextMenu = () => {
     );
   }
 
+  // Телефон: то же меню, но листом снизу — с шапкой, крупными строками и смахиванием вниз
+  if (app.phone) {
+    return (
+      <div className="scrim fade-in ctx-scrim" onClick={() => { if (Date.now() - openedAt.current > 450) X(); }}>
+        <div ref={ref} className="modal ctx-sheet" role="menu" onClick={(e) => e.stopPropagation()} onContextMenu={(e) => e.preventDefault()}>
+          <SheetGrip onClose={X} />
+          {sub !== "pl" && <CtxHead c={c} />}
+          {content}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div ref={ref} className="pop fade-in"
       onMouseDown={(e) => e.stopPropagation()}
@@ -224,6 +271,7 @@ const CreatePlaylistModal = () => {
   return (
     <div className="scrim fade-in" onClick={() => app.closeCreatePl()}>
       <div className="modal fade-up" onClick={(e) => e.stopPropagation()} style={{ width: 420 }} data-screen-label="Новый плейлист">
+        <SheetGrip onClose={() => app.closeCreatePl()} />
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
           <div style={{ fontSize: 18, fontWeight: 800 }}>{t.newPlaylist}</div>
           <button className="iconbtn" onClick={() => app.closeCreatePl()}><Ic d={ICONS.x} size={16} /></button>

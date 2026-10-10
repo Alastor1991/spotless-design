@@ -662,17 +662,44 @@ const MobilePlayer = () => {
   const ar = DB.artists[tr.artist];
   const docked = app.settings.island === "panel";
   const stop = (e) => e.stopPropagation();
+  // Жесты: вбок — следующий/предыдущий трек, вверх — развернуть. Тап тоже разворачивает.
+  const rowRef = React.useRef(null);
+  const g = React.useRef(null);
+  const swallow = React.useRef(false);
+  const onDown = (e) => {
+    swallow.current = false; // гасим только клик, рождённый самим жестом
+    if (e.target.closest("button, .dotbar.seek")) return;
+    g.current = { x: e.clientX, y: e.clientY, dx: 0, dy: 0 };
+  };
+  const onMove = (e) => {
+    const s = g.current; if (!s) return;
+    s.dx = e.clientX - s.x; s.dy = e.clientY - s.y;
+    const r = rowRef.current;
+    if (r && Math.abs(s.dx) > Math.abs(s.dy)) {
+      r.style.transition = "none";
+      r.style.transform = `translateX(${s.dx * 0.45}px)`;
+      r.style.opacity = String(1 - Math.min(0.6, Math.abs(s.dx) / 320));
+    }
+  };
+  const onUp = () => {
+    const s = g.current; g.current = null; if (!s) return;
+    const r = rowRef.current;
+    if (r) { r.style.transition = "transform .22s cubic-bezier(.2,.8,.2,1), opacity .22s"; r.style.transform = ""; r.style.opacity = ""; }
+    if (Math.abs(s.dx) > 64 && Math.abs(s.dx) > Math.abs(s.dy) * 1.2) { swallow.current = true; buzz(8); s.dx < 0 ? app.nextTrack() : app.prevTrack(); }
+    else if (s.dy < -36 && Math.abs(s.dy) > Math.abs(s.dx)) { swallow.current = true; app.setFull(true); }
+  };
   return (
     <div className={"mplayer" + (docked ? " docked" : app.settings.island === "square" ? " square" : "")} data-screen-label="Мини-плеер (телефон)"
-      onClick={() => app.setFull(true)} role="button" aria-label={app.t.openFull + ": " + tr.t}>
+      onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { g.current = null; }}
+      onClick={() => { if (swallow.current) { swallow.current = false; return; } app.setFull(true); }} role="button" aria-label={app.t.openFull + ": " + tr.t}>
       {docked && <div onClick={stop} style={{ display: "flex" }}><DotBar pct={app.player.pct} pitch={6} onSeek={app.seek} label={app.lang === "ru" ? "Перемотка" : "Seek"} /></div>}
-      <div className="mp-row">
-        <Cover art={al.id} hue={al.hue} size={42} round={true} />
-        <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: docked ? 3 : 6 }}>
+      <div className="mp-row" ref={rowRef}>
+        <span key={"c" + tr.id} className="mp-swap" style={{ display: "inline-flex", flexShrink: 0 }}><Cover art={al.id} hue={al.hue} size={42} round={true} /></span>
+        <div key={"t" + tr.id} className="mp-swap" style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: docked ? 3 : 6 }}>
           <span style={{ fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tr.t}{!docked && <span style={{ color: "var(--mut2)" }}> · {ar.name}</span>}</span>
           {docked
             ? <span className="mlabel" style={{ fontSize: 10, letterSpacing: "0.08em" }}>{ar.name} · {app.fmtTime(app.player.pct).padStart(5, "0")}</span>
-            : <div onClick={stop}><DotBar pct={app.player.pct} pitch={5} r={1.4} onSeek={app.seek} label={app.lang === "ru" ? "Перемотка" : "Seek"} /></div>}
+            : <DotBar pct={app.player.pct} pitch={5} r={1.4} label={app.lang === "ru" ? "Прогресс трека" : "Track progress"} />}
         </div>
         <span onClick={stop} style={{ display: "inline-flex" }}><LikeButton trackId={tr.id} always={true} size={44} /></span>
         <span onClick={stop} style={{ display: "inline-flex" }}><PlayBtn size={44} /></span>
@@ -703,8 +730,53 @@ const FullScreenPhone = () => {
   const [m, s] = tr.dur.split(":").map(Number);
   const left = Math.max(0, Math.round((m * 60 + s) * (1 - app.player.pct)));
   const toggle = (v) => setView(view === v ? "cover" : v);
+
+  // Жесты: тянуть вниз — экран едет за пальцем и сворачивается; вбок по обложке — соседний трек
+  const rootRef = React.useRef(null);
+  const coverRef = React.useRef(null);
+  const g = React.useRef(null);
+  const [dir, setDir] = React.useState(0);
+  const onDown = (e) => {
+    if (e.target.closest("button, input, .dotbar.seek, .fsp-scroll, [role=slider]")) return;
+    g.current = { x: e.clientX, y: e.clientY, t: Date.now(), dx: 0, dy: 0, axis: null, onCover: !!e.target.closest(".fsp-stage") && view === "cover" };
+  };
+  const onMove = (e) => {
+    const s = g.current; if (!s) return;
+    s.dx = e.clientX - s.x; s.dy = e.clientY - s.y;
+    if (!s.axis && Math.hypot(s.dx, s.dy) > 8) s.axis = Math.abs(s.dy) > Math.abs(s.dx) ? "v" : (s.onCover ? "h" : null);
+    if (s.axis === "v" && rootRef.current) {
+      const el = rootRef.current;
+      el.style.transition = "none";
+      el.style.transform = `translateY(${Math.max(0, s.dy)}px)`;
+      el.style.borderRadius = s.dy > 0 ? "28px 28px 0 0" : "";
+    }
+    if (s.axis === "h" && coverRef.current) {
+      coverRef.current.style.transition = "none";
+      coverRef.current.style.transform = `translateX(${s.dx * 0.6}px) rotate(${s.dx * 0.02}deg)`;
+    }
+  };
+  const onUp = () => {
+    const s = g.current; g.current = null; if (!s) return;
+    const v = s.dy / Math.max(1, Date.now() - s.t);
+    if (s.axis === "v" && rootRef.current) {
+      const el = rootRef.current;
+      el.style.transition = "transform .24s cubic-bezier(.2,.8,.2,1), border-radius .24s";
+      if (s.dy > 140 || v > 0.7) { el.style.transform = "translateY(100%)"; buzz(8); setTimeout(() => app.setFull(false), 210); }
+      else { el.style.transform = ""; el.style.borderRadius = ""; }
+    }
+    if (s.axis === "h" && coverRef.current) {
+      coverRef.current.style.transition = "transform .22s cubic-bezier(.2,.8,.2,1)";
+      coverRef.current.style.transform = "";
+      if (Math.abs(s.dx) > 70) { buzz(8); setDir(s.dx < 0 ? 1 : -1); s.dx < 0 ? app.nextTrack() : app.prevTrack(); }
+    }
+  };
+  // Едва заметное свечение цветом обложки поверх точечной сетки
+  const glow = `radial-gradient(120% 55% at 50% 18%, color-mix(in oklab, oklch(0.62 0.12 ${al.hue}) 16%, transparent), transparent 72%), radial-gradient(circle, var(--bg2) 0 1.1px, transparent 1.5px) 0 0 / 16px 16px, var(--bg0)`;
   return (
-    <div className="fade-in fsp" role="dialog" aria-label={t.nowPlaying} data-screen-label="Полный экран (телефон)">
+    <div ref={rootRef} className="fade-in fsp" role="dialog" aria-label={t.nowPlaying} data-screen-label="Полный экран (телефон)"
+      style={{ background: glow }}
+      onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
+      <span className="fsp-handle" aria-hidden="true"></span>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         <button className="iconbtn ring" style={{ width: 44, height: 44 }} aria-label={t.collapse} onClick={() => app.setFull(false)}><Ic d={ICONS.chevD} size={18} /></button>
         <button onClick={() => { app.setFull(false); app.go("album", al.id); }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, minWidth: 0 }}>
@@ -719,7 +791,11 @@ const FullScreenPhone = () => {
       <div className="fsp-stage">
         {view === "cover" && (
           <React.Fragment>
-            <Cover art={al.id} hue={al.hue} glyph={glyph} radius={28} size="max(120px, min(100cqw, 100cqh - 52px))" style={{ "--gp": "9px", "--gr": "3px" }} />
+            <div ref={coverRef} style={{ display: "flex", justifyContent: "center" }}>
+              <div key={tr.id} className={"fsp-cover" + (dir > 0 ? " from-r" : dir < 0 ? " from-l" : "")}>
+                <Cover art={al.id} hue={al.hue} glyph={glyph} radius={28} size="max(120px, min(100cqw, 100cqh - 52px))" style={{ "--gp": "9px", "--gr": "3px" }} />
+              </div>
+            </div>
             <div role="radiogroup" aria-label={app.lang === "ru" ? "Вид обложки" : "Cover style"} style={{ display: "flex", gap: 2, padding: 3, borderRadius: 99, boxShadow: "inset 0 0 0 1px var(--bg3)" }}>
               <button role="radio" aria-checked={!glyph} className="mono" onClick={() => setGlyph(false)} style={{ height: 32, padding: "0 14px", borderRadius: 16, fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", background: !glyph ? "var(--acc)" : "transparent", color: !glyph ? "var(--acc-ink)" : "var(--mut)" }}>{t.viewCover}</button>
               <button role="radio" aria-checked={glyph} className="mono" onClick={() => setGlyph(true)} style={{ height: 32, padding: "0 14px", borderRadius: 16, fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", background: glyph ? "var(--acc)" : "transparent", color: glyph ? "var(--acc-ink)" : "var(--mut)" }}>{t.viewGlyph}</button>
@@ -727,7 +803,7 @@ const FullScreenPhone = () => {
           </React.Fragment>
         )}
         {view === "lyrics" && lines && (
-          <div ref={lyricsRef} style={{ position: "relative", alignSelf: "stretch", flex: 1, overflowY: "auto", maskImage: "linear-gradient(180deg, transparent, black 12%, black 85%, transparent)", WebkitMaskImage: "linear-gradient(180deg, transparent, black 12%, black 85%, transparent)" }}>
+          <div ref={lyricsRef} className="fsp-scroll" style={{ position: "relative", alignSelf: "stretch", flex: 1, overflowY: "auto", maskImage: "linear-gradient(180deg, transparent, black 12%, black 85%, transparent)", WebkitMaskImage: "linear-gradient(180deg, transparent, black 12%, black 85%, transparent)" }}>
             <div style={{ height: "30%" }}></div>
             {lines.map((l, i) => (
               <p key={i} data-active={i === activeIdx ? "1" : "0"} onClick={() => app.seekTo(l.at)} style={{ fontSize: i === activeIdx ? 26 : 22, lineHeight: 1.25, letterSpacing: "-0.02em", padding: "6px 0", color: i === activeIdx ? "var(--text)" : "var(--mut2)", opacity: i === activeIdx ? 1 : 0.7, transition: "color 0.3s" }}>{l.l}</p>
@@ -736,13 +812,13 @@ const FullScreenPhone = () => {
           </div>
         )}
         {view === "queue" && (
-          <div style={{ alignSelf: "stretch", flex: 1, overflowY: "auto" }}><QueueList current={tr.id} /></div>
+          <div className="fsp-scroll" style={{ alignSelf: "stretch", flex: 1, overflowY: "auto" }}><QueueList current={tr.id} /></div>
         )}
       </div>
 
       <div style={{ display: "flex", alignItems: "flex-end", gap: 12 }}>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: "clamp(22px, 7vw, 28px)", fontWeight: 300, letterSpacing: "-0.045em", lineHeight: 1.1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tr.t}</div>
+          <Marquee key={tr.id} style={{ fontSize: "clamp(22px, 7vw, 28px)", fontWeight: 300, letterSpacing: "-0.045em", lineHeight: 1.15 }}>{tr.t}</Marquee>
           <button style={{ fontSize: 15, color: "var(--mut)", marginTop: 6 }} onClick={() => { app.setFull(false); app.go("artist", ar.id); }}>{ar.name}</button>
         </div>
         <span className="fsp-like" style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 44, padding: "0 14px 0 2px", borderRadius: 22, boxShadow: "inset 0 0 0 1px var(--bg3)", flexShrink: 0 }}>

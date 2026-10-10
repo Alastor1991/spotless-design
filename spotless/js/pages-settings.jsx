@@ -75,6 +75,7 @@ const GalleryModal = ({ close }) => {
   return (
     <div className="scrim fade-in" onClick={close}>
       <div className="modal fade-up" onClick={(e) => e.stopPropagation()} style={{ width: 560 }} data-screen-label="Галерея тем">
+        <SheetGrip onClose={close} />
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
           <div style={{ fontSize: 18, fontWeight: 800 }}>{t.stThemeGallery}</div>
           <button className="iconbtn" onClick={close}><Ic d={ICONS.x} size={16} /></button>
@@ -117,6 +118,7 @@ const TxModal = ({ close }) => {
   return (
     <div className="scrim fade-in" onClick={close}>
       <div className="modal fade-up" onClick={(e) => e.stopPropagation()} style={{ width: 480 }} data-screen-label="Транзакции">
+        <SheetGrip onClose={close} />
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
           <div style={{ fontSize: 18, fontWeight: 800 }}>{t.stTx}</div>
           <button className="iconbtn" onClick={close}><Ic d={ICONS.x} size={16} /></button>

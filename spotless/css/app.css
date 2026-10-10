@@ -437,7 +437,7 @@ input, textarea { font-family: inherit; }
 }
 [data-theme="dot"] .pop { background: #111111; border-color: var(--bg3); box-shadow: 0 16px 40px #000; }
 .scrim {
-  position: fixed; inset: 0; background: var(--scrim); z-index: 80;
+  position: fixed; inset: 0; background: var(--scrim); z-index: 120;
   display: flex; align-items: center; justify-content: center;
 }
 .modal {
@@ -692,7 +692,6 @@ input, textarea { font-family: inherit; }
     width: 100% !important; max-width: none; max-height: 90dvh; border-radius: 28px 28px 0 0;
     border-bottom: none; padding: 22px 18px calc(22px + env(safe-area-inset-bottom));
   }
-  .modal::before { content: ""; display: block; width: 36px; height: 4px; border-radius: 2px; background: var(--bg3); margin: -10px auto 14px; }
   .bellpop { position: fixed !important; top: 64px !important; left: 12px !important; right: 12px !important; width: auto !important; }
 }
 
@@ -734,4 +733,95 @@ input, textarea { font-family: inherit; }
   [data-density="s"] .cardrow:not(.hscroll) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   [data-density="c"] .cardrow.hscroll > * { flex-basis: 116px; }
   [data-density="s"] .cardrow.hscroll > * { flex-basis: 164px; }
+}
+
+/* ---------- Мелочи интерфейса: оценка, лайк, листы, жесты, отклик ---------- */
+html { -webkit-tap-highlight-color: transparent; }
+button { touch-action: manipulation; }
+
+/* Шкала оценки: ведите пальцем, значение меняется на ходу */
+.ratepop { width: min(300px, calc(100vw - 20px)); padding: 12px 14px 12px; }
+.rate-scale { display: flex; touch-action: none; cursor: pointer; user-select: none; -webkit-user-select: none; border-radius: 12px; outline-offset: 4px; }
+.rate-cell { flex: 1; height: 30px; display: flex; align-items: center; justify-content: center; }
+.rate-cell > span { width: 14px; height: 14px; border-radius: 50%; transition: background 0.08s, transform 0.12s cubic-bezier(.3,1.6,.5,1); }
+.likebtn { touch-action: none; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+
+/* Лайк: сердце подпрыгивает, точки разлетаются */
+.likebtn.pop svg { animation: likepop 0.38s cubic-bezier(.3,1.6,.5,1); }
+@keyframes likepop { 0% { transform: scale(0.6); } 60% { transform: scale(1.22); } 100% { transform: scale(1); } }
+.burst { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; z-index: 2; }
+.burst i { position: absolute; left: -2px; top: -2px; width: 4px; height: 4px; border-radius: 50%; background: var(--hot);
+  animation: burst 0.6s cubic-bezier(.2,.8,.2,1) forwards; }
+@keyframes burst {
+  0% { transform: rotate(var(--a)) translateY(-6px) scale(1); opacity: 1; }
+  100% { transform: rotate(var(--a)) translateY(-24px) scale(0.3); opacity: 0; }
+}
+
+/* Нижние листы: ручка видна только на телефоне */
+.sheet-grip { display: none; }
+.ctx-scrim { z-index: 140; }
+.ctx-head { display: flex; align-items: center; gap: 14px; padding: 2px 12px 14px; margin-bottom: 6px; border-bottom: 1px solid var(--line); }
+
+/* Мини-плеер и полный экран: смена трека и жесты */
+.mp-swap { animation: mpswap 0.28s ease both; }
+@keyframes mpswap { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+.mplayer { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.mp-row { will-change: transform; }
+.fsp { touch-action: none; overscroll-behavior: contain; -webkit-user-select: none; user-select: none; }
+.fsp-scroll { touch-action: pan-y; overscroll-behavior: contain; }
+.fsp-handle { position: absolute; top: 6px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--bg3); }
+.fsp-cover.from-r { animation: coverR 0.32s cubic-bezier(.2,.8,.2,1) both; }
+.fsp-cover.from-l { animation: coverL 0.32s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes coverR { from { opacity: 0; transform: translateX(48px) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes coverL { from { opacity: 0; transform: translateX(-48px) scale(0.96); } to { opacity: 1; transform: none; } }
+
+/* Бегущая строка */
+.mq { animation-name: mq; animation-timing-function: linear; animation-iteration-count: infinite; animation-direction: alternate; }
+@keyframes mq { 0%, 18% { transform: translateX(0); } 82%, 100% { transform: translateX(var(--mq)); } }
+
+/* Шапка на телефоне: тонкая линия, когда под ней есть контент; логотип уступает место заголовку */
+.shell.phone .topbar { transition: box-shadow 0.2s; }
+.shell.phone .topbar.edge { box-shadow: 0 1px 0 var(--line); }
+.tb-mid { flex: 1; min-width: 0; display: grid; align-items: center; }
+.tb-mid > * { grid-area: 1 / 1; }
+.tb-logo { display: flex; align-items: center; gap: 8px; padding-left: 4px; justify-self: start; transition: opacity 0.2s, transform 0.2s; }
+.tb-mid.on .tb-logo { opacity: 0; transform: translateY(-6px); pointer-events: none; }
+.tb-title { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 0 8px 0 6px; opacity: 0; transform: translateY(6px); transition: opacity 0.2s, transform 0.2s; pointer-events: none; }
+.tb-mid.on .tb-title { opacity: 1; transform: none; pointer-events: auto; }
+.tb-title > span { flex: 1; min-width: 0; font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tb-play { width: 36px; height: 36px; border-radius: 50%; background: var(--acc); color: var(--acc-ink); display: flex; align-items: center; justify-content: center; flex-shrink: 0; animation: dotpop 0.3s cubic-bezier(.3,1.6,.5,1); }
+
+/* Нижняя навигация: точка активной вкладки появляется с отскоком */
+.mn-item.active .hot-dot { animation: dotpop 0.32s cubic-bezier(.3,1.6,.5,1); }
+.mn-item svg { transition: transform 0.2s; }
+.mn-item.active svg { transform: translateY(-1px); }
+@keyframes dotpop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+
+@media (max-width: 640px) {
+  .sheet-grip { display: flex; justify-content: center; align-items: center; height: 26px; margin: -14px -18px 6px; touch-action: none; cursor: grab; }
+  .sheet-grip span { width: 40px; height: 4px; border-radius: 2px; background: var(--bg3); }
+  .modal.ctx-sheet { padding: 14px 8px calc(12px + env(safe-area-inset-bottom)); }
+  .modal.ctx-sheet .sheet-grip { margin: -14px -8px 4px; }
+  .ctx-sheet button { padding: 13px 14px !important; font-size: 15px !important; border-radius: 12px !important; gap: 14px !important; }
+  .ctx-sheet button svg { width: 19px; height: 19px; }
+  .ratepop { padding: 14px 16px; }
+  .rate-cell { height: 42px; }
+  .rate-cell > span { width: 18px; height: 18px; }
+  .shell.phone .main { overscroll-behavior-y: contain; }
+  .shell.phone, .mobnav { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  .shell.phone input, .shell.phone textarea, .modal input, .modal textarea { -webkit-user-select: text; user-select: text; }
+}
+
+/* Отклик на нажатие для пальца: кнопки и карточки чуть проседают, строки подсвечиваются */
+@media (hover: none) {
+  .btn:hover, .card:hover .hoverplay { transform: none; }
+  .iconbtn, .btn, .chip, .playbig, .card, .mn-item, .tb-play, .mplayer .mp-row button { transition: transform 0.12s ease, background 0.12s, color 0.12s; }
+  .iconbtn:active, .btn:active, .chip:active, .playbig:active, .tb-play:active { transform: scale(0.92); }
+  .card:active { transform: scale(0.97); }
+  .mn-item:active svg { transform: scale(0.88); }
+  .trow:active { background: var(--bg2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mq, .burst i, .likebtn.pop svg, .mp-swap, .fsp-cover, .tb-play, .mn-item.active .hot-dot { animation: none !important; }
 }

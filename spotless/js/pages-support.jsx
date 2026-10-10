@@ -205,6 +205,7 @@ const DonateModal = () => {
   return (
     <div className="scrim fade-in" onClick={() => app.closeDonate()}>
       <div className="modal fade-up" role="dialog" aria-label={t.dnTitle + " " + title} onClick={(e) => e.stopPropagation()} data-screen-label="Модалка доната">
+        <SheetGrip onClose={() => app.closeDonate()} />
         {!sent ? (
           <React.Fragment>
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 22 }}>
@@ -284,6 +285,7 @@ const TopUpModal = () => {
   return (
     <div className="scrim fade-in" onClick={() => app.closeTopUp()}>
       <div className="modal fade-up" role="dialog" aria-label={t.tuTitle} onClick={(e) => e.stopPropagation()} data-screen-label="Пополнение счёта">
+        <SheetGrip onClose={() => app.closeTopUp()} />
         {mode !== "done" && (
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
             {mode !== "choose" && (

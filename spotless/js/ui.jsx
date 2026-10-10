@@ -180,50 +180,158 @@ const RateDots = ({ value, size = 6, gap = 4, on = "var(--text)" }) => (
   </span>
 );
 
-// Сердечко: клик = лайк, удержание 350мс = шкала 1–10
+// Короткий тактильный отклик (Android); где вибрация недоступна — молча ничего
+const buzz = (ms = 10) => { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {} };
+const isTouchUI = () => { try { return window.matchMedia("(hover: none)").matches; } catch (e) { return false; } };
+
+// Долгое нажатие пальцем (мышь не трогаем — у неё есть ПКМ). Сдвиг больше 10px — это прокрутка, отмена.
+// После срабатывания гасим следующий клик, чтобы трек не включился сам.
+const useLongPress = (onLong, ms = 450) => {
+  const timer = React.useRef(null);
+  const start = React.useRef(null);
+  const fired = React.useRef(false);
+  const clear = () => { clearTimeout(timer.current); timer.current = null; };
+  return {
+    onPointerDown: (e) => {
+      if (e.pointerType === "mouse") return;
+      fired.current = false;
+      const x = e.clientX, y = e.clientY;
+      start.current = [x, y];
+      clear();
+      timer.current = setTimeout(() => { fired.current = true; buzz(12); onLong(x, y); }, ms);
+    },
+    onPointerMove: (e) => {
+      if (timer.current && start.current && Math.hypot(e.clientX - start.current[0], e.clientY - start.current[1]) > 10) clear();
+    },
+    onPointerUp: clear, onPointerCancel: clear,
+    onClickCapture: (e) => { if (fired.current) { e.stopPropagation(); e.preventDefault(); fired.current = false; } },
+  };
+};
+
+// Сердечко: тап = лайк; удержание = шкала 1–10. Не отпуская палец, можно сразу вести
+// по шкале — оценка меняется на ходу, ставится при отпускании.
 const LikeButton = ({ trackId, size = 30, always = false }) => {
   const app = useApp();
   const st = app.trackState(trackId);
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = React.useState(null); // null | { scrub }
+  const [burst, setBurst] = React.useState(0);
+  const btnRef = React.useRef(null);
   const timer = React.useRef(null);
   const longFired = React.useRef(false);
+  const startPt = React.useRef(null);
 
   const down = (e) => {
     e.stopPropagation();
+    if (e.button != null && e.button !== 0) return;
     longFired.current = false;
-    timer.current = setTimeout(() => { longFired.current = true; setOpen(true); }, 350);
+    startPt.current = [e.clientX, e.clientY];
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => { longFired.current = true; buzz(14); setOpen({ scrub: true }); }, 350);
+  };
+  const move = (e) => {
+    // до срабатывания удержания заметный сдвиг — это не нажатие
+    if (!longFired.current && startPt.current && Math.hypot(e.clientX - startPt.current[0], e.clientY - startPt.current[1]) > 12) {
+      clearTimeout(timer.current); startPt.current = null;
+    }
   };
   const up = (e) => {
     e.stopPropagation();
     clearTimeout(timer.current);
-    if (!longFired.current && !open) app.toggleLike(trackId);
+    if (!longFired.current && !open && startPt.current) {
+      const willLike = !(st.liked || st.rating != null);
+      app.toggleLike(trackId);
+      if (willLike) { buzz(10); setBurst(Date.now()); }
+    }
+    startPt.current = null;
   };
+  React.useEffect(() => {
+    if (!burst) return;
+    const id = setTimeout(() => setBurst(0), 650);
+    return () => clearTimeout(id);
+  }, [burst]);
   const lit = st.liked || st.rating != null;
   const neg = st.rating != null && st.rating < 5;
   const label = st.rating != null ? `${app.t.yourRating}: ${st.rating}` : (st.liked ? app.t.liked || app.t.like : app.t.like);
   return (
     <span style={{ position: "relative", display: "inline-flex" }}>
-      <button
-        className={"iconbtn" + (neg ? " neg" : lit ? " hot" : "")}
+      <button ref={btnRef}
+        className={"iconbtn likebtn" + (neg ? " neg" : lit ? " hot" : "") + (burst ? " pop" : "")}
         style={{ width: size, height: size, opacity: (always || lit) ? 1 : undefined }}
         title={app.t.holdHint} aria-label={label} aria-pressed={lit}
-        onMouseDown={down} onMouseUp={up}
-        onTouchStart={down} onTouchEnd={(e) => { e.preventDefault(); up(e); }}
-        onMouseLeave={() => clearTimeout(timer.current)}
+        onPointerDown={down} onPointerMove={move} onPointerUp={up}
+        onPointerCancel={() => { clearTimeout(timer.current); startPt.current = null; }}
+        onContextMenu={(e) => e.preventDefault()}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); app.toggleLike(trackId); } }}
       >
         <Ic d={neg ? ICONS.heartOff : ICONS.heart} size={size * 0.56}
           fill={!neg && (st.liked || st.rating != null) ? "currentColor" : "none"} sw={1.8} />
       </button>
+      {burst > 0 && (
+        <span className="burst" key={burst} aria-hidden="true">
+          {[0, 1, 2, 3, 4, 5, 6, 7].map(i => <i key={i} style={{ "--a": `${i * 45}deg` }}></i>)}
+        </span>
+      )}
       {st.rating != null && (
         <span className="rate-n mono" style={{
           position: "absolute", top: -2, right: -4, fontSize: 10, fontWeight: 500,
           color: neg ? "var(--bad)" : "var(--text)", pointerEvents: "none",
         }}>{st.rating}</span>
       )}
-      {open && <RatingPop trackId={trackId} close={() => setOpen(false)} />}
+      {open && <RatingPop trackId={trackId} anchor={btnRef} scrub={open.scrub} close={() => setOpen(null)} />}
     </span>
+  );
+};
+
+// Ручка нижнего листа (телефон): лист едет за пальцем вниз; дальше 90px или быстрым рывком — закрывается.
+// Анимацию появления снимаем на время жеста, иначе её финальный кадр перебивает transform.
+const SheetGrip = ({ onClose }) => {
+  const st = React.useRef(null);
+  const end = (cancel) => {
+    const s = st.current; st.current = null;
+    if (!s) return;
+    const dy = s.dy || 0;
+    const v = dy / Math.max(1, Date.now() - s.t);
+    s.sh.style.transition = "transform 0.22s cubic-bezier(.2,.8,.2,1)";
+    if (!cancel && (dy > 90 || v > 0.6)) { s.sh.style.transform = "translateY(110%)"; buzz(8); setTimeout(onClose, 190); }
+    else s.sh.style.transform = "";
+  };
+  return (
+    <div className="sheet-grip" aria-hidden="true"
+      onPointerDown={(e) => {
+        const sh = e.currentTarget.closest(".modal");
+        if (!sh) return;
+        e.currentTarget.setPointerCapture(e.pointerId);
+        sh.style.animation = "none"; sh.style.transition = "none";
+        st.current = { y: e.clientY, t: Date.now(), sh, dy: 0 };
+      }}
+      onPointerMove={(e) => {
+        const s = st.current; if (!s) return;
+        s.dy = Math.max(0, e.clientY - s.y);
+        s.sh.style.transform = `translateY(${s.dy}px)`;
+      }}
+      onPointerUp={() => end(false)} onPointerCancel={() => end(true)}>
+      <span></span>
+    </div>
+  );
+};
+
+// Бегущая строка для длинных названий: едет туда-обратно с паузами по краям, только если не влезает
+const Marquee = ({ children, style }) => {
+  const box = React.useRef(null);
+  const inner = React.useRef(null);
+  const [d, setD] = React.useState(0);
+  React.useLayoutEffect(() => {
+    if (!box.current || !inner.current) return;
+    const over = inner.current.scrollWidth - box.current.clientWidth;
+    setD(over > 2 ? over + 8 : 0);
+  }, [children]);
+  return (
+    <div ref={box} style={{ overflow: "hidden", whiteSpace: "nowrap", minWidth: 0, ...style,
+      WebkitMaskImage: d ? "linear-gradient(90deg, #000 0, #000 88%, transparent)" : undefined,
+      maskImage: d ? "linear-gradient(90deg, #000 0, #000 88%, transparent)" : undefined }}>
+      <span ref={inner} className={d ? "mq" : ""} style={{ display: "inline-block", "--mq": `-${d}px`, animationDuration: `${Math.max(7, d / 18)}s` }}>{children}</span>
+    </div>
   );
 };
 
@@ -242,45 +350,104 @@ const usePopClamp = () => {
   return [ref, dx];
 };
 
-const RatingPop = ({ trackId, close }) => {
+// Шкала оценки. Рендерится в body (портал), позиционируется от кнопки:
+// так её не обрезают прокручиваемые списки и анимированные контейнеры.
+// Мышь: наведение показывает значение, клик ставит. Палец: ведите по шкале — значение
+// меняется на ходу с лёгкой вибрацией на каждом делении, ставится при отпускании.
+const RatingPop = ({ trackId, anchor, scrub, close }) => {
   const app = useApp();
   const st = app.trackState(trackId);
   const [hov, setHov] = React.useState(null);
-  const [ref, dx] = usePopClamp();
+  const [pos, setPos] = React.useState(null);
+  const popRef = React.useRef(null);
+  const scaleRef = React.useRef(null);
+  const hovRef = React.useRef(null);
+  const done = React.useRef(false);
   const shown = hov != null ? hov : st.rating;
-  React.useEffect(() => {
-    const h = () => close();
-    window.addEventListener("mousedown", h);
-    window.addEventListener("touchstart", h);
-    return () => { window.removeEventListener("mousedown", h); window.removeEventListener("touchstart", h); };
+
+  React.useLayoutEffect(() => {
+    if (!popRef.current || !anchor || !anchor.current) return;
+    const a = anchor.current.getBoundingClientRect();
+    const p = popRef.current.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const left = Math.max(10, Math.min(vw - 10 - p.width, a.left + a.width / 2 - p.width / 2));
+    let top = a.top - p.height - 12;
+    if (top < 10) top = a.bottom + 12;
+    setPos({ left, top });
   }, []);
-  return (
-    <div ref={ref} className="pop fade-up" onMouseDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}
-      style={{ bottom: "calc(100% + 10px)", left: `calc(50% + ${dx}px)`, marginLeft: -136, width: 272, padding: "12px 14px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+
+  const valAt = (x) => {
+    const r = scaleRef.current.getBoundingClientRect();
+    return Math.max(1, Math.min(10, Math.floor((x - r.left) / (r.width / 10)) + 1));
+  };
+  const live = (n) => { if (n !== hovRef.current) { hovRef.current = n; setHov(n); if (n != null) buzz(6); } };
+  const commit = (n) => {
+    if (done.current) return;
+    done.current = true;
+    if (n != null) { app.setRating(trackId, n); buzz(14); }
+    close();
+  };
+
+  // Палец ещё на сердечке после удержания: слушаем движение по всему окну.
+  // Фаза перехвата обязательна — кнопка сердечка гасит всплытие своих событий.
+  React.useEffect(() => {
+    if (!scrub) return;
+    let moved = false;
+    const mv = (e) => { if (!scaleRef.current) return; moved = true; live(valAt(e.clientX)); };
+    const up = () => { if (moved) commit(hovRef.current); };
+    window.addEventListener("pointermove", mv, true);
+    window.addEventListener("pointerup", up, true);
+    return () => { window.removeEventListener("pointermove", mv, true); window.removeEventListener("pointerup", up, true); };
+  }, []);
+  // Тап мимо закрывает; Esc тоже
+  React.useEffect(() => {
+    const h = (e) => { if (popRef.current && !popRef.current.contains(e.target)) close(); };
+    const k = (e) => { if (e.key === "Escape") close(); };
+    const id = setTimeout(() => window.addEventListener("pointerdown", h, true), 0);
+    window.addEventListener("keydown", k);
+    return () => { clearTimeout(id); window.removeEventListener("pointerdown", h, true); window.removeEventListener("keydown", k); };
+  }, []);
+
+  const node = (
+    <div ref={popRef} className="pop fade-up ratepop" role="dialog" aria-label={app.t.yourRating}
+      onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}
+      style={{ position: "fixed", left: pos ? pos.left : -9999, top: pos ? pos.top : -9999, zIndex: 300 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <span className="mlabel">{app.t.yourRating}</span>
-        <span className="dots" style={{ fontSize: 26, minWidth: 30, textAlign: "right" }}>{shown || "–"}</span>
+        <span className="dots" style={{ fontSize: 30, minWidth: 40, textAlign: "right", color: shown && shown < 5 ? "var(--bad)" : "var(--text)" }}>{shown || "–"}</span>
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <div ref={scaleRef} className="rate-scale" role="slider" aria-valuemin={1} aria-valuemax={10} aria-valuenow={shown || 0} tabIndex={0}
+        onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); live(valAt(e.clientX)); }}
+        onPointerMove={(e) => { if (e.pointerType === "mouse" && !e.buttons) { const n = valAt(e.clientX); if (n !== hovRef.current) { hovRef.current = n; setHov(n); } } else live(valAt(e.clientX)); }}
+        onPointerUp={(e) => commit(valAt(e.clientX))}
+        onPointerLeave={(e) => { if (e.pointerType === "mouse" && !e.buttons) { hovRef.current = null; setHov(null); } }}
+        onKeyDown={(e) => {
+          const cur = hovRef.current != null ? hovRef.current : (st.rating || 0);
+          if (e.key === "ArrowRight") { e.preventDefault(); live(Math.min(10, cur + 1)); }
+          if (e.key === "ArrowLeft") { e.preventDefault(); live(Math.max(1, cur - 1)); }
+          if (e.key === "Enter") { e.preventDefault(); commit(hovRef.current); }
+        }}>
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => {
           const on = shown && n <= shown;
           return (
-            <button key={n} aria-label={`${n}`}
-              onMouseEnter={() => setHov(n)} onMouseLeave={() => setHov(null)}
-              onClick={() => { app.setRating(trackId, st.rating === n ? null : n); close(); }}
-              style={{ width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span key={n} className="rate-cell">
               <span style={{
-                width: 14, height: 14, borderRadius: "50%", transition: "background 0.08s, transform 0.08s",
                 background: on ? (shown < 5 ? "var(--bad)" : "var(--hot)") : "var(--dot-off)",
-                transform: hov === n ? "scale(1.25)" : "none",
+                transform: n === shown && hov != null ? "scale(1.3)" : "none",
               }}></span>
-            </button>
+            </span>
           );
         })}
       </div>
-      <div style={{ fontSize: 12, color: "var(--mut)", margin: "10px 0 0", lineHeight: 1.45 }}>{app.t.ratingHint}</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginTop: 10 }}>
+        <span style={{ fontSize: 12, color: "var(--mut)", lineHeight: 1.45 }}>{app.t.ratingHint}</span>
+        {st.rating != null && (
+          <button className="more" style={{ fontSize: 12, flexShrink: 0 }} onClick={() => { done.current = true; app.setRating(trackId, null); close(); }}>{app.t.removeRating}</button>
+        )}
+      </div>
     </div>
   );
+  return ReactDOM.createPortal(node, document.body);
 };
 
 // Плюсик: поповер со списком плейлистов.
@@ -414,9 +581,11 @@ const TrackRow = ({ trackId, num, showAlbum = true, showPlays = false, plId, qIn
   const al = DB.albums[tr.album];
   const ar = DB.artists[tr.artist];
   const playing = app.player.trackId === trackId;
+  const payload = { kind: "track", id: trackId, plId, qIndex };
+  const lp = useLongPress((x, y) => app.openCtxPoint(x, y, payload));
   return (
     <div className={"trow" + (playing ? " playing" : "") + (noCover ? " nocover" : "")} onDoubleClick={() => app.playTrack(trackId)}
-      onContextMenu={(e) => app.openCtx(e, { kind: "track", id: trackId, plId, qIndex })}>
+      {...lp} onContextMenu={(e) => isTouchUI() ? e.preventDefault() : app.openCtx(e, payload)}>
       <span className="num">{playing
         ? <span className="hot-dot" style={{ width: 7, height: 7, marginLeft: app.theme === "dot" ? 2 : "auto", display: "block" }} title={app.t.nowPlaying}></span>
         : String(num).padStart(2, "0")}</span>
@@ -453,9 +622,10 @@ const TrackRow = ({ trackId, num, showAlbum = true, showPlays = false, plId, qIn
 // Карточка (альбом/артист/плейлист). ctx — payload для контекстного меню по ПКМ.
 const MediaCard = ({ title, sub, hue, art, round, onClick, onPlay, ctx }) => {
   const app = useApp();
+  const lp = useLongPress((x, y) => ctx && app.openCtxPoint(x, y, ctx));
   return (
-    <button className="card" onClick={onClick}
-      onContextMenu={ctx && app ? (e) => app.openCtx(e, ctx) : undefined}>
+    <button className="card" onClick={onClick} {...(ctx ? lp : {})}
+      onContextMenu={ctx && app ? (e) => isTouchUI() ? e.preventDefault() : app.openCtx(e, ctx) : undefined}>
       <div style={{ position: "relative" }}>
         <Cover art={art} hue={hue} size="100%" round={round} radius={16} style={{ aspectRatio: "1", width: "100%", height: "auto" }} />
       </div>
@@ -488,7 +658,7 @@ const Toasts = () => {
   );
 };
 
-Object.assign(window, { AppCtx, useApp, Ic, ICONS, Cover, coverBg, ALBUM_ART, ARTIST_ART, DotBar, DotTime, RateDots, useWidth, LikeButton, RatingPop, PlusButton, DonateButton, DLButton, TrackRow, MediaCard, Toasts, usePopClamp });
+Object.assign(window, { buzz, isTouchUI, useLongPress, SheetGrip, Marquee, AppCtx, useApp, Ic, ICONS, Cover, coverBg, ALBUM_ART, ARTIST_ART, DotBar, DotTime, RateDots, useWidth, LikeButton, RatingPop, PlusButton, DonateButton, DLButton, TrackRow, MediaCard, Toasts, usePopClamp });
 
 // Деньги: в русском интерфейсе — десятичная запятая ($1,90), в английском — точка
 const fmtMoney = (n, lang, keepZeros) => {
