@@ -439,9 +439,14 @@ const App = () => {
   const setWallpaperImg = (data) => setSettings(s => ({ ...s, wallpaperImg: data, wallpaper: null }));
   const finishOnboarding = () => setOnboarded(true);
   const setMonthlyV = (v) => { setMonthly(v); setCustomAmt(""); };
-  // Своя сумма: фиксируется по клику вне поля, значение остаётся в капсуле.
-  // Непонятное («0», «,») не принимаем и очищаем поле — иначе в капсуле висел «0», а сумма оставалась прежней
-  const commitCustom = () => { const v = parseAmount(customAmt); if (v > 0) setMonthly(v); else setCustomAmt(""); };
+  // Своя сумма: фиксируется по клику вне поля (или Enter), значение остаётся в капсуле.
+  // Непонятное («0», «,») не принимаем: в поле возвращается действующая сумма, если она своя,
+  // иначе оно очищается и горит чип — раньше в капсуле висел «0», а сумма оставалась прежней
+  const commitCustom = () => {
+    const v = parseAmount(customAmt);
+    if (v > 0) setMonthly(v);
+    else setCustomAmt([2, 5, 10].includes(monthly) ? "" : String(monthly).replace(".", lang === "ru" ? "," : "."));
+  };
 
   // Фон окна с обоями: строка с картинкой может весить сотни килобайт — собираем её, только когда обои меняются.
   // Хук — до раннего return онбординга, чтобы порядок хуков не прыгал

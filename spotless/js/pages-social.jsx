@@ -185,7 +185,7 @@ const PageJam = () => {
           ))}
         </div>
         <button className="btn ghost" style={{ padding: "10px 20px" }} onClick={() => {
-          try { navigator.clipboard.writeText("https://spotless.app/jam/7fk2nq"); } catch {}
+          copyText("https://spotless.app/jam/7fk2nq");
           app.toast(t.jamLinkCopied);
         }}>
           <Ic d={ICONS.link} size={15} />{t.jamInvite}

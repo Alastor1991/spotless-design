@@ -161,7 +161,7 @@ const PlayerIsland = () => {
           <RepeatBtn size={32} icon={16} className="isl-sr" />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, width: "100%" }}>
-          <span className="isl-time mono" style={{ fontSize: 11, color: "var(--mut2)", width: 36, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{app.fmtTime(pct)}</span>
+          <span className="isl-time mono" style={{ fontSize: 11, color: "var(--mut2)", width: 36, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{app.fmtTime(pct).padStart(5, "0")}</span>
           <DotBar pct={pct} pitch={6} onSeek={app.seek} label={app.lang === "ru" ? "Перемотка" : "Seek"} />
           <span className="isl-time mono" style={{ fontSize: 11, color: "var(--mut2)", width: 36, fontVariantNumeric: "tabular-nums" }}>{tr.dur.padStart(5, "0")}</span>
         </div>

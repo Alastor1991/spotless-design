@@ -235,11 +235,15 @@ const PageSearch = () => {
   const arts = Object.values(DB.artists).filter(a => a.name.toLowerCase().includes(q));
   const albs = Object.values(DB.albums).filter(a => a.title.toLowerCase().includes(q) || DB.artists[a.artist].name.toLowerCase().includes(q));
   const top = arts[0] || (trks[0] && DB.artists[trks[0].artist]);
+  // Пустые разделы не показываем (раньше висел заголовок «Треки» без строк), а если не нашлось
+  // ничего — так и говорим, вместо пустой страницы
+  const nothing = !top && !trks.length && !arts.length && !albs.length;
 
   return (
     <div className="fade-in" data-screen-label="Поиск — результаты">
       {field && <div style={{ paddingTop: 12 }}>{field}</div>}
-      <div className="search-grid">
+      {nothing && <p style={{ padding: "56px 0", textAlign: "center", fontSize: 15, color: "var(--mut)", overflowWrap: "anywhere" }}>{t.searchNothing(app.query.trim())}</p>}
+      {(top || trks.length > 0) && <div className="search-grid">
         {top && (
           <section>
             <div className="h-row"><h2>{t.topResult}</h2></div>
@@ -252,13 +256,15 @@ const PageSearch = () => {
             </button>
           </section>
         )}
-        <section style={{ minWidth: 0 }}>
-          <div className="h-row"><h2>{t.tracks}</h2></div>
-          <div>
-            {trks.map((tr, i) => <TrackRow key={tr.id} trackId={tr.id} num={i + 1} />)}
-          </div>
-        </section>
-      </div>
+        {trks.length > 0 && (
+          <section style={{ minWidth: 0 }}>
+            <div className="h-row"><h2>{t.tracks}</h2></div>
+            <div>
+              {trks.map((tr, i) => <TrackRow key={tr.id} trackId={tr.id} num={i + 1} />)}
+            </div>
+          </section>
+        )}
+      </div>}
       {arts.length > 0 && (
         <section style={{ marginBottom: 30 }}>
           <div className="h-row"><h2>{t.artists}</h2></div>

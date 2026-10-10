@@ -181,7 +181,7 @@ const PageSettings = () => {
   const S = app.settings;
   const exportTheme = () => {
     const json = JSON.stringify({ theme: app.theme, accent: S.accent, wallpaper: S.wallpaper, island: S.island, density: S.density }, null, 0);
-    try { navigator.clipboard.writeText(json); } catch {}
+    copyText(json);
     app.toast(t.themeCopied);
   };
   // Импорт темы: берём только известное и только допустимые значения (cleanSettings).
@@ -284,7 +284,7 @@ const PageSettings = () => {
                 {[95, 230, 350, 160].map(h => (
                   <button key={h} onClick={() => app.setAccent(h)} style={{
                     width: 30, height: 30, borderRadius: "50%",
-                    background: `oklch(0.78 0.12 ${h})`,
+                    background: `oklch(0.66 0.17 ${h})`, // тот же цвет, что встанет в --hot
                     outline: S.accent === h ? "2.5px solid var(--text)" : "none", outlineOffset: 2,
                   }}></button>
                 ))}

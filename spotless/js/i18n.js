@@ -53,7 +53,7 @@ window.I18N = {
     dkNow: "Сейчас играет", dkRate: "Оценка", dkTime: "Время", dkVol: "Громкость",
     collapse: "Свернуть", fromRelease: "Из релиза", listenersShort: "слушателей",
     everyMonth: "Каждый месяц", passedSince: "Артистам с марта", artistsInMonth: "Артистов в июне", feeLabel: "Комиссия сервиса",
-    howSplit: (amt) => `Как распределились ваши ${amt}`, dotIsC: (u) => u < 1 ? `1 точка = ${Math.round(u * 100)} центов` : "1 точка = $1", dotIs1: "1 точка = $1",
+    howSplit: (amt) => `Как распределились ваши ${amt}`, dotIsC: (u) => u < 1 ? `1 точка = ${Math.round(u * 100)} центов` : `1 точка = $${u}`, dotIs1: "1 точка = $1",
     viewCover: "Обложка", viewGlyph: "Точки", currentMonth: "текущий месяц", june: "июнь",
     incomeWhy: "Откуда эта цифра?",
     plays: "Прослушивания",
@@ -161,6 +161,7 @@ window.I18N = {
     // Ошибки
     errTitle: "Что-то пошло не так", errNote: "Этот экран не открылся из-за ошибки в прототипе. Ваши настройки, оценки и плейлисты на месте.",
     errHome: "На главную", wallpaperBad: "Не получилось открыть картинку",
+    searchNothing: (q) => `По запросу «${q}» ничего не нашлось`,
   },
   en: {
     home: "Home", search: "Search", library: "Library", support: "My support", navSupport: "Support",
@@ -206,7 +207,7 @@ window.I18N = {
     dkNow: "Now playing", dkRate: "Rating", dkTime: "Time", dkVol: "Volume",
     collapse: "Collapse", fromRelease: "From the release", listenersShort: "listeners",
     everyMonth: "Every month", passedSince: "Passed on since March", artistsInMonth: "Artists in June", feeLabel: "Service fee",
-    howSplit: (amt) => `How your ${amt} was split`, dotIsC: (u) => u < 1 ? `1 dot = ${Math.round(u * 100)} cents` : "1 dot = $1", dotIs1: "1 dot = $1",
+    howSplit: (amt) => `How your ${amt} was split`, dotIsC: (u) => u < 1 ? `1 dot = ${Math.round(u * 100)} cents` : `1 dot = $${u}`, dotIs1: "1 dot = $1",
     viewCover: "Cover", viewGlyph: "Dots", currentMonth: "current month", june: "june",
     incomeWhy: "Where does this number come from?",
     plays: "Plays",
@@ -308,5 +309,6 @@ window.I18N = {
     addedTo: "Added to", removedFrom: "Removed from",
     errTitle: "Something went wrong", errNote: "This screen failed to open because of a bug in the prototype. Your settings, ratings and playlists are safe.",
     errHome: "Go home", wallpaperBad: "Couldn't open that image",
+    searchNothing: (q) => `Nothing found for “${q}”`,
   },
 };

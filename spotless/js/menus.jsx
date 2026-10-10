@@ -75,11 +75,11 @@ const ContextMenu = () => {
     // Меню могло открыться долгим нажатием: первые мгновения игнорируем «отпускание» пальца
     const opened = Date.now();
     const close = (e) => { if (Date.now() - opened < 400) return; if (ref.current && ref.current.contains(e.target)) return; app.closeCtx(); };
-    const key = (e) => { if (e.key === "Escape") app.closeCtx(); };
     window.addEventListener("pointerdown", close, true);
-    window.addEventListener("keydown", key);
-    return () => { window.removeEventListener("pointerdown", close, true); window.removeEventListener("keydown", key); };
+    return () => window.removeEventListener("pointerdown", close, true);
   }, [c]);
+  // Esc закрывает только меню: открытое из полного экрана, оно раньше сворачивало и его
+  useEscape(() => app.closeCtx(), !!c);
 
   if (!c) return null;
   const X = () => app.closeCtx();

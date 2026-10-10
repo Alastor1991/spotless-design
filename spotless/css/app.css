@@ -434,6 +434,9 @@ input, textarea { font-family: inherit; }
 .isl-who { min-width: 72px; overflow: hidden; }
 @container (max-width: 1080px) { .island .isl-vol { display: none !important; } }
 @container (max-width: 980px) { .island .isl-extra { display: none !important; } }
+/* Значок «FLAC» уходит раньше остальных ступени 545: на островке 584–664 px (окно 700–780)
+   правая часть не помещалась в свою колонку и наезжала на «Повтор» до 32 px (замерено перебором ширин) */
+@container (max-width: 680px) { .island .isl-meta { display: none !important; } }
 @container (max-width: 790px) { .island .isl-b2 { display: none !important; } }
 @container (max-width: 545px) {
   .island .isl-sr, .island .isl-meta, .island .isl-q { display: none !important; }
@@ -453,9 +456,13 @@ input, textarea { font-family: inherit; }
   grid-column: 1 / -1; grid-row: 2; display: flex; flex-direction: column;
   background: var(--bg0); min-width: 0; z-index: 40; container-type: inline-size;
 }
+/* Первый отсек — ровно под сайдбаром. В рейле сайдбар узкий (76px), а отсеку нужно место под
+   название трека — там он 248px. Через переменную, иначе ступени ниже с !important возвращали 76px */
+.dock { --dk-first: var(--sbw); }
+.shell.rail .dock { --dk-first: 248px; }
 .dock-cells {
   flex: 1; display: grid; min-width: 0;
-  grid-template-columns: var(--sbw) 236px minmax(220px, 1fr) 176px 156px 196px;
+  grid-template-columns: var(--dk-first) 236px minmax(220px, 1fr) 176px 156px 196px;
 }
 .dock-cell {
   padding: 0 18px; display: flex; flex-direction: column; justify-content: center; gap: 9px;
@@ -463,9 +470,8 @@ input, textarea { font-family: inherit; }
 }
 .dock-cell:last-child { border-right: none; }
 .dock-cell .row { height: 36px; display: flex; align-items: center; gap: 10px; min-width: 0; }
-.shell.rail .dock-cells { grid-template-columns: 248px 236px minmax(220px, 1fr) 176px 156px 196px; }
-@container (max-width: 1240px) { .dock .dk-vol { display: none !important; } .dock-cells { grid-template-columns: var(--sbw) 236px minmax(220px, 1fr) 176px 196px !important; } }
-@container (max-width: 1040px) { .dock .dk-rate { display: none !important; } .dock-cells { grid-template-columns: var(--sbw) minmax(220px, 1fr) 176px 196px !important; } }
+@container (max-width: 1240px) { .dock .dk-vol { display: none !important; } .dock-cells { grid-template-columns: var(--dk-first) 236px minmax(220px, 1fr) 176px 196px !important; } }
+@container (max-width: 1040px) { .dock .dk-rate { display: none !important; } .dock-cells { grid-template-columns: var(--dk-first) minmax(220px, 1fr) 176px 196px !important; } }
 @container (max-width: 820px) { .dock .dk-time { display: none !important; } .dock-cells { grid-template-columns: minmax(160px, 248px) minmax(200px, 1fr) 160px !important; } }
 
 /* ---------- Поповеры и модалки ---------- */

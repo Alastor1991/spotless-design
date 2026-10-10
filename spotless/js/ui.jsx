@@ -523,11 +523,10 @@ const RatingPop = ({ trackId, anchor, scaleRef, draft, onCommit, onClear, close 
       if (anchor.current && anchor.current.contains(e.target)) return; // сердечко решает само
       close();
     };
-    const key = (e) => { if (e.key === "Escape") close(); };
     window.addEventListener("pointerdown", outside, true); // перехват: многие элементы гасят всплытие
-    window.addEventListener("keydown", key);
-    return () => { window.removeEventListener("pointerdown", outside, true); window.removeEventListener("keydown", key); };
+    return () => window.removeEventListener("pointerdown", outside, true);
   }, []);
+  useEscape(close); // Esc закрывает только окно, полный экран под ним остаётся
 
   // Граница событий: портал всплывает по дереву React к родителям сердечка — не пускаем
   const wall = (e) => e.stopPropagation();
@@ -588,6 +587,7 @@ const PlusPop = ({ ids, inPls, anchor, close }) => {
     window.addEventListener("scroll", scroll, true);
     return () => { window.removeEventListener("pointerdown", outside, true); window.removeEventListener("scroll", scroll, true); };
   }, []);
+  useEscape(close);
   // Граница событий: портал всплывает по дереву React к строке трека и жестам плеера — не пускаем
   const wall = (e) => e.stopPropagation();
   return ReactDOM.createPortal(
@@ -804,6 +804,11 @@ const fmtMoney = (n, lang, keepZeros) => {
   if (!keepZeros) s = s.replace(/\.00$/, "");
   return "$" + (lang === "ru" ? s.replace(".", ",") : s);
 };
+// Копирование в буфер. writeText возвращает промис, и отказ в доступе к буферу (нет разрешения,
+// не https) прилетал в консоль необработанной ошибкой — try/catch промис не ловит
+const copyText = (s) => {
+  try { const p = navigator.clipboard && navigator.clipboard.writeText(s); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+};
 // Вклад слушателя в текущем месяце для артиста (строка «в июне вы слушали…»)
 const supportFor = (artistId) => DB.supportSplit.find(s => s.artist === artistId) || null;
 // Своя сумма в поле ввода: цифры и один десятичный разделитель — запятая или точка, как набрал
@@ -815,7 +820,7 @@ const cleanAmount = (s) => {
   return i < 0 ? v : v.slice(0, i + 1) + v.slice(i + 1).replace(/[.,]/g, "").slice(0, 2);
 };
 const parseAmount = (s) => parseFloat(String(s).replace(",", "."));
-Object.assign(window, { fmtMoney, supportFor, cleanAmount, parseAmount });
+Object.assign(window, { fmtMoney, supportFor, copyText, cleanAmount, parseAmount });
 
 // Настройки внешнего вида: значения по умолчанию и проверка. Нужна дважды — при загрузке
 // сохранённого и при импорте темы из JSON: раньше туда попадало что угодно («island»: "zzz").

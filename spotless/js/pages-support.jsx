@@ -2,6 +2,8 @@
 
 const fmtUsd = (n, lang) => fmtMoney(n, lang);
 const BALANCE = 7.35;
+// Цена одной точки в распределении: от 5 центов до $100 — для любой суммы в месяц
+const DOT_UNITS = [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100];
 
 // Крупная сумма: «$» тонким шрифтом, целые — точечным, копейки — приглушённо.
 // Вписывается в ширину своего виджета: на телефоне 360 px «$25,50» и четырёхзначные суммы
@@ -55,8 +57,13 @@ const PageSupport = () => {
   const split = splitNow(total);
   const history = DB.supportHistory.slice().reverse(); // март → июнь
   const passed = DB.supportHistory.reduce((a, h) => a + h.amount + h.extra, 0);
-  // Цена одной точки растёт с суммой, чтобы самая длинная полоса помещалась в строку
-  const unit = [0.05, 0.1, 0.25, 0.5, 1].find(u => split[0].amount / u <= 38) || 1;
+  // Цена одной точки растёт с суммой, чтобы самая длинная полоса помещалась в свою колонку.
+  // Место меряем по колонке первой строки: раньше считали на 38 точек (304px), а колонка уже почти
+  // везде, кроме 1440px, — полосы обрезались, и $1,90 выглядело так же, как $1,20 и $0,80
+  const barCell = React.useRef(null);
+  const cellW = useWidth(barCell);
+  const maxDots = cellW ? Math.max(3, Math.floor(cellW / 8)) : 38;
+  const unit = DOT_UNITS.find(u => split[0].amount / u <= maxDots) || DOT_UNITS[DOT_UNITS.length - 1];
   return (
     <div className="fade-in" data-screen-label="Артистам">
       <div style={{ margin: "14px 0 24px" }}>
@@ -85,7 +92,7 @@ const PageSupport = () => {
                 boxShadow: app.customAmt ? "none" : "inset 0 0 0 1px var(--bg3)",
               }}>
                 <span className="mono">$</span><input value={app.customAmt} inputMode="decimal" onChange={(e) => app.setCustomAmt(cleanAmount(e.target.value))}
-                  onBlur={app.commitCustom} aria-label={t.supCustom}
+                  onBlur={app.commitCustom} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} aria-label={t.supCustom}
                   placeholder={t.supCustom} style={{
                     width: 96, background: "none", border: "none", outline: "none",
                     color: "inherit", fontSize: 14, padding: "10px 0",
@@ -150,7 +157,7 @@ const PageSupport = () => {
                     <Cover art={"ar:" + a.id} hue={a.hue} size={28} round={true} />
                     <span style={{ fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.name}</span>
                     <span className="mono sr-min" style={{ fontSize: 11, color: "var(--mut2)" }}>{s.minutes} {app.lang === "ru" ? "МИН" : "MIN"}</span>
-                    <span style={{ display: "flex", minWidth: 0, overflow: "hidden" }}>
+                    <span ref={s === split[0] ? barCell : undefined} style={{ display: "flex", minWidth: 0, overflow: "hidden" }}>
                       <DotBar pct={1} pitch={8} r={2.6} width={Math.max(1, Math.round(s.amount / unit)) * 8} />
                     </span>
                     <span className="mono" style={{ fontSize: 13, textAlign: "right" }}>{fmtMoney(s.amount, app.lang, true)}</span>
@@ -269,7 +276,7 @@ const DonateSheet = ({ tgt }) => {
               <span>{t.dnFrom}: <span className="mono" style={{ color: short ? "var(--bad)" : "var(--text)" }}>{fmtMoney(BALANCE, app.lang)}</span></span>
               <span>{t.dnNote}</span>
             </div>
-            <button className="btn" style={{ width: "100%", minHeight: 52, fontSize: 15 }}
+            <button className="btn" style={{ width: "100%", minHeight: 52, fontSize: 15, opacity: short || val > 0 ? 1 : 0.45 }}
               onClick={() => {
                 if (short) { app.closeDonate(); app.openTopUp(); return; }
                 if (val <= 0) return;
@@ -400,7 +407,7 @@ const TopUpSheet = () => {
                 <span>{t.tuLanded}: <span className="mono" style={{ color: "var(--text)" }}>{fmtMoney(landed, app.lang, true)}</span></span>
                 <span>{t.tuLandedNote}</span>
               </div>
-              <button className="btn" style={{ width: "100%", minHeight: 50, fontSize: 15 }}
+              <button className="btn" style={{ width: "100%", minHeight: 50, fontSize: 15, opacity: landed > 0 ? 1 : 0.45 }}
                 onClick={() => { if (landed <= 0) return; setMode("done"); timer.current = setTimeout(() => app.closeTopUp(), 1600); }}>
                 {t.tuPay} {val > 0 ? fmtMoney(val, app.lang) : ""}
               </button>
@@ -423,7 +430,7 @@ const TopUpSheet = () => {
                 <div className="mlabel" style={{ marginBottom: 8 }}>{t.tuYourAddress}</div>
                 <div className="mono" style={{ fontSize: 12.5, lineHeight: 1.55, wordBreak: "break-all", marginBottom: 12 }}>{TU_ADDRESS}</div>
                 <button className="btn ghost" style={{ padding: "0 16px", fontSize: 13 }}
-                  onClick={() => { try { navigator.clipboard.writeText(TU_ADDRESS); } catch {} app.toast(t.tuCopied); }}>
+                  onClick={() => { copyText(TU_ADDRESS); app.toast(t.tuCopied); }}>
                   <Ic d={ICONS.copy} size={14} />{t.tuCopy}
                 </button>
               </div>
