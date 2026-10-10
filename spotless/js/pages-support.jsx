@@ -3,12 +3,35 @@
 const fmtUsd = (n, lang) => fmtMoney(n, lang);
 const BALANCE = 7.35;
 
-// Крупная сумма: «$» тонким шрифтом, целые — точечным, копейки — приглушённо
-const BigMoney = ({ value, size = 150, lang }) => {
+// Крупная сумма: «$» тонким шрифтом, целые — точечным, копейки — приглушённо.
+// Вписывается в ширину своего виджета: на телефоне 360 px «$25,50» и четырёхзначные суммы
+// вылезали за край и давали горизонтальную прокрутку страницы
+const BigMoney = ({ value, size: full = 150, lang }) => {
+  const ref = React.useRef(null);
+  const kRef = React.useRef(1);
+  const [k, setK] = React.useState(1);
+  React.useLayoutEffect(() => {
+    const el = ref.current;
+    const box = el && el.closest(".widget");
+    if (!box) return;
+    const fit = () => {
+      const cs = getComputedStyle(box);
+      const avail = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      const natural = el.getBoundingClientRect().width / kRef.current; // ширина при полном размере
+      const next = Math.min(1, Math.floor((avail / natural) * 100) / 100);
+      if (next !== kRef.current) { kRef.current = next; setK(next); }
+    };
+    fit();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(fit);
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, [value, lang]);
+  const size = full * k;
   const whole = Math.floor(value);
   const cents = Math.round((value - whole) * 100);
   return (
-    <span aria-label={fmtMoney(value, lang)} style={{ display: "inline-flex", alignItems: "baseline", gap: size * 0.03 }}>
+    <span ref={ref} aria-label={fmtMoney(value, lang)} style={{ display: "inline-flex", alignItems: "baseline", gap: size * 0.03 }}>
       <span aria-hidden="true" style={{ fontWeight: 300, fontSize: size * 0.37, color: "var(--mut)" }}>$</span>
       <span aria-hidden="true" className="dots" style={{ fontSize: size }}>{whole}</span>
       {cents > 0 && <span aria-hidden="true" className="dots" style={{ fontSize: size * 0.42, color: "var(--dot-off)" }}>{lang === "ru" ? "," : "."}{String(cents).padStart(2, "0")}</span>}
