@@ -206,7 +206,7 @@ const PageJam = () => {
               style={{ gridTemplateColumns: "34px 44px minmax(0,1fr) auto 52px" }}
               onDoubleClick={() => app.playTrack(tid)}
               onContextMenu={(e) => app.openCtx(e, { kind: "track", id: tid, qIndex: app.queueIds.indexOf(tid) })}>
-              <span className="num">{playing ? <span className="hot-dot" style={{ width: 7, height: 7, display: "block", marginLeft: app.theme === "dot" ? 2 : "auto" }}></span> : String(i + 1).padStart(2, "0")}</span>
+              <span className="num">{playing ? <span className="hot-dot" style={{ width: 7, height: 7, display: "block", marginLeft: 2 }}></span> : String(i + 1).padStart(2, "0")}</span>
               <button onClick={() => app.playTrack(tid)} style={{ display: "block" }}>
                 <Cover art={tr.album} hue={DB.albums[tr.album].hue} size={40} radius={8} />
               </button>

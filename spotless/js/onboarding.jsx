@@ -223,7 +223,7 @@ const Onboarding = () => {
                 flex: 1, height: 24, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 11, fontWeight: 700,
                 background: n <= 8 ? "var(--hot)" : "var(--bg2)",
-                color: n <= 8 ? "#fff" : "var(--mut)",
+                color: n <= 8 ? "var(--hot-ink)" : "var(--mut)",
               }}>{n}</span>
             ))}
           </div>

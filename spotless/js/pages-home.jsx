@@ -29,7 +29,7 @@ const ContinueWidget = () => {
       </button>
       <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0, flex: 1, alignSelf: "stretch" }}>
         <span className="mlabel">{t.continueHere}</span>
-        <button onClick={() => app.go("album", al.id)} style={{ textAlign: "left", fontSize: "clamp(28px, 3.4cqi, 40px)", letterSpacing: "-0.045em", lineHeight: 1, fontWeight: app.theme === "dot" ? 400 : 800 }}>{al.title}</button>
+        <button onClick={() => app.go("album", al.id)} style={{ textAlign: "left", fontSize: "clamp(28px, 3.4cqi, 40px)", letterSpacing: "-0.045em", lineHeight: 1, fontWeight: 400 }}>{al.title}</button>
         <span style={{ fontSize: 14, color: "var(--mut)" }}>{ar.name} · {t[al.type].toLowerCase()}, {al.year}</span>
         <span style={{ marginTop: "auto", display: "flex", alignItems: "baseline", gap: 10, fontSize: 14, minWidth: 0 }}>
           <span className="mono" style={{ fontSize: 11, color: "var(--mut2)" }}>{String(idx + 1).padStart(2, "0")}</span>
@@ -220,7 +220,7 @@ const PageSearch = () => {
           {(app.lang === "ru" ? GENRES_RU : GENRES_EN).map(([key, g, hue]) => (
             <button key={key} onClick={() => app.go("genre", key)} style={{
               height: 110, borderRadius: 22, padding: "16px 18px", position: "relative", overflow: "hidden",
-              background: `radial-gradient(circle, oklch(0.78 0.13 ${hue}) 0 1.6px, transparent 2px) 0 0 / 9px 9px, var(--bg2)`,
+              background: `radial-gradient(circle, oklch(var(--dot-l) 0.13 ${hue}) 0 1.6px, transparent 2px) 0 0 / 9px 9px, var(--bg2)`,
               display: "flex", alignItems: "flex-end", textAlign: "left",
             }}>
               <span style={{ fontSize: 18, fontWeight: 400, letterSpacing: "-0.02em", color: "var(--text)", background: "var(--bg2)", padding: "4px 10px 4px 0", borderRadius: 6 }}>{g}</span>
@@ -348,7 +348,7 @@ const PageLibrary = () => {
             </span>}
             {it.id === "__liked" ? (
               <button className="card" onClick={() => open(it)}>
-                <span style={{ aspectRatio: "1", width: "100%", borderRadius: 16, background: "var(--hot)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+                <span style={{ aspectRatio: "1", width: "100%", borderRadius: 16, background: "var(--hot)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--hot-ink)" }}>
                   <Ic d={ICONS.heart} size={48} fill="currentColor" />
                 </span>
                 <span style={{ minWidth: 0 }}><span className="t" style={{ display: "block" }}>{it.name}</span><span className="s" style={{ display: "block" }}>{it.sub}</span></span>

@@ -1,13 +1,14 @@
 // Spotless — Настройки: внешний вид, язык/валюта, обучение, продвинутое, аккаунт.
 
 const THEME_LIST = [
+  // Образцы: фон, текст и горячий цвет палитры (как в app.css)
   { id: "dot", ru: "Точка", en: "Dot", bg: "#000000", fg: "#F2F2F2", acc: "#D71921" },
-  { id: "dark-warm", ru: "Тёплая ночь", en: "Warm night", bg: "oklch(0.22 0.012 75)", fg: "oklch(0.93 0.015 90)", acc: "oklch(0.80 0.13 95)" },
-  { id: "dark-neutral", ru: "Студия", en: "Studio", bg: "oklch(0.20 0.008 255)", fg: "oklch(0.92 0.008 250)", acc: "oklch(0.80 0.13 95)" },
-  { id: "dark-sea", ru: "Глубина", en: "Deep sea", bg: "oklch(0.22 0.012 75)", fg: "oklch(0.93 0.01 240)", acc: "oklch(0.76 0.11 230)" },
-  { id: "light-cream", ru: "Солнечная", en: "Sunny", bg: "oklch(0.972 0.012 95)", fg: "oklch(0.28 0.02 80)", acc: "oklch(0.78 0.13 95)" },
-  { id: "light-neutral", ru: "Бумага", en: "Paper", bg: "oklch(0.975 0.003 250)", fg: "oklch(0.27 0.01 260)", acc: "oklch(0.78 0.13 95)" },
-  { id: "light-rose", ru: "Зефир", en: "Marshmallow", bg: "oklch(0.972 0.008 350)", fg: "oklch(0.28 0.02 340)", acc: "oklch(0.74 0.12 350)" },
+  { id: "dark-warm", ru: "Тёплая ночь", en: "Warm night", bg: "oklch(0.20 0.012 75)", fg: "oklch(0.93 0.015 90)", acc: "oklch(0.82 0.14 90)" },
+  { id: "dark-neutral", ru: "Студия", en: "Studio", bg: "oklch(0.185 0.008 255)", fg: "oklch(0.92 0.008 250)", acc: "oklch(0.82 0.14 90)" },
+  { id: "dark-sea", ru: "Глубина", en: "Deep sea", bg: "oklch(0.20 0.012 75)", fg: "oklch(0.93 0.01 240)", acc: "oklch(0.76 0.12 230)" },
+  { id: "light-cream", ru: "Солнечная", en: "Sunny", bg: "oklch(0.972 0.012 95)", fg: "oklch(0.28 0.02 80)", acc: "oklch(0.62 0.15 60)" },
+  { id: "light-neutral", ru: "Бумага", en: "Paper", bg: "oklch(0.975 0.003 250)", fg: "oklch(0.24 0.01 260)", acc: "#D71921" },
+  { id: "light-rose", ru: "Зефир", en: "Marshmallow", bg: "oklch(0.972 0.008 350)", fg: "oklch(0.28 0.02 340)", acc: "oklch(0.58 0.18 355)" },
 ];
 
 const ThemeSwatch = ({ th, active, onClick, size = "norm" }) => {

@@ -244,7 +244,7 @@ const DonateModal = () => {
         ) : (
           <div style={{ textAlign: "center", padding: "26px 0 22px" }} className="fade-up">
             <div style={{
-              width: 72, height: 72, borderRadius: "50%", background: "var(--hot)", color: "#fff",
+              width: 72, height: 72, borderRadius: "50%", background: "var(--hot)", color: "var(--hot-ink)",
               display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px",
             }}>
               <Ic d={ICONS.heart} size={30} fill="currentColor" />

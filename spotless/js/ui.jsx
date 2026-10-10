@@ -103,7 +103,7 @@ const coverBg = (art, hue, px, glyph) => {
   if (art && ALBUM_ART[art]) return ALBUM_ART[art];
   const p = px ? Math.max(5, Math.round(px / 15)) : 11;
   const r = (p * 0.24).toFixed(1);
-  return `radial-gradient(circle, oklch(0.8 0.12 ${hue}) 0 ${r}px, transparent ${(+r + 0.5).toFixed(1)}px) 0 0 / ${p}px ${p}px, var(--bg2)`;
+  return `radial-gradient(circle, oklch(var(--dot-l) 0.12 ${hue}) 0 ${r}px, transparent ${(+r + 0.5).toFixed(1)}px) 0 0 / ${p}px ${p}px, var(--bg2)`;
 };
 
 const Cover = ({ hue = 60, art, size = 150, radius, round = false, glyph = false, style = {} }) => {
@@ -632,7 +632,7 @@ const TrackRow = ({ trackId, num, showAlbum = true, showPlays = false, plId, qIn
     <div className={"trow" + (playing ? " playing" : "") + (noCover ? " nocover" : "")} onDoubleClick={() => app.playTrack(trackId)}
       {...lp} onContextMenu={(e) => isTouchUI() ? e.preventDefault() : app.openCtx(e, payload)}>
       <span className="num">{playing
-        ? <span className="hot-dot" style={{ width: 7, height: 7, marginLeft: app.theme === "dot" ? 2 : "auto", display: "block" }} title={app.t.nowPlaying}></span>
+        ? <span className="hot-dot" style={{ width: 7, height: 7, marginLeft: 2, display: "block" }} title={app.t.nowPlaying}></span>
         : String(num).padStart(2, "0")}</span>
       {!noCover && (
         <button onClick={() => app.playTrack(trackId)} aria-label={`${app.t.play || "▶"} ${tr.t}`} style={{ display: "block", position: "relative" }}>

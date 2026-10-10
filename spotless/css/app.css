@@ -1,131 +1,25 @@
-/* Spotless — темы и каркас. Тема задаёт и цвета, и шрифт. */
+/* Spotless — темы и каркас.
+   Дизайн один — «Точка». Темы — только цветовые палитры: шрифты, скругления, плотность подписей
+   и все компоненты у них общие. Логика цвета везде одна: главное действие — цвета текста (--acc),
+   фирменный цвет темы — «горячий» (--hot): лайк, «сейчас играет», живое, непрочитанное. */
 
-/* Токены основы «Точка», которые старые темы не задают: значения по умолчанию */
+/* Общее для всех тем: шрифты и скругления */
 :root {
-  --hot: var(--acc);
-  --mut2: var(--mut);
-  --dot-off: var(--bg3);
-  --font-dot: var(--font);
+  --font: 'Geist', sans-serif;
+  --mono: 'Geist Mono', monospace;
+  --font-dot: 'Doto', 'Geist Mono', monospace;
+  --r: 28px; --r-sm: 14px;
 }
 
+/* ---------- Палитры ----------
+   Каждая задаёт полный набор цветовых токенов:
+   --bg0..3 фон и уровни · --line · --text/--mut/--mut2 · --acc/--acc-ink главное действие ·
+   --hot/--hot-ink горячий цвет и текст на нём · --bad оценки 1–4 · --dot-off погашенная точка ·
+   --dot-l светлота цветных точек в обложках · --island поверхности (плеер, виджеты, окна) ·
+   --island-shadow · --shadow тень поповеров · --scrim · --cover-l1/l2 светлота обложек */
 
-/* ---------- Темы ---------- */
-:root, [data-theme="dark-warm"] {
-  --bg0: oklch(0.20 0.012 75);
-  --bg1: oklch(0.245 0.013 75);
-  --bg2: oklch(0.30 0.015 75);
-  --bg3: oklch(0.35 0.016 75);
-  --line: oklch(0.32 0.015 75);
-  --text: oklch(0.93 0.015 90);
-  --mut: oklch(0.65 0.018 80);
-  --acc: oklch(0.80 0.13 95);
-  --acc-ink: oklch(0.27 0.06 95);
-  --island: oklch(0.27 0.014 75);
-  --island-shadow: 0 14px 40px oklch(0.08 0.01 75 / 0.55);
-  --scrim: oklch(0.12 0.01 75 / 0.6);
-  --font: 'Golos Text', sans-serif;
-  --mono: 'JetBrains Mono', monospace;
-  --r: 16px; --r-sm: 10px;
-  --cover-l1: 0.32; --cover-l2: 0.27;
-  --bad: oklch(0.62 0.16 25);
-  color-scheme: dark;
-}
-[data-theme="dark-neutral"] {
-  --bg0: oklch(0.185 0.008 255);
-  --bg1: oklch(0.215 0.009 255);
-  --bg2: oklch(0.27 0.01 255);
-  --bg3: oklch(0.32 0.011 255);
-  --line: oklch(0.30 0.01 255);
-  --text: oklch(0.92 0.008 250);
-  --mut: oklch(0.62 0.012 250);
-  --acc: oklch(0.80 0.13 95);
-  --acc-ink: oklch(0.25 0.05 95);
-  --island: oklch(0.245 0.01 255);
-  --island-shadow: 0 14px 40px oklch(0.07 0.005 255 / 0.6);
-  --scrim: oklch(0.1 0.005 255 / 0.6);
-  --font: 'Source Sans 3', sans-serif;
-  --r: 10px; --r-sm: 7px;
-  --cover-l1: 0.30; --cover-l2: 0.255;
-  color-scheme: dark;
-}
-[data-theme="light-cream"] {
-  --bg0: oklch(0.972 0.012 95);
-  --bg1: oklch(0.945 0.016 95);
-  --bg2: oklch(0.90 0.024 95);
-  --bg3: oklch(0.86 0.03 95);
-  --line: oklch(0.885 0.022 95);
-  --text: oklch(0.28 0.02 80);
-  --mut: oklch(0.50 0.025 85);
-  --acc: oklch(0.78 0.13 95);
-  --acc-ink: oklch(0.32 0.07 95);
-  --island: oklch(0.995 0.005 95);
-  --island-shadow: 0 10px 32px oklch(0.4 0.04 85 / 0.18);
-  --scrim: oklch(0.35 0.02 85 / 0.4);
-  --font: 'Nunito Sans', sans-serif;
-  --r: 18px; --r-sm: 12px;
-  --cover-l1: 0.84; --cover-l2: 0.79;
-  color-scheme: light;
-}
-[data-theme="light-neutral"] {
-  --bg0: oklch(0.975 0.003 250);
-  --bg1: oklch(0.95 0.004 250);
-  --bg2: oklch(0.91 0.006 250);
-  --bg3: oklch(0.87 0.007 250);
-  --line: oklch(0.89 0.005 250);
-  --text: oklch(0.27 0.01 260);
-  --mut: oklch(0.50 0.012 255);
-  --acc: oklch(0.78 0.13 95);
-  --acc-ink: oklch(0.30 0.06 95);
-  --island: oklch(0.998 0.001 250);
-  --island-shadow: 0 10px 32px oklch(0.35 0.01 255 / 0.16);
-  --scrim: oklch(0.3 0.01 255 / 0.4);
-  --font: 'Nunito Sans', sans-serif;
-  --r: 14px; --r-sm: 9px;
-  --cover-l1: 0.86; --cover-l2: 0.81;
-  color-scheme: light;
-}
-[data-theme="dark-sea"] {
-  --bg0: oklch(0.20 0.012 75);
-  --bg1: oklch(0.245 0.013 75);
-  --bg2: oklch(0.30 0.015 75);
-  --bg3: oklch(0.35 0.016 75);
-  --line: oklch(0.32 0.015 75);
-  --text: oklch(0.93 0.01 240);
-  --mut: oklch(0.65 0.015 250);
-  --acc: oklch(0.76 0.11 230);
-  --acc-ink: oklch(0.22 0.05 240);
-  --island: oklch(0.27 0.014 75);
-  --island-shadow: 0 14px 40px oklch(0.08 0.01 75 / 0.55);
-  --scrim: oklch(0.12 0.01 75 / 0.6);
-  --font: 'Golos Text', sans-serif;
-  --mono: 'JetBrains Mono', monospace;
-  --r: 16px; --r-sm: 10px;
-  --cover-l1: 0.32; --cover-l2: 0.27;
-  color-scheme: dark;
-}
-[data-theme="light-rose"] {
-  --bg0: oklch(0.972 0.008 350);
-  --bg1: oklch(0.945 0.012 350);
-  --bg2: oklch(0.90 0.018 350);
-  --bg3: oklch(0.86 0.024 350);
-  --line: oklch(0.885 0.016 350);
-  --text: oklch(0.28 0.02 340);
-  --mut: oklch(0.50 0.025 345);
-  --acc: oklch(0.74 0.12 350);
-  --acc-ink: oklch(0.99 0.005 350);
-  --island: oklch(0.995 0.004 350);
-  --island-shadow: 0 10px 32px oklch(0.4 0.03 350 / 0.18);
-  --scrim: oklch(0.35 0.02 350 / 0.4);
-  --font: 'Nunito Sans', sans-serif;
-  --r: 18px; --r-sm: 12px;
-  --cover-l1: 0.84; --cover-l2: 0.79;
-  color-scheme: light;
-}
-
-/* «Точка» — основная тема. Монохром, точечная матрица, один горячий цвет.
-   --acc здесь белый: это цвет главного действия (play, выбранный чип, тумблер).
-   --hot — красный: только «нравится», «сейчас», живые индикаторы и доп. донаты. */
-[data-theme="dot"] {
+/* «Точка» — по умолчанию: монохром и красный */
+:root, [data-theme] {
   --bg0: #000000;
   --bg1: #0A0A0A;
   --bg2: #121212;
@@ -135,19 +29,162 @@
   --mut: #A3A3A3;
   --mut2: #8A8A8A;
   --dot-off: #2A2A2A;
+  --dot-l: 0.8;
   --acc: #F2F2F2;
   --acc-ink: #000000;
   --hot: #D71921;
+  --hot-ink: #FFFFFF;
+  --bad: #FF5A4E;
   --island: #111111;
   --island-shadow: 0 -20px 44px #000000;
+  --shadow: 0 16px 40px #000000;
   --scrim: rgba(0, 0, 0, 0.74);
-  --font: 'Geist', sans-serif;
-  --mono: 'Geist Mono', monospace;
-  --font-dot: 'Doto', 'Geist Mono', monospace;
-  --r: 28px; --r-sm: 14px;
   --cover-l1: 0.30; --cover-l2: 0.25;
-  --bad: #FF5A4E;
   color-scheme: dark;
+}
+/* Тёплая ночь — тёплый графит, жёлтый */
+[data-theme="dark-warm"] {
+  --bg0: oklch(0.20 0.012 75);
+  --bg1: oklch(0.225 0.012 75);
+  --bg2: oklch(0.28 0.015 75);
+  --bg3: oklch(0.34 0.016 75);
+  --line: oklch(0.27 0.014 75);
+  --text: oklch(0.93 0.015 90);
+  --mut: oklch(0.72 0.018 80);
+  --mut2: oklch(0.64 0.018 80);
+  --dot-off: oklch(0.36 0.016 75);
+  --dot-l: 0.8;
+  --acc: oklch(0.93 0.015 90);
+  --acc-ink: oklch(0.20 0.012 75);
+  --hot: oklch(0.82 0.14 90);
+  --hot-ink: oklch(0.24 0.05 90);
+  --bad: oklch(0.68 0.17 28);
+  --island: oklch(0.245 0.013 75);
+  --island-shadow: 0 -20px 44px oklch(0.20 0.012 75);
+  --shadow: 0 16px 40px oklch(0.08 0.01 75 / 0.6);
+  --scrim: oklch(0.12 0.01 75 / 0.7);
+  --cover-l1: 0.32; --cover-l2: 0.27;
+  color-scheme: dark;
+}
+/* Студия — холодный графит, жёлтый */
+[data-theme="dark-neutral"] {
+  --bg0: oklch(0.185 0.008 255);
+  --bg1: oklch(0.21 0.009 255);
+  --bg2: oklch(0.265 0.01 255);
+  --bg3: oklch(0.32 0.011 255);
+  --line: oklch(0.255 0.01 255);
+  --text: oklch(0.92 0.008 250);
+  --mut: oklch(0.70 0.012 250);
+  --mut2: oklch(0.62 0.012 250);
+  --dot-off: oklch(0.34 0.011 255);
+  --dot-l: 0.8;
+  --acc: oklch(0.92 0.008 250);
+  --acc-ink: oklch(0.185 0.008 255);
+  --hot: oklch(0.82 0.14 90);
+  --hot-ink: oklch(0.24 0.05 90);
+  --bad: oklch(0.68 0.17 28);
+  --island: oklch(0.23 0.009 255);
+  --island-shadow: 0 -20px 44px oklch(0.185 0.008 255);
+  --shadow: 0 16px 40px oklch(0.07 0.005 255 / 0.6);
+  --scrim: oklch(0.1 0.005 255 / 0.7);
+  --cover-l1: 0.30; --cover-l2: 0.255;
+  color-scheme: dark;
+}
+/* Глубина — тёплый графит, голубой */
+[data-theme="dark-sea"] {
+  --bg0: oklch(0.20 0.012 75);
+  --bg1: oklch(0.225 0.012 75);
+  --bg2: oklch(0.28 0.015 75);
+  --bg3: oklch(0.34 0.016 75);
+  --line: oklch(0.27 0.014 75);
+  --text: oklch(0.93 0.01 240);
+  --mut: oklch(0.72 0.015 250);
+  --mut2: oklch(0.64 0.015 250);
+  --dot-off: oklch(0.36 0.016 75);
+  --dot-l: 0.8;
+  --acc: oklch(0.93 0.01 240);
+  --acc-ink: oklch(0.20 0.012 75);
+  --hot: oklch(0.76 0.12 230);
+  --hot-ink: oklch(0.20 0.05 240);
+  --bad: oklch(0.68 0.17 28);
+  --island: oklch(0.245 0.013 75);
+  --island-shadow: 0 -20px 44px oklch(0.20 0.012 75);
+  --shadow: 0 16px 40px oklch(0.08 0.01 75 / 0.6);
+  --scrim: oklch(0.12 0.01 75 / 0.7);
+  --cover-l1: 0.32; --cover-l2: 0.27;
+  color-scheme: dark;
+}
+/* Солнечная — кремовый, янтарный */
+[data-theme="light-cream"] {
+  --bg0: oklch(0.972 0.012 95);
+  --bg1: oklch(0.955 0.015 95);
+  --bg2: oklch(0.925 0.02 95);
+  --bg3: oklch(0.87 0.028 95);
+  --line: oklch(0.90 0.022 95);
+  --text: oklch(0.28 0.02 80);
+  --mut: oklch(0.47 0.025 85);
+  --mut2: oklch(0.52 0.025 85);
+  --dot-off: oklch(0.85 0.03 95);
+  --dot-l: 0.62;
+  --acc: oklch(0.28 0.02 80);
+  --acc-ink: oklch(0.972 0.012 95);
+  --hot: oklch(0.62 0.15 60);
+  --hot-ink: oklch(0.99 0.01 95);
+  --bad: oklch(0.55 0.19 28);
+  --island: oklch(0.995 0.005 95);
+  --island-shadow: 0 -16px 36px oklch(0.972 0.012 95);
+  --shadow: 0 12px 32px oklch(0.4 0.04 85 / 0.18);
+  --scrim: oklch(0.35 0.02 85 / 0.4);
+  --cover-l1: 0.84; --cover-l2: 0.79;
+  color-scheme: light;
+}
+/* Бумага — нейтральный белый, красный: светлая «Точка» */
+[data-theme="light-neutral"] {
+  --bg0: oklch(0.975 0.003 250);
+  --bg1: oklch(0.96 0.004 250);
+  --bg2: oklch(0.93 0.005 250);
+  --bg3: oklch(0.875 0.007 250);
+  --line: oklch(0.905 0.005 250);
+  --text: oklch(0.24 0.01 260);
+  --mut: oklch(0.46 0.012 255);
+  --mut2: oklch(0.52 0.012 255);
+  --dot-off: oklch(0.86 0.007 250);
+  --dot-l: 0.62;
+  --acc: oklch(0.24 0.01 260);
+  --acc-ink: oklch(0.975 0.003 250);
+  --hot: #D71921;
+  --hot-ink: #FFFFFF;
+  --bad: oklch(0.55 0.19 28);
+  --island: oklch(0.998 0.001 250);
+  --island-shadow: 0 -16px 36px oklch(0.975 0.003 250);
+  --shadow: 0 12px 32px oklch(0.35 0.01 255 / 0.16);
+  --scrim: oklch(0.3 0.01 255 / 0.4);
+  --cover-l1: 0.86; --cover-l2: 0.81;
+  color-scheme: light;
+}
+/* Зефир — розоватый, малиновый */
+[data-theme="light-rose"] {
+  --bg0: oklch(0.972 0.008 350);
+  --bg1: oklch(0.955 0.011 350);
+  --bg2: oklch(0.925 0.014 350);
+  --bg3: oklch(0.87 0.022 350);
+  --line: oklch(0.90 0.016 350);
+  --text: oklch(0.28 0.02 340);
+  --mut: oklch(0.47 0.025 345);
+  --mut2: oklch(0.52 0.025 345);
+  --dot-off: oklch(0.85 0.024 350);
+  --dot-l: 0.62;
+  --acc: oklch(0.28 0.02 340);
+  --acc-ink: oklch(0.972 0.008 350);
+  --hot: oklch(0.58 0.18 355);
+  --hot-ink: oklch(0.99 0.005 350);
+  --bad: oklch(0.55 0.19 28);
+  --island: oklch(0.995 0.004 350);
+  --island-shadow: 0 -16px 36px oklch(0.972 0.008 350);
+  --shadow: 0 12px 32px oklch(0.4 0.03 350 / 0.18);
+  --scrim: oklch(0.35 0.02 350 / 0.4);
+  --cover-l1: 0.84; --cover-l2: 0.79;
+  color-scheme: light;
 }
 
 /* ---------- Базовое ---------- */
@@ -169,8 +206,8 @@ input, textarea { font-family: inherit; }
 
 /* Заголовки «Точки»: тонкие и крупные — взрослость отсюда. Инлайн-веса страниц
    рассчитаны на старые темы, поэтому здесь !important (см. README 5.4). */
-[data-theme="dot"] h1 { font-weight: 300 !important; letter-spacing: -0.05em !important; }
-[data-theme="dot"] h2 { font-weight: 400 !important; letter-spacing: -0.02em !important; }
+[data-theme] h1 { font-weight: 300 !important; letter-spacing: -0.05em !important; }
+[data-theme] h2 { font-weight: 400 !important; letter-spacing: -0.02em !important; }
 
 /* Точечный шрифт — для цифр и латиницы; в других темах это просто основной шрифт */
 .dots { font-family: var(--font-dot); font-variation-settings: 'ROND' 100; font-weight: 800; line-height: 0.85; }
@@ -191,7 +228,7 @@ input, textarea { font-family: inherit; }
   display: flex; flex-direction: column; padding: 26px 12px 14px;
   min-height: 0;
 }
-[data-theme="dot"] .sidebar { background: var(--bg0); border-right-color: #1A1A1A; }
+[data-theme] .sidebar { background: var(--bg0); border-right-color: var(--line); }
 .main {
   --pad: 32px;
   min-width: 0; min-height: 0; overflow-y: auto; overflow-x: hidden;
@@ -210,7 +247,7 @@ input, textarea { font-family: inherit; }
   background: var(--bg1); border-left: 1px solid var(--line);
   min-height: 0; overflow-y: auto; padding: 18px 18px 140px;
 }
-[data-theme="dot"] .npanel { background: var(--bg0); }
+[data-theme] .npanel { background: var(--bg0); }
 .shell.docked .npanel { padding-bottom: 40px; }
 
 /* ---------- Навигация ---------- */
@@ -228,14 +265,14 @@ input, textarea { font-family: inherit; }
 }
 .navitem .nav-num { display: none; font-family: var(--mono, monospace); font-size: 11px; color: var(--mut2); width: 18px; flex-shrink: 0; }
 .navitem .nav-dot { display: none; }
-[data-theme="dot"] .navitem { font-weight: 400; padding: 11px 10px; }
-[data-theme="dot"] .navitem .nav-ic { display: none; }
-[data-theme="dot"] .navitem .nav-num { display: inline; }
-[data-theme="dot"] .navitem:hover { background: transparent; }
-[data-theme="dot"] .navitem.active { background: transparent; font-weight: 400; }
-[data-theme="dot"] .navitem.active .nav-dot { display: inline-block; margin-left: auto; }
-[data-theme="dot"] .navitem .badge { background: transparent; color: var(--text); font-family: var(--mono); font-weight: 400; font-size: 12px; padding: 0; }
-[data-theme="dot"] .navitem.active .badge { margin-left: 10px; }
+[data-theme] .navitem { font-weight: 400; padding: 11px 10px; }
+[data-theme] .navitem .nav-ic { display: none; }
+[data-theme] .navitem .nav-num { display: inline; }
+[data-theme] .navitem:hover { background: transparent; }
+[data-theme] .navitem.active { background: transparent; font-weight: 400; }
+[data-theme] .navitem.active .nav-dot { display: inline-block; margin-left: auto; }
+[data-theme] .navitem .badge { background: transparent; color: var(--text); font-family: var(--mono); font-weight: 400; font-size: 12px; padding: 0; }
+[data-theme] .navitem.active .badge { margin-left: 10px; }
 
 .plitem {
   display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
@@ -246,8 +283,8 @@ input, textarea { font-family: inherit; }
 .plitem.active { color: var(--text); }
 .plitem .pl-name { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .plitem .pl-sub { display: block; font-family: var(--mono, monospace); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mut2); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-[data-theme="dot"] .plitem { color: var(--text); }
-[data-theme="dot"] .plitem:hover { background: var(--bg2); }
+[data-theme] .plitem { color: var(--text); }
+[data-theme] .plitem:hover { background: var(--bg2); }
 
 .netline { font-family: var(--mono, monospace); font-size: 10px; letter-spacing: 0.08em; color: var(--mut2); padding: 4px 12px 8px; display: flex; flex-direction: column; gap: 6px; }
 
@@ -258,9 +295,9 @@ input, textarea { font-family: inherit; }
 }
 .chip:hover { background: var(--bg3); }
 .chip.on { background: var(--acc); color: var(--acc-ink); }
-[data-theme="dot"] .chip { font-weight: 400; background: transparent; box-shadow: inset 0 0 0 1px var(--bg3); padding: 8px 16px; }
-[data-theme="dot"] .chip:hover { background: var(--bg2); }
-[data-theme="dot"] .chip.on { background: var(--acc); box-shadow: none; }
+[data-theme] .chip { font-weight: 400; background: transparent; box-shadow: inset 0 0 0 1px var(--bg3); padding: 8px 16px; }
+[data-theme] .chip:hover { background: var(--bg2); }
+[data-theme] .chip.on { background: var(--acc); box-shadow: none; }
 
 .btn {
   display: inline-flex; align-items: center; gap: 8px; justify-content: center;
@@ -273,11 +310,11 @@ input, textarea { font-family: inherit; }
 .btn.ghost:hover { background: var(--bg3); }
 .btn.outline { background: transparent; color: var(--text); border: 1px solid var(--bg3); font-weight: 600; }
 .btn.outline:hover { border-color: var(--mut); }
-[data-theme="dot"] .btn { font-weight: 500; min-height: 44px; }
-[data-theme="dot"] .btn:hover { transform: none; filter: brightness(0.92); }
-[data-theme="dot"] .btn.ghost { background: transparent; box-shadow: inset 0 0 0 1px var(--bg3); font-weight: 400; }
-[data-theme="dot"] .btn.ghost:hover { background: var(--bg2); filter: none; }
-[data-theme="dot"] .btn.outline { font-weight: 400; }
+[data-theme] .btn { font-weight: 500; min-height: 44px; }
+[data-theme] .btn:hover { transform: none; filter: brightness(0.92); }
+[data-theme] .btn.ghost { background: transparent; box-shadow: inset 0 0 0 1px var(--bg3); font-weight: 400; }
+[data-theme] .btn.ghost:hover { background: var(--bg2); filter: none; }
+[data-theme] .btn.outline { font-weight: 400; }
 
 .iconbtn {
   width: 34px; height: 34px; border-radius: 50%; display: inline-flex;
@@ -313,7 +350,7 @@ input, textarea { font-family: inherit; }
   mask: radial-gradient(circle, #000 0 var(--gr), transparent calc(var(--gr) + 0.5px)) 0 0 / var(--gp) var(--gp);
 }
 .widget { background: var(--bg2); border-radius: var(--r); padding: 24px; min-width: 0; }
-[data-theme="dot"] .widget { background: #111111; }
+[data-theme] .widget { background: var(--island); }
 
 /* ---------- Карточки ---------- */
 .card {
@@ -322,7 +359,7 @@ input, textarea { font-family: inherit; }
   transition: background 0.14s; position: relative;
 }
 .card:hover { background: var(--bg1); }
-[data-theme="dot"] .card:hover { background: var(--bg2); }
+[data-theme] .card:hover { background: var(--bg2); }
 .card .t {
   font-size: 14.5px; font-weight: 600; color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -331,13 +368,13 @@ input, textarea { font-family: inherit; }
   font-size: 13px; color: var(--mut); margin-top: 3px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-[data-theme="dot"] .card .t { font-weight: 400; }
+[data-theme] .card .t { font-weight: 400; }
 .card .hoverplay {
   position: absolute; right: 18px; bottom: 70px; width: 44px; height: 44px;
   border-radius: 50%; background: var(--acc); color: var(--acc-ink);
   display: flex; align-items: center; justify-content: center;
   opacity: 0; transform: translateY(6px); transition: opacity 0.15s, transform 0.15s;
-  box-shadow: 0 6px 18px oklch(0.1 0.01 80 / 0.4);
+  box-shadow: var(--shadow);
 }
 .card:hover .hoverplay { opacity: 1; transform: translateY(0); }
 
@@ -354,16 +391,16 @@ input, textarea { font-family: inherit; }
 }
 .trow.nocover { grid-template-columns: 34px minmax(0, 1fr) minmax(0, 0.7fr) 148px 52px; padding: 10px 12px; }
 .trow:hover { background: var(--bg1); }
-[data-theme="dot"] .trow:hover { background: var(--bg2); }
+[data-theme] .trow:hover { background: var(--bg2); }
 .trow .num { font-size: 13.5px; color: var(--mut); text-align: right; font-variant-numeric: tabular-nums; }
 .trow .tt { font-size: 14.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .trow .ta { font-size: 12.5px; color: var(--mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .trow .alb { font-size: 13px; color: var(--mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .trow .dur { font-size: 13px; color: var(--mut); text-align: right; font-variant-numeric: tabular-nums; }
-[data-theme="dot"] .trow .num, [data-theme="dot"] .trow .dur { font-family: var(--mono); font-size: 12px; color: var(--mut2); }
-[data-theme="dot"] .trow .num { text-align: left; }
-[data-theme="dot"] .trow .tt { font-weight: 400; font-size: 15px; }
-[data-theme="dot"] .trow .alb { font-family: var(--mono); font-size: 12px; color: var(--mut2); }
+[data-theme] .trow .num, [data-theme] .trow .dur { font-family: var(--mono); font-size: 12px; color: var(--mut2); }
+[data-theme] .trow .num { text-align: left; }
+[data-theme] .trow .tt { font-weight: 400; font-size: 15px; }
+[data-theme] .trow .alb { font-family: var(--mono); font-size: 12px; color: var(--mut2); }
 .trow .acts { display: flex; align-items: center; gap: 2px; justify-content: flex-end; }
 .trow .acts .iconbtn { width: 30px; height: 30px; opacity: 0; transition: opacity 0.12s; }
 .trow:hover .acts .iconbtn { opacity: 1; }
@@ -373,7 +410,7 @@ input, textarea { font-family: inherit; }
 .trow .acts .rate-n { opacity: 1; }
 .trow.playing .tt { color: var(--acc); }
 .trow.playing .num { color: var(--acc); }
-[data-theme="dot"] .trow.playing .tt { color: var(--text); }
+[data-theme] .trow.playing .tt { color: var(--text); }
 
 /* ---------- Островок-плеер ---------- */
 .island {
@@ -385,7 +422,7 @@ input, textarea { font-family: inherit; }
   border: 1px solid var(--line);
   container-type: inline-size;
 }
-[data-theme="dot"] .island { border-color: var(--bg3); height: 76px; }
+[data-theme] .island { border-color: var(--bg3); height: 76px; }
 .shell.with-panel .island { right: 360px; }
 .island.square { border-radius: var(--r); }
 /* Центр плавно сжимается, боковые элементы прячутся ступенями — наездов нет.
@@ -435,31 +472,31 @@ input, textarea { font-family: inherit; }
   border-radius: var(--r-sm); box-shadow: 0 12px 32px oklch(0.1 0.01 75 / 0.4);
   z-index: 60; padding: 10px;
 }
-[data-theme="dot"] .pop { background: #111111; border-color: var(--bg3); box-shadow: 0 16px 40px #000; }
+[data-theme] .pop { background: var(--island); border-color: var(--bg3); box-shadow: var(--shadow); }
 .scrim {
   position: fixed; inset: 0; background: var(--scrim); z-index: 120;
   display: flex; align-items: center; justify-content: center;
 }
 .modal {
   background: var(--bg1); border: 1px solid var(--line); border-radius: var(--r);
-  box-shadow: 0 24px 64px oklch(0.08 0.01 75 / 0.5);
+  box-shadow: var(--shadow);
   width: 460px; max-width: calc(100vw - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; padding: 24px;
 }
-[data-theme="dot"] .modal { background: #0D0D0D; border-color: var(--bg3); }
+[data-theme] .modal { background: var(--island); border-color: var(--bg3); }
 
 /* ---------- Разное ---------- */
 .sec-label {
   font-size: 12px; font-weight: 700; color: var(--mut);
   letter-spacing: 0.09em; text-transform: uppercase;
 }
-[data-theme="dot"] .sec-label { font-family: var(--mono); font-weight: 400; font-size: 11px; letter-spacing: 0.14em; color: var(--mut2); }
+[data-theme] .sec-label { font-family: var(--mono); font-weight: 400; font-size: 11px; letter-spacing: 0.14em; color: var(--mut2); }
 .h-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; gap: 12px; }
 .h-row h2 { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
 .h-row .more { font-size: 13px; color: var(--mut); font-weight: 600; white-space: nowrap; }
 .h-row .more:hover { color: var(--text); }
-[data-theme="dot"] .h-row h2 { font-family: var(--mono); font-size: 11px; font-weight: 400 !important; letter-spacing: 0.14em !important; text-transform: uppercase; color: var(--mut2); }
-[data-theme="dot"] .h-row .more { font-family: var(--mono); font-size: 11px; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; }
-.mono { font-family: var(--mono, 'JetBrains Mono', monospace); }
+[data-theme] .h-row h2 { font-family: var(--mono); font-size: 11px; font-weight: 400 !important; letter-spacing: 0.14em !important; text-transform: uppercase; color: var(--mut2); }
+[data-theme] .h-row .more { font-family: var(--mono); font-size: 11px; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; }
+.mono { font-family: var(--mono); }
 .divider { height: 1px; background: var(--line); border: none; margin: 0; }
 
 .slider-track { height: 5px; border-radius: 99px; background: var(--bg2); position: relative; cursor: pointer; }
@@ -482,9 +519,9 @@ input, textarea { font-family: inherit; }
 }
 .toggle.on { background: var(--acc); }
 .toggle.on::after { left: 21px; background: var(--acc-ink); }
-[data-theme="dot"] .toggle { width: 50px; height: 28px; }
-[data-theme="dot"] .toggle::after { width: 20px; height: 20px; left: 4px; top: 4px; background: var(--mut); }
-[data-theme="dot"] .toggle.on::after { left: 26px; background: #000; }
+[data-theme] .toggle { width: 50px; height: 28px; }
+[data-theme] .toggle::after { width: 20px; height: 20px; left: 4px; top: 4px; background: var(--mut); }
+[data-theme] .toggle.on::after { left: 26px; background: var(--acc-ink); }
 
 /* ---------- Адаптивные блоки ---------- */
 .actions { display: flex; align-items: center; gap: 10px; margin-bottom: 26px; flex-wrap: wrap; }
@@ -568,8 +605,8 @@ input, textarea { font-family: inherit; }
 }
 
 @keyframes dlfill { to { stroke-dashoffset: 0; } }
-[data-theme="dot"] .navitem.setitem .nav-ic, [data-theme="dot"] .navitem.setitem svg { display: block; }
-[data-theme="dot"] .navitem.setitem.active { background: var(--bg2); }
+[data-theme] .navitem.setitem .nav-ic, [data-theme] .navitem.setitem svg { display: block; }
+[data-theme] .navitem.setitem.active { background: var(--bg2); }
 
 /* ---------- Онбординг ---------- */
 .ob {
@@ -597,12 +634,12 @@ input, textarea { font-family: inherit; }
   display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
   background: var(--bg0); border-top: 1px solid var(--line);
 }
-[data-theme="dot"] .mobnav { border-top-color: #1A1A1A; }
+[data-theme] .mobnav { border-top-color: var(--line); }
 .mn-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: var(--mut2); min-width: 0; }
 .mn-item.active { color: var(--text); }
 .mn-label { display: flex; align-items: center; gap: 5px; font-size: 11.5px; white-space: nowrap; max-width: 100%; }
 .mn-label .hot-dot { width: 4px; height: 4px; }
-[data-theme="dot"] .mn-label { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; }
+[data-theme] .mn-label { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; }
 
 .mplayer {
   position: fixed; left: 10px; right: 10px; bottom: calc(var(--nav-h, 68px) + 8px); z-index: 44;
@@ -610,7 +647,7 @@ input, textarea { font-family: inherit; }
   background: var(--island); border: 1px solid var(--line); box-shadow: 0 -20px 40px var(--bg0);
   display: flex; flex-direction: column; justify-content: center; cursor: pointer;
 }
-[data-theme="dot"] .mplayer { background: #111111; border-color: var(--bg3); }
+[data-theme] .mplayer { background: var(--island); border-color: var(--bg3); }
 .mplayer.square { border-radius: 20px; }
 .mplayer.docked {
   left: 0; right: 0; bottom: var(--nav-h, 68px); height: auto; border-radius: 0; border: none; box-shadow: 0 -18px 28px var(--bg0);

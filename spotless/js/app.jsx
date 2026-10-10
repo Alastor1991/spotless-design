@@ -68,14 +68,8 @@ const App = () => {
     root.setAttribute("data-theme", theme);
     root.setAttribute("data-density", settings.density || "n");
     ["--acc", "--acc-ink", "--hot"].forEach(p => root.style.removeProperty(p));
-    if (settings.accent != null) {
-      // В «Точке» главное действие белое, а акцент — горячий цвет (лайк, «сейчас»)
-      if (theme === "dot") root.style.setProperty("--hot", `oklch(0.7 0.17 ${settings.accent})`);
-      else {
-        root.style.setProperty("--acc", `oklch(0.78 0.12 ${settings.accent})`);
-        root.style.setProperty("--acc-ink", `oklch(0.26 0.06 ${settings.accent})`);
-      }
-    }
+    // Акцент подменяет горячий цвет темы (лайк, «сейчас»); главное действие остаётся цвета текста
+    if (settings.accent != null) root.style.setProperty("--hot", `oklch(0.66 0.17 ${settings.accent})`);
   }, [theme, settings.accent, settings.density]);
 
   // Тикающий прогресс
@@ -424,14 +418,12 @@ const Sidebar = () => {
   const app = useApp();
   const t = app.t;
   const r = app.route;
-  const tech = app.theme === "dot" || app.theme === "dark-neutral";
   return (
     <aside className="sidebar" data-screen-label="Сайдбар">
       <div className="logo-row" style={{ display: "flex", alignItems: "center", gap: 9, padding: "0 4px 0 12px", marginBottom: 22 }}>
         <button style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }} onClick={() => app.go("home")} aria-label="Spotless">
           <span className="dots logo-word" style={{ fontSize: 24, letterSpacing: "0.02em" }}>SPOTLESS</span>
           <span className="hot-dot" style={{ width: 7, height: 7 }}></span>
-          {app.theme === "dark-neutral" && <span className="nav-label mono" style={{ fontSize: 10.5, color: "var(--mut)" }}>v0.4</span>}
         </button>
         <button className="iconbtn sb-toggle" style={{ width: 30, height: 30, marginLeft: "auto" }}
           title={app.railPref ? t.sbExpand : t.sbCollapse} aria-label={app.railPref ? t.sbExpand : t.sbCollapse}
@@ -451,7 +443,7 @@ const Sidebar = () => {
       </div>
       <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2, minHeight: 0 }}>
         <button className={"plitem" + (r.page === "liked" ? " active" : "")} onClick={() => app.go("liked")} title={t.likedTracks}>
-          <span style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--hot)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#fff" }}>
+          <span style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--hot)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "var(--hot-ink)" }}>
             <Ic d={ICONS.heart} size={17} fill="currentColor" />
           </span>
           <span className="pl-text" style={{ minWidth: 0 }}>
@@ -472,12 +464,10 @@ const Sidebar = () => {
           </button>
         ))}
       </div>
-      {tech && (
-        <div className="netline" aria-label={app.lang === "ru" ? "Состояние сети" : "Network status"}>
-          <span style={{ display: "flex", alignItems: "center", gap: 7 }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--text)" }}></span>12 PEERS · DHT OK</span>
-          <span style={{ paddingLeft: 12 }}>CACHE 1.2 GB</span>
-        </div>
-      )}
+      <div className="netline" aria-label={app.lang === "ru" ? "Состояние сети" : "Network status"}>
+        <span style={{ display: "flex", alignItems: "center", gap: 7 }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--text)" }}></span>12 PEERS · DHT OK</span>
+        <span style={{ paddingLeft: 12 }}>CACHE 1.2 GB</span>
+      </div>
       <NavItem page="settings" num="05" icon="gear" label={t.settings} />
     </aside>
   );
@@ -580,7 +570,7 @@ const TopBar = () => {
         <input value={app.query} placeholder={t.searchPh} aria-label={t.search}
           onChange={(e) => { app.setQuery(e.target.value); if (app.route.page !== "search") app.go("search"); }}
           style={{ flex: 1, minWidth: 0, background: "none", border: "none", outline: "none", color: "var(--text)", fontSize: 14 }} />
-        {(app.theme === "dot" || app.theme === "dark-neutral") && <span className="mono tb-k" style={{ fontSize: 11, border: "1px solid var(--bg3)", borderRadius: 8, padding: "4px 8px", color: "var(--mut2)" }}>⌘K</span>}
+        <span className="mono tb-k" style={{ fontSize: 11, border: "1px solid var(--bg3)", borderRadius: 8, padding: "4px 8px", color: "var(--mut2)" }}>⌘K</span>
       </label>
       <div style={{ flex: 1 }}></div>
       {bell}
