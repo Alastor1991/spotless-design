@@ -62,13 +62,6 @@ const App = () => {
 
   const t = I18N[lang];
 
-  // Персист
-  React.useEffect(() => {
-    const doneDl = {};
-    Object.entries(downloads).forEach(([k, v]) => { if (v === "done") doneDl[k] = "done"; });
-    saveLS({ uiVersion: 2, route, theme, lang, currency, settings, onboarded, trackStates, followed, monthly, auto, rail: railPref, customAmt, downloads: doneDl, userPlaylists, plRemoved, queue, notifRead, hints, volume });
-  }, [route, theme, lang, currency, settings, onboarded, trackStates, followed, monthly, auto, railPref, customAmt, downloads, userPlaylists, plRemoved, queue, notifRead, hints, volume]);
-
   // Применить тему к документу
   React.useEffect(() => {
     const root = document.documentElement;
@@ -280,6 +273,14 @@ const App = () => {
   const [hints, setHints] = React.useState(saved.hints || {});
   const hintsRef = React.useRef(hints);
   React.useEffect(() => { hintsRef.current = hints; }, [hints]);
+  // Персист — после объявления всех сохраняемых состояний (queue, notifRead, hints),
+  // иначе без Babel-преобразования const → var это ошибка TDZ
+  React.useEffect(() => {
+    const doneDl = {};
+    Object.entries(downloads).forEach(([k, v]) => { if (v === "done") doneDl[k] = "done"; });
+    saveLS({ uiVersion: 2, route, theme, lang, currency, settings, onboarded, trackStates, followed, monthly, auto, rail: railPref, customAmt, downloads: doneDl, userPlaylists, plRemoved, queue, notifRead, hints, volume });
+  }, [route, theme, lang, currency, settings, onboarded, trackStates, followed, monthly, auto, railPref, customAmt, downloads, userPlaylists, plRemoved, queue, notifRead, hints, volume]);
+
   const hint = (key, msg) => {
     if (hintsRef.current[key]) return;
     hintsRef.current = { ...hintsRef.current, [key]: 1 };
