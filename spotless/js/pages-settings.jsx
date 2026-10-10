@@ -1,6 +1,7 @@
 // Spotless — Настройки: внешний вид, язык/валюта, обучение, продвинутое, аккаунт.
 
 const THEME_LIST = [
+  { id: "dot", ru: "Точка", en: "Dot", bg: "#000000", fg: "#F2F2F2", acc: "#D71921" },
   { id: "dark-warm", ru: "Тёплая ночь", en: "Warm night", bg: "oklch(0.22 0.012 75)", fg: "oklch(0.93 0.015 90)", acc: "oklch(0.80 0.13 95)" },
   { id: "dark-neutral", ru: "Студия", en: "Studio", bg: "oklch(0.20 0.008 255)", fg: "oklch(0.92 0.008 250)", acc: "oklch(0.80 0.13 95)" },
   { id: "dark-sea", ru: "Глубина", en: "Deep sea", bg: "oklch(0.22 0.012 75)", fg: "oklch(0.93 0.01 240)", acc: "oklch(0.76 0.11 230)" },
@@ -36,7 +37,7 @@ const ThemeSwatch = ({ th, active, onClick, size = "norm" }) => {
 };
 
 const SettingRow = ({ label, note, children }) => (
-  <div style={{ display: "flex", alignItems: "center", gap: 20, padding: "14px 0", borderBottom: "1px solid var(--line)" }}>
+  <div className="set-row" style={{ display: "flex", alignItems: "center", gap: 20, padding: "14px 0", borderBottom: "1px solid var(--line)" }}>
     <div style={{ flex: 1, minWidth: 0 }}>
       <div style={{ fontSize: 14.5, fontWeight: 600 }}>{label}</div>
       {note && <div style={{ fontSize: 12.5, color: "var(--mut)", marginTop: 3, lineHeight: 1.5 }}>{note}</div>}
@@ -129,10 +130,10 @@ const TxModal = ({ close }) => {
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "block", fontSize: 13.5, fontWeight: 600 }}>{r.title}</span>
-                <span style={{ display: "block", fontSize: 11.5, color: "var(--mut)", marginTop: 1 }}>{r.d} · {app.lang === "ru" ? "комиссия" : "fee"} ${r.fee.toFixed(3)}</span>
+                <span style={{ display: "block", fontSize: 11.5, color: "var(--mut)", marginTop: 1 }}>{r.d} · {app.lang === "ru" ? "комиссия сети" : "network fee"} ${app.lang === "ru" ? r.fee.toFixed(3).replace(".", ",") : r.fee.toFixed(3)}</span>
               </span>
               <span className="mono" style={{ fontSize: 13.5, fontWeight: 700, color: r.amount < 0 ? "var(--text)" : "oklch(0.7 0.13 150)" }}>
-                {r.amount < 0 ? "−" : "+"}${Math.abs(r.amount).toFixed(2)}
+                {r.amount < 0 ? "−" : "+"}{fmtMoney(Math.abs(r.amount), app.lang, true)}
               </span>
             </div>
           ))}
@@ -191,7 +192,7 @@ const PageSettings = () => {
       <nav className="set-nav" style={{ paddingTop: 26 }}>
         <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 18, paddingLeft: 14 }}>{t.stTitle}</h1>
         {sections.map(([k, label, icon]) => (
-          <button key={k} className={"navitem" + (section === k ? " active" : "")} style={{ fontSize: 14, padding: "9px 14px" }} onClick={() => setSection(k)}>
+          <button key={k} className={"navitem setitem" + (section === k ? " active" : "")} style={{ fontSize: 14, padding: "9px 14px" }} onClick={() => setSection(k)}>
             <Ic d={ICONS[icon]} size={18} />{label}
           </button>
         ))}
@@ -201,7 +202,7 @@ const PageSettings = () => {
         {section === "appearance" && (
           <div className="fade-up">
             <div className="sec-label" style={{ marginBottom: 14 }}>{t.stThemes}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, max-content)", gap: 14, marginBottom: 10 }}>
+            <div className="theme-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, max-content)", gap: 14, marginBottom: 10 }}>
               {THEME_LIST.map(th => (
                 <ThemeSwatch key={th.id} th={th} active={app.theme === th.id} onClick={() => app.setTheme(th.id)} />
               ))}
@@ -243,9 +244,9 @@ const PageSettings = () => {
                 }}>{!S.wallpaperImg && <Ic d={ICONS.image} size={14} />}</button>
               </div>
             </SettingRow>
-            <SettingRow label={t.stIsland}>
+            <SettingRow label={t.stIsland} note={t.stIslandNote}>
               <Seg value={S.island} onChange={(v) => app.setSettings({ ...S, island: v })}
-                options={[["pill", t.stIslandPill], ["square", t.stIslandSquare]]} />
+                options={[["pill", t.stIslandPill], ["square", t.stIslandSquare], ["panel", t.stIslandDock]]} />
             </SettingRow>
             <SettingRow label={t.stDensity}>
               <Seg value={S.density} onChange={(v) => app.setSettings({ ...S, density: v })}
@@ -370,7 +371,7 @@ const PageSettings = () => {
               <span className="mono" style={{ fontSize: 12.5, color: "var(--mut)" }}>spl1q…e7xw4</span>
               <button className="iconbtn" style={{ width: 30, height: 30 }} onClick={() => app.toast(t.copied)}><Ic d={ICONS.copy} size={14} /></button>
             </SettingRow>
-            <SettingRow label={t.stTx} note={app.lang === "ru" ? "Июнь: 1 поддержка ($5.00) + 2 доната ($2.00) · комиссия сети $0.012" : "June: 1 support ($5.00) + 2 donations ($2.00) · network fee $0.012"}>
+            <SettingRow label={t.stTx} note={app.lang === "ru" ? "Июнь: 1 поддержка ($5) + 2 доната ($2) · комиссия сети $0,012" : "June: 1 support ($5.00) + 2 donations ($2.00) · network fee $0.012"}>
               <button className="more" style={{ display: "flex", gap: 4, alignItems: "center" }} onClick={() => setTxOpen(true)}>{t.stTxAll}<Ic d={ICONS.chevR} size={14} /></button>
             </SettingRow>
             <SettingRow label={t.stPeers} note="12 peers · DHT ok · relay off">

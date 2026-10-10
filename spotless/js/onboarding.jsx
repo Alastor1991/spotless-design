@@ -6,8 +6,8 @@ const ObDots = ({ step }) => (
   <div style={{ display: "flex", gap: 7, justifyContent: "center" }}>
     {[0, 1, 2, 3, 4].map(i => (
       <span key={i} style={{
-        width: i === step ? 22 : 7, height: 7, borderRadius: 99,
-        background: i === step ? "var(--acc)" : "var(--bg3)", transition: "all 0.25s",
+        width: 7, height: 7, borderRadius: 99,
+        background: i === step ? "var(--hot)" : i < step ? "var(--text)" : "var(--bg3)", transition: "all 0.25s",
       }}></span>
     ))}
   </div>
@@ -51,8 +51,8 @@ const Onboarding = () => {
   if (step === 0) return (
     <ObWrap {...W}>
       <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 42 }}>
-        <span style={{ width: 18, height: 18, borderRadius: "50%", background: "var(--acc)" }}></span>
-        <span style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em" }}>spotless</span>
+        <span className="dots" style={{ fontSize: 30, letterSpacing: "0.02em" }}>SPOTLESS</span>
+        <span className="hot-dot" style={{ width: 9, height: 9 }}></span>
       </div>
       <h1 style={{ fontSize: 46, fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.12 }}>
         {t.obWelcome1}<br />{t.obWelcome2}
@@ -211,7 +211,7 @@ const Onboarding = () => {
         borderRadius: "var(--r)", padding: "34px 34px 30px", marginBottom: 26,
       }}>
         <div style={{
-          width: 64, height: 64, borderRadius: "50%", background: "var(--bg2)", color: "var(--acc)",
+          width: 64, height: 64, borderRadius: "50%", background: "var(--bg2)", color: c.icon === "heart" ? "var(--hot)" : "var(--acc)",
           display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px",
         }}>
           <Ic d={ICONS[c.icon]} size={28} fill={c.icon === "heart" ? "currentColor" : "none"} sw={c.icon === "heart" ? 0 : 2} />
@@ -224,8 +224,8 @@ const Onboarding = () => {
               <span key={n} style={{
                 flex: 1, height: 24, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 11, fontWeight: 700,
-                background: n <= 8 ? "var(--acc)" : "var(--bg2)",
-                color: n <= 8 ? "var(--acc-ink)" : "var(--mut)",
+                background: n <= 8 ? "var(--hot)" : "var(--bg2)",
+                color: n <= 8 ? "#fff" : "var(--mut)",
               }}>{n}</span>
             ))}
           </div>

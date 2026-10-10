@@ -12,7 +12,9 @@ const App = () => {
   const [history, setHistory] = React.useState([]);
   const [future, setFuture] = React.useState([]);
   // Тема и настройки
-  const [theme, setThemeRaw] = React.useState(saved.theme || "dark-warm");
+  // uiVersion 2 — основа «Точка»: старые сохранения переводим на неё один раз,
+  // остальные настройки пользователя не трогаем (README 7)
+  const [theme, setThemeRaw] = React.useState(saved.uiVersion === 2 ? (saved.theme || "dot") : "dot");
   const [lang, setLang] = React.useState(saved.lang || "ru");
   const [currency, setCurrency] = React.useState(saved.currency || "usd");
   const [settings, setSettings] = React.useState(saved.settings || { island: "pill", density: "n", accent: null, wallpaper: null });
@@ -20,6 +22,7 @@ const App = () => {
   // Плеер
   const [player, setPlayer] = React.useState({ trackId: "gl1", playing: true, pct: 0.34, shuffle: 0, repeat: false });
   const [panel, setPanel] = React.useState(true);
+  const [volume, setVolume] = React.useState(saved.volume != null ? saved.volume : 0.7);
   const [full, setFull] = React.useState(false);
   const [mini, setMini] = React.useState(false);
   const [fullTab, setFullTab] = React.useState("lyrics");
@@ -54,6 +57,8 @@ const App = () => {
     return () => window.removeEventListener("resize", h);
   }, []);
   const rail = railPref || narrow;
+  // Телефон: своя раскладка — нижняя навигация, мини-плеер, полный экран (Android)
+  const phone = useMedia(PHONE_Q);
 
   const t = I18N[lang];
 
@@ -61,18 +66,21 @@ const App = () => {
   React.useEffect(() => {
     const doneDl = {};
     Object.entries(downloads).forEach(([k, v]) => { if (v === "done") doneDl[k] = "done"; });
-    saveLS({ route, theme, lang, currency, settings, onboarded, trackStates, followed, monthly, auto, rail: railPref, customAmt, downloads: doneDl, userPlaylists, plRemoved, queue, notifRead, hints });
-  }, [route, theme, lang, currency, settings, onboarded, trackStates, followed, monthly, auto, railPref, customAmt, downloads, userPlaylists, plRemoved, queue, notifRead, hints]);
+    saveLS({ uiVersion: 2, route, theme, lang, currency, settings, onboarded, trackStates, followed, monthly, auto, rail: railPref, customAmt, downloads: doneDl, userPlaylists, plRemoved, queue, notifRead, hints, volume });
+  }, [route, theme, lang, currency, settings, onboarded, trackStates, followed, monthly, auto, railPref, customAmt, downloads, userPlaylists, plRemoved, queue, notifRead, hints, volume]);
 
   // Применить тему к документу
   React.useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
+    const root = document.documentElement;
+    root.setAttribute("data-theme", theme);
+    ["--acc", "--acc-ink", "--hot"].forEach(p => root.style.removeProperty(p));
     if (settings.accent != null) {
-      document.documentElement.style.setProperty("--acc", `oklch(0.78 0.12 ${settings.accent})`);
-      document.documentElement.style.setProperty("--acc-ink", `oklch(0.26 0.06 ${settings.accent})`);
-    } else {
-      document.documentElement.style.removeProperty("--acc");
-      document.documentElement.style.removeProperty("--acc-ink");
+      // В «Точке» главное действие белое, а акцент — горячий цвет (лайк, «сейчас»)
+      if (theme === "dot") root.style.setProperty("--hot", `oklch(0.7 0.17 ${settings.accent})`);
+      else {
+        root.style.setProperty("--acc", `oklch(0.78 0.12 ${settings.accent})`);
+        root.style.setProperty("--acc-ink", `oklch(0.26 0.06 ${settings.accent})`);
+      }
     }
   }, [theme, settings.accent]);
 
@@ -297,14 +305,14 @@ const App = () => {
     route, go, goBack, goFwd, history, future,
     theme, setTheme, settings, setSettings, setAccent, setWallpaper, setWallpaperImg,
     player, playTrack, togglePlay, nextTrack, prevTrack, toggleShuffle, toggleRepeat, seek, seekTo, fmtTime,
-    panel, setPanel, full, setFull, mini, setMini, fullTab, setFullTab, queueIds,
+    panel, setPanel, full, setFull, mini, setMini, fullTab, setFullTab, queueIds, volume, setVolume,
     queue, addToQueue, removeFromQueue, moveInQueue, playContext,
     trackState, toggleLike, setRating, trackPlaylists, togglePlaylist,
     allPlaylists, findPl, playlistTracks, likedIds, removeFromPlaylist, createPlaylist, deletePlaylist,
     followed, toggleFollow,
     downloads, toggleDl, toggleDlAlbum, toggleDlList,
     monthly, setMonthly: setMonthlyV, customAmt, setCustomAmt, commitCustom, auto, setAuto,
-    rail, railPref, setRailPref,
+    rail, railPref, setRailPref, phone,
     query, setQuery,
     donateTarget, openDonate, closeDonate,
     topUp, openTopUp, closeTopUp,
@@ -339,6 +347,7 @@ const App = () => {
     : route.page === "genre" ? <PageGenre id={route.id} />
     : <PageHome />;
 
+  const docked = settings.island === "panel";
   const wp = settings.wallpaper;
   const wpi = settings.wallpaperImg;
   const shellBg = wpi
@@ -349,17 +358,19 @@ const App = () => {
 
   return (
     <AppCtx.Provider value={api}>
-      <div className={"shell" + (panel ? " with-panel" : "") + (rail ? " rail" : "")} style={shellBg}>
-        <Sidebar />
+      <div className={"shell" + (phone ? " phone" + (docked ? " mp-docked" : "") : (panel ? " with-panel" : "") + (rail ? " rail" : "") + (docked ? " docked" : ""))} style={shellBg}>
+        {!phone && <Sidebar />}
         <main className="main">
           <TopBar />
           {page}
         </main>
-        {panel && <NowPanel />}
-        <PlayerIsland />
+        {!phone && panel && <NowPanel />}
+        {phone
+          ? <React.Fragment><MobilePlayer /><MobileNav /></React.Fragment>
+          : docked ? <PlayerDock /> : <PlayerIsland />}
       </div>
-      {full && <FullScreen />}
-      {mini && <MiniPlayer />}
+      {full && (phone ? <FullScreenPhone /> : <FullScreen />)}
+      {mini && !phone && <MiniPlayer />}
       <DonateModal />
       <TopUpModal />
       <CreatePlaylistModal />
@@ -370,67 +381,82 @@ const App = () => {
 };
 
 // ---------- Сайдбар ----------
+// В «Точке» пункты пронумерованы моно-цифрами, активный отмечен красной точкой;
+// в рейле и старых темах вместо номеров — иконки.
+const NavItem = ({ page, num, icon, label, badge }) => {
+  const app = useApp();
+  const active = app.route.page === page;
+  return (
+    <button className={"navitem" + (active ? " active" : "")} aria-current={active ? "page" : undefined} title={label}
+      onClick={() => app.go(page)}>
+      <span className="nav-ic"><Ic d={ICONS[icon]} size={20} /></span>
+      <span className="nav-num">{num}</span>
+      <span className="nav-label" style={{ flex: badge == null ? 1 : "none" }}>{label}</span>
+      {badge != null && <span className="badge">{badge}</span>}
+      <span className="hot-dot nav-dot"></span>
+    </button>
+  );
+};
+
 const Sidebar = () => {
   const app = useApp();
   const t = app.t;
   const r = app.route;
-  const studio = app.theme === "dark-neutral";
+  const tech = app.theme === "dot" || app.theme === "dark-neutral";
   return (
     <aside className="sidebar" data-screen-label="Сайдбар">
-      <div className="logo-row" style={{ display: "flex", alignItems: "center", gap: 9, padding: "0 6px 0 14px", marginBottom: 18 }}>
-        <button style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }} onClick={() => app.go("home")}>
-          <span style={{ width: 14, height: 14, borderRadius: "50%", background: "var(--acc)", display: "inline-block", flexShrink: 0 }}></span>
-          <span className="nav-label" style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.02em" }}>spotless</span>
-          {studio && <span className="nav-label mono" style={{ fontSize: 10.5, color: "var(--mut)" }}>v0.4</span>}
+      <div className="logo-row" style={{ display: "flex", alignItems: "center", gap: 9, padding: "0 4px 0 12px", marginBottom: 22 }}>
+        <button style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }} onClick={() => app.go("home")} aria-label="Spotless">
+          <span className="dots logo-word" style={{ fontSize: 24, letterSpacing: "0.02em" }}>SPOTLESS</span>
+          <span className="hot-dot" style={{ width: 7, height: 7 }}></span>
+          {app.theme === "dark-neutral" && <span className="nav-label mono" style={{ fontSize: 10.5, color: "var(--mut)" }}>v0.4</span>}
         </button>
         <button className="iconbtn sb-toggle" style={{ width: 30, height: 30, marginLeft: "auto" }}
-          title={app.railPref ? t.sbExpand : t.sbCollapse}
+          title={app.railPref ? t.sbExpand : t.sbCollapse} aria-label={app.railPref ? t.sbExpand : t.sbCollapse}
           onClick={() => app.setRailPref(!app.railPref)}>
           <Ic d={ICONS.panel} size={16} />
         </button>
       </div>
-      <button className={"navitem" + (r.page === "home" ? " active" : "")} onClick={() => app.go("home")}>
-        <Ic d={ICONS.home} size={20} /><span className="nav-label">{t.home}</span>
-      </button>
-      <button className={"navitem" + (r.page === "search" ? " active" : "")} onClick={() => app.go("search")}>
-        <Ic d={ICONS.search} size={20} /><span className="nav-label">{t.search}</span>
-      </button>
-      <button className={"navitem" + (r.page === "library" ? " active" : "")} onClick={() => app.go("library")}>
-        <Ic d={ICONS.library} size={20} /><span className="nav-label">{t.library}</span>
-      </button>
-      <button className={"navitem" + (r.page === "support" ? " active" : "")} onClick={() => app.go("support")}>
-        <Ic d={ICONS.wallet} size={20} /><span className="nav-label">{t.support}</span>
-        <span className="badge">${app.monthly}</span>
-      </button>
-      <div className="divider" style={{ margin: "14px 14px" }}></div>
-      <div className="pl-head" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px", marginBottom: 6 }}>
-        <span className="sec-label">{t.playlists}</span>
-        <button className="iconbtn" style={{ width: 26, height: 26 }} title={t.newPlaylist} onClick={() => app.openCreatePl()}><Ic d={ICONS.plus} size={15} /></button>
+      <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <NavItem page="home" num="01" icon="home" label={t.home} />
+        <NavItem page="search" num="02" icon="search" label={t.search} />
+        <NavItem page="library" num="03" icon="library" label={t.library} />
+        <NavItem page="support" num="04" icon="wallet" label={t.support} badge={fmtMoney(app.monthly, app.lang)} />
+      </nav>
+      <div className="pl-head" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 6px 0 12px", margin: "26px 0 8px" }}>
+        <span className="mlabel">{t.playlists}</span>
+        <button className="iconbtn ring" style={{ width: 28, height: 28 }} title={t.newPlaylist} aria-label={t.newPlaylist} onClick={() => app.openCreatePl()}><Ic d={ICONS.plus} size={14} /></button>
       </div>
-      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 1, minHeight: 0 }}>
-        <button className={"plitem" + (r.page === "liked" ? " active" : "")} style={{ display: "flex", alignItems: "center", gap: 10 }}
-          onClick={() => app.go("liked")}>
-          <Ic d={ICONS.heart} size={15} fill="currentColor" style={{ color: "var(--acc)" }} />
-          <span className="nav-label" style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{t.likedTracks}</span>
+      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2, minHeight: 0 }}>
+        <button className={"plitem" + (r.page === "liked" ? " active" : "")} onClick={() => app.go("liked")} title={t.likedTracks}>
+          <span style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--hot)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#fff" }}>
+            <Ic d={ICONS.heart} size={17} fill="currentColor" />
+          </span>
+          <span className="pl-text" style={{ minWidth: 0 }}>
+            <span className="pl-name">{t.likedTracks}</span>
+            <span className="pl-sub">{app.likedIds().length} {t.tracksN}</span>
+          </span>
         </button>
         {app.allPlaylists.map(pl => (
           <button key={pl.id} className={"plitem" + (r.page === "playlist" && r.id === pl.id ? " active" : "")}
-            style={{ display: "flex", alignItems: "center", gap: 10 }}
+            title={app.lang === "ru" ? pl.name : pl.nameEn}
             onClick={() => app.go("playlist", pl.id)}
             onContextMenu={(e) => app.openCtx(e, { kind: "playlist", id: pl.id })}>
-            <Cover hue={pl.hue} size={22} radius={5} label="" />
-            <span className="nav-label" style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-              {app.lang === "ru" ? pl.name : pl.nameEn}
-              {pl.collab && <Ic d={ICONS.users} size={13} style={{ display: "inline-block", verticalAlign: "-2px", marginLeft: 7, opacity: 0.6 }} />}
+            <Cover hue={pl.hue} size={40} radius={10} />
+            <span className="pl-text" style={{ minWidth: 0 }}>
+              <span className="pl-name">{app.lang === "ru" ? pl.name : pl.nameEn}</span>
+              <span className="pl-sub">{pl.collab ? t.collab + " · " : ""}{app.playlistTracks(pl.id).length} {t.tracksN}</span>
             </span>
           </button>
         ))}
       </div>
-      <div className="divider" style={{ margin: "10px 14px" }}></div>
-      {studio && <div className="mono nav-label" style={{ fontSize: 10.5, color: "var(--mut)", padding: "4px 14px 6px" }}>cache 1.2 GB · 12 peers · dht ok</div>}
-      <button className={"navitem" + (r.page === "settings" ? " active" : "")} onClick={() => app.go("settings")}>
-        <Ic d={ICONS.gear} size={20} /><span className="nav-label">{t.settings}</span>
-      </button>
+      {tech && (
+        <div className="netline" aria-label={app.lang === "ru" ? "Состояние сети" : "Network status"}>
+          <span style={{ display: "flex", alignItems: "center", gap: 7 }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--text)" }}></span>12 PEERS · DHT OK</span>
+          <span style={{ paddingLeft: 12 }}>CACHE 1.2 GB</span>
+        </div>
+      )}
+      <NavItem page="settings" num="05" icon="gear" label={t.settings} />
     </aside>
   );
 };
@@ -440,43 +466,98 @@ const TopBar = () => {
   const app = useApp();
   const t = app.t;
   const [bellOpen, setBellOpen] = React.useState(false);
+  const bell = (
+    <span style={{ position: "relative", display: "inline-flex" }}>
+      <button className={"iconbtn" + (bellOpen ? " lit" : "")} style={{ width: 44, height: 44 }} title={t.notifTitle} aria-label={t.notifTitle} aria-expanded={bellOpen}
+        onMouseDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}
+        onClick={() => setBellOpen(!bellOpen)}>
+        <Ic d={ICONS.bell} size={19} />
+        {!app.notifRead && <span className="hot-dot" style={{ position: "absolute", top: 11, right: 12 }}></span>}
+      </button>
+      {bellOpen && <BellPop close={() => setBellOpen(false)} />}
+    </span>
+  );
+  const avatar = (size) => (
+    <button title={t.profile} aria-label={t.profile} onClick={() => app.go("profile", "me")} style={{
+      width: size, height: size, borderRadius: "50%", background: "var(--acc)", color: "var(--acc-ink)",
+      display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 600, flexShrink: 0,
+      outline: app.route.page === "profile" && app.route.id === "me" ? "2px solid var(--hot)" : "none", outlineOffset: 3,
+    }}>Л</button>
+  );
+  // Телефон: на вкладках — логотип, внутри разделов — «Назад»; настройки — шестерёнкой
+  if (app.phone) {
+    const isTab = MOB_TABS.some(([p]) => p === app.route.page);
+    return (
+      <div className="topbar">
+        {isTab ? (
+          <button style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 4 }} onClick={() => app.go("home")} aria-label="Spotless">
+            <span className="dots" style={{ fontSize: 20, letterSpacing: "0.02em" }}>SPOTLESS</span>
+            <span className="hot-dot"></span>
+          </button>
+        ) : (
+          <button className="iconbtn ring" style={{ width: 44, height: 44 }} aria-label={app.lang === "ru" ? "Назад" : "Back"}
+            onClick={() => app.history.length ? app.goBack() : app.go("home")}>
+            <Ic d={ICONS.back} size={18} />
+          </button>
+        )}
+        <div style={{ flex: 1 }}></div>
+        {bell}
+        <button className={"iconbtn" + (app.route.page === "settings" ? " lit" : "")} style={{ width: 44, height: 44 }} title={t.settings} aria-label={t.settings} onClick={() => app.go("settings")}>
+          <Ic d={ICONS.gear} size={19} />
+        </button>
+        {avatar(38)}
+      </div>
+    );
+  }
   return (
     <div className="topbar">
-      <div style={{ display: "flex", gap: 4 }}>
-        <button className="iconbtn" style={{ opacity: app.history.length ? 1 : 0.35 }} onClick={app.goBack}>
-          <Ic d={ICONS.back} size={19} />
+      <div className="tb-nav" style={{ display: "flex", gap: 8 }}>
+        <button className="iconbtn ring" style={{ width: 40, height: 40, opacity: app.history.length ? 1 : 0.35 }} aria-label={app.lang === "ru" ? "Назад" : "Back"} onClick={app.goBack}>
+          <Ic d={ICONS.back} size={17} />
         </button>
-        <button className="iconbtn" style={{ opacity: app.future.length ? 1 : 0.35 }} onClick={app.goFwd}>
-          <Ic d={ICONS.fwd} size={19} />
+        <button className="iconbtn ring" style={{ width: 40, height: 40, opacity: app.future.length ? 1 : 0.35 }} aria-label={app.lang === "ru" ? "Вперёд" : "Forward"} onClick={app.goFwd}>
+          <Ic d={ICONS.fwd} size={17} />
         </button>
       </div>
-      <div style={{
-        flex: "0 1 400px", display: "flex", alignItems: "center", gap: 10, background: "var(--bg1)",
-        border: "1px solid var(--line)", borderRadius: 99, padding: "9px 16px",
+      <label className="tb-search" style={{
+        flex: "0 1 440px", display: "flex", alignItems: "center", gap: 10, background: "var(--bg2)",
+        borderRadius: 22, height: 44, padding: "0 8px 0 16px", marginLeft: 6, cursor: "text",
       }}
         onClick={() => app.route.page !== "search" && app.go("search")}>
-        <Ic d={ICONS.search} size={16} style={{ color: "var(--mut)" }} />
-        <input value={app.query} placeholder={t.searchPh}
+        <Ic d={ICONS.search} size={17} style={{ color: "var(--mut2)" }} />
+        <input value={app.query} placeholder={t.searchPh} aria-label={t.search}
           onChange={(e) => { app.setQuery(e.target.value); if (app.route.page !== "search") app.go("search"); }}
-          style={{ flex: 1, background: "none", border: "none", outline: "none", color: "var(--text)", fontSize: 13.5 }} />
-        {app.theme === "dark-neutral" && <span className="mono" style={{ fontSize: 11, border: "1px solid var(--line)", borderRadius: 4, padding: "1px 6px", color: "var(--mut)" }}>⌘K</span>}
-      </div>
+          style={{ flex: 1, minWidth: 0, background: "none", border: "none", outline: "none", color: "var(--text)", fontSize: 14 }} />
+        {(app.theme === "dot" || app.theme === "dark-neutral") && <span className="mono tb-k" style={{ fontSize: 11, border: "1px solid var(--bg3)", borderRadius: 8, padding: "4px 8px", color: "var(--mut2)" }}>⌘K</span>}
+      </label>
       <div style={{ flex: 1 }}></div>
-      <span style={{ position: "relative", display: "inline-flex" }}>
-        <button className={"iconbtn" + (bellOpen ? " lit" : "")} title={t.notifTitle}
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={() => setBellOpen(!bellOpen)}>
-          <Ic d={ICONS.bell} size={19} />
-          {!app.notifRead && <span style={{ position: "absolute", top: 6, right: 7, width: 7, height: 7, borderRadius: "50%", background: "var(--acc)" }}></span>}
-        </button>
-        {bellOpen && <BellPop close={() => setBellOpen(false)} />}
-      </span>
-      <button title={t.profile} onClick={() => app.go("profile", "me")} style={{
-        width: 34, height: 34, borderRadius: "50%", background: "var(--bg2)",
-        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "var(--acc)",
-        outline: app.route.page === "profile" && app.route.id === "me" ? "2px solid var(--acc)" : "none", outlineOffset: 2,
-      }}>Л</button>
+      {bell}
+      {avatar(40)}
     </div>
+  );
+};
+
+// ---------- Нижняя навигация (телефон) ----------
+// Четыре вкладки как в сайдбаре; внутри альбома или артиста подсвечена вкладка, откуда пришли
+const MOB_TABS = [["home", "home"], ["search", "search"], ["library", "library"], ["support", "dollar"]];
+const TAB_OF = { home: "home", search: "search", genre: "search", library: "library", liked: "library", playlist: "library", support: "support" };
+const MobileNav = () => {
+  const app = useApp();
+  const t = app.t;
+  const last = React.useRef("home");
+  const cur = TAB_OF[app.route.page];
+  if (cur) last.current = cur;
+  const active = cur || last.current;
+  return (
+    <nav className="mobnav" aria-label={app.lang === "ru" ? "Разделы" : "Sections"}>
+      {MOB_TABS.map(([p, ic]) => (
+        <button key={p} className={"mn-item" + (active === p ? " active" : "")} aria-current={app.route.page === p ? "page" : undefined}
+          onClick={() => app.go(p)}>
+          <Ic d={ICONS[ic]} size={22} />
+          <span className="mn-label">{active === p && <span className="hot-dot"></span>}{p === "support" ? t.navSupport : t[p]}</span>
+        </button>
+      ))}
+    </nav>
   );
 };
 

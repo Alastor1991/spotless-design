@@ -173,11 +173,11 @@ const BellPop = ({ close }) => {
   const items = [
     { hue: 15, icon: "note", title: ru ? "Новый сингл «Кассета 04»" : "New single “Кассета 04”", sub: ru ? "Танец Бруно · вчера" : "Танец Бруно · yesterday", go: () => app.go("album", "cassette") },
     { hue: 35, icon: "users", title: ru ? "Аня К. добавила 2 трека" : "Anya K. added 2 tracks", sub: ru ? "в «Кухня по выходным»" : "to “Weekend Kitchen”", go: () => app.go("playlist", "kitchen") },
-    { hue: 95, icon: "wallet", title: ru ? "Пора пополнить счёт" : "Time to top up", sub: ru ? "баланс $3.40 — в два касания" : "balance $3.40 — two taps", go: () => app.openTopUp() },
-    { hue: 145, icon: "heart", title: ru ? "«Молоко и мёд» говорят спасибо" : "Молоко и мёд says thanks", sub: ru ? "за донат $1.00" : "for your $1.00 tip", go: () => app.go("artist", "milk") },
+    { hue: 95, icon: "wallet", title: ru ? "Пора пополнить счёт" : "Time to top up", sub: ru ? "баланс $3,40 — в два касания" : "balance $3.40 — two taps", go: () => app.openTopUp() },
+    { hue: 145, icon: "heart", title: ru ? "«Молоко и мёд» говорят спасибо" : "Молоко и мёд says thanks", sub: ru ? "за донат $1" : "for your $1.00 tip", go: () => app.go("artist", "milk") },
   ];
   return (
-    <div className="pop fade-up" onMouseDown={(e) => e.stopPropagation()}
+    <div className="pop fade-up bellpop" onMouseDown={(e) => e.stopPropagation()}
       style={{ top: "calc(100% + 10px)", right: 0, left: "auto", width: 330, padding: 8, zIndex: 70 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 10px 9px" }}>
         <span className="sec-label">{t.notifTitle}</span>
@@ -199,7 +199,7 @@ const BellPop = ({ close }) => {
             <span style={{ display: "block", fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{n.title}</span>
             <span style={{ display: "block", fontSize: 12, color: "var(--mut)", marginTop: 2 }}>{n.sub}</span>
           </span>
-          {!app.notifRead && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--acc)", flexShrink: 0 }}></span>}
+          {!app.notifRead && <span className="hot-dot"></span>}
         </button>
       ))}
     </div>

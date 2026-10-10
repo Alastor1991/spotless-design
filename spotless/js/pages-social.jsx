@@ -50,7 +50,7 @@ const PageProfile = ({ id }) => {
           <div className="cardrow">
             {app.followed.map(aid => {
               const a = DB.artists[aid];
-              return <MediaCard key={aid} title={a.name} sub={t.artists.slice(0, -1)} hue={a.hue} round={true}
+              return <MediaCard key={aid} title={a.name} sub={t.artists.slice(0, -1)} hue={a.hue} art={"ar:" + a.id} round={true}
                 onClick={() => app.go("artist", aid)} ctx={{ kind: "artist", id: aid }} />;
             })}
           </div>
@@ -89,7 +89,7 @@ const PageProfile = ({ id }) => {
           <div style={{ fontSize: 14, color: "var(--mut)" }}>{f.handle} · {t.memberSince}</div>
           {common.length > 0 && (
             <div style={{ fontSize: 13, color: "var(--mut)", marginTop: 7, display: "flex", alignItems: "center", gap: 7 }}>
-              <Ic d={ICONS.heart} size={13} style={{ color: "var(--acc)" }} fill="currentColor" />
+              <Ic d={ICONS.heart} size={13} style={{ color: "var(--hot)" }} fill="currentColor" />
               {t.inCommon}: {common.map(aid => DB.artists[aid].name).join(" · ")}
             </div>
           )}
@@ -106,7 +106,7 @@ const PageProfile = ({ id }) => {
         }}
           onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg2)"}
           onMouseLeave={(e) => e.currentTarget.style.background = "var(--bg1)"}>
-          <Cover hue={al.hue} size={52} radius={8} />
+          <Cover art={al.id} hue={al.hue} size={52} radius={10} />
           <span style={{ minWidth: 0, flex: 1 }}>
             <span style={{ display: "block", fontSize: 14.5, fontWeight: 700 }}>{tr.t}</span>
             <span style={{ display: "block", fontSize: 12.5, color: "var(--mut)", marginTop: 2 }}>
@@ -134,7 +134,7 @@ const PageProfile = ({ id }) => {
         <div className="cardrow">
           {f.topArtists.map(aid => {
             const a = DB.artists[aid];
-            return <MediaCard key={aid} title={a.name} sub={t.artists.slice(0, -1)} hue={a.hue} round={true}
+            return <MediaCard key={aid} title={a.name} sub={t.artists.slice(0, -1)} hue={a.hue} art={"ar:" + a.id} round={true}
               onClick={() => app.go("artist", aid)} ctx={{ kind: "artist", id: aid }} />;
           })}
         </div>
@@ -206,9 +206,9 @@ const PageJam = () => {
               style={{ gridTemplateColumns: "34px 44px minmax(0,1fr) auto 52px" }}
               onDoubleClick={() => app.playTrack(tid)}
               onContextMenu={(e) => app.openCtx(e, { kind: "track", id: tid, qIndex: app.queueIds.indexOf(tid) })}>
-              <span className="num">{playing ? <Ic d={ICONS.note} size={15} style={{ color: "var(--acc)", marginLeft: "auto" }} /> : i + 1}</span>
+              <span className="num">{playing ? <span className="hot-dot" style={{ width: 7, height: 7, display: "block", marginLeft: app.theme === "dot" ? 2 : "auto" }}></span> : String(i + 1).padStart(2, "0")}</span>
               <button onClick={() => app.playTrack(tid)} style={{ display: "block" }}>
-                <Cover hue={DB.albums[tr.album].hue} size={40} radius={6} />
+                <Cover art={tr.album} hue={DB.albums[tr.album].hue} size={40} radius={8} />
               </button>
               <div style={{ minWidth: 0 }}>
                 <div className="tt">{tr.t}</div>

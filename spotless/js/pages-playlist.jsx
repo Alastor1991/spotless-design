@@ -20,7 +20,7 @@ const PagePlaylist = ({ id }) => {
   return (
     <div className="fade-in" data-screen-label={"Плейлист: " + name}>
       <header className="hero">
-        <Cover hue={meta.hue} size="clamp(150px, 16cqi, 210px)" label="cover" style={{ boxShadow: "var(--island-shadow)" }} />
+        <Cover hue={meta.hue} size="clamp(150px, 18cqi, 240px)" radius={24} />
         <div style={{ minWidth: 0, paddingBottom: 4 }}>
           <div className="sec-label" style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
             {isMix ? t.mixLabel : t.plLabel} · {ownerName}
@@ -88,7 +88,7 @@ const PageLiked = () => {
           display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
           boxShadow: "var(--island-shadow)",
         }}>
-          <Ic d={ICONS.heart} size={64} fill="currentColor" style={{ color: "var(--acc)" }} />
+          <Ic d={ICONS.heart} size={64} fill="currentColor" style={{ color: "var(--hot)" }} />
         </div>
         <div style={{ minWidth: 0, paddingBottom: 4 }}>
           <div className="sec-label" style={{ marginBottom: 10 }}>{t.plLabel} · Лиза</div>
@@ -166,14 +166,14 @@ const PageShowAll = ({ id }) => {
     const ar = DB.artists[arg];
     title = `${t.discography} — ${ar.name}`;
     cards = Object.values(DB.albums).filter(a => a.artist === arg).map(al => ({
-      title: al.title, sub: `${t[al.type]} · ${al.year}`, hue: al.hue,
+      title: al.title, sub: `${t[al.type]} · ${al.year}`, hue: al.hue, art: al.id,
       onClick: () => app.go("album", al.id), onPlay: () => app.playContext(al.tracks.map(x => x.id)), ctx: { kind: "album", id: al.id },
     }));
   } else if (key === "similar") {
     const ar = DB.artists[arg];
     title = `${t.similar} — ${ar.name}`;
     cards = Object.values(DB.artists).filter(a => a.id !== arg).map(a => ({
-      title: a.name, sub: `${a.listeners.toLocaleString(app.lang === "ru" ? "ru" : "en")} ${t.monthlyListeners}`, hue: a.hue, round: true,
+      title: a.name, sub: `${a.listeners.toLocaleString(app.lang === "ru" ? "ru" : "en")} ${t.monthlyListeners}`, hue: a.hue, art: "ar:" + a.id, round: true,
       onClick: () => app.go("artist", a.id), ctx: { kind: "artist", id: a.id },
     }));
   }
@@ -217,7 +217,7 @@ const PageGenre = ({ id }) => {
           <p style={{ fontSize: 14.5, color: "var(--mut)", marginBottom: 20, lineHeight: 1.6 }}>{t.genreGrow}</p>
           <div className="cardrow">
             {fallback.map(al => (
-              <MediaCard key={al.id} title={al.title} sub={`${t[al.type]} · ${DB.artists[al.artist].name}`} hue={al.hue}
+              <MediaCard key={al.id} title={al.title} sub={`${t[al.type]} · ${DB.artists[al.artist].name}`} hue={al.hue} art={al.id}
                 onClick={() => app.go("album", al.id)} onPlay={() => app.playContext(al.tracks.map(x => x.id))}
                 ctx={{ kind: "album", id: al.id }} />
             ))}
@@ -230,7 +230,7 @@ const PageGenre = ({ id }) => {
             <div className="cardrow">
               {artists.map(a => (
                 <MediaCard key={a.id} title={a.name} sub={`${a.listeners.toLocaleString(app.lang === "ru" ? "ru" : "en")} ${t.monthlyListeners}`}
-                  hue={a.hue} round={true} onClick={() => app.go("artist", a.id)} ctx={{ kind: "artist", id: a.id }} />
+                  hue={a.hue} art={"ar:" + a.id} round={true} onClick={() => app.go("artist", a.id)} ctx={{ kind: "artist", id: a.id }} />
               ))}
             </div>
           </section>
@@ -238,7 +238,7 @@ const PageGenre = ({ id }) => {
             <div className="h-row"><h2>{t.albums}</h2></div>
             <div className="cardrow">
               {albums.map(al => (
-                <MediaCard key={al.id} title={al.title} sub={`${t[al.type]} · ${DB.artists[al.artist].name}`} hue={al.hue}
+                <MediaCard key={al.id} title={al.title} sub={`${t[al.type]} · ${DB.artists[al.artist].name}`} hue={al.hue} art={al.id}
                   onClick={() => app.go("album", al.id)} onPlay={() => app.playContext(al.tracks.map(x => x.id))}
                   ctx={{ kind: "album", id: al.id }} />
               ))}
