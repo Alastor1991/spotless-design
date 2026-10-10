@@ -66,6 +66,7 @@ const App = () => {
   React.useEffect(() => {
     const root = document.documentElement;
     root.setAttribute("data-theme", theme);
+    root.setAttribute("data-density", settings.density || "n");
     ["--acc", "--acc-ink", "--hot"].forEach(p => root.style.removeProperty(p));
     if (settings.accent != null) {
       // В «Точке» главное действие белое, а акцент — горячий цвет (лайк, «сейчас»)
@@ -75,7 +76,7 @@ const App = () => {
         root.style.setProperty("--acc-ink", `oklch(0.26 0.06 ${settings.accent})`);
       }
     }
-  }, [theme, settings.accent]);
+  }, [theme, settings.accent, settings.density]);
 
   // Тикающий прогресс
   React.useEffect(() => {

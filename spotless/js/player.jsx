@@ -714,10 +714,12 @@ const FullScreenPhone = () => {
         <button className="iconbtn ring" style={{ width: 44, height: 44 }} aria-label={t.more} onClick={(e) => app.openCtxAt(e.currentTarget, { kind: "track", id: tr.id })}><Ic d={ICONS.more} size={18} sw={3.4} /></button>
       </div>
 
-      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14 }}>
+      {/* Сцена берёт всё свободное место; обложка считается от её размеров (container query),
+          поэтому на коротком экране она уменьшается, а не наезжает на шапку и название */}
+      <div className="fsp-stage">
         {view === "cover" && (
           <React.Fragment>
-            <Cover art={al.id} hue={al.hue} glyph={glyph} radius={28} size="min(78vw, 40dvh)" style={{ "--gp": "9px", "--gr": "3px" }} />
+            <Cover art={al.id} hue={al.hue} glyph={glyph} radius={28} size="max(120px, min(100cqw, 100cqh - 52px))" style={{ "--gp": "9px", "--gr": "3px" }} />
             <div role="radiogroup" aria-label={app.lang === "ru" ? "Вид обложки" : "Cover style"} style={{ display: "flex", gap: 2, padding: 3, borderRadius: 99, boxShadow: "inset 0 0 0 1px var(--bg3)" }}>
               <button role="radio" aria-checked={!glyph} className="mono" onClick={() => setGlyph(false)} style={{ height: 32, padding: "0 14px", borderRadius: 16, fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", background: !glyph ? "var(--acc)" : "transparent", color: !glyph ? "var(--acc-ink)" : "var(--mut)" }}>{t.viewCover}</button>
               <button role="radio" aria-checked={glyph} className="mono" onClick={() => setGlyph(true)} style={{ height: 32, padding: "0 14px", borderRadius: 16, fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", background: glyph ? "var(--acc)" : "transparent", color: glyph ? "var(--acc-ink)" : "var(--mut)" }}>{t.viewGlyph}</button>
@@ -740,7 +742,7 @@ const FullScreenPhone = () => {
 
       <div style={{ display: "flex", alignItems: "flex-end", gap: 12 }}>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 28, fontWeight: 300, letterSpacing: "-0.045em", lineHeight: 1.05, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tr.t}</div>
+          <div style={{ fontSize: "clamp(22px, 7vw, 28px)", fontWeight: 300, letterSpacing: "-0.045em", lineHeight: 1.1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tr.t}</div>
           <button style={{ fontSize: 15, color: "var(--mut)", marginTop: 6 }} onClick={() => { app.setFull(false); app.go("artist", ar.id); }}>{ar.name}</button>
         </div>
         <span className="fsp-like" style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 44, padding: "0 14px 0 2px", borderRadius: 22, boxShadow: "inset 0 0 0 1px var(--bg3)", flexShrink: 0 }}>
@@ -766,7 +768,7 @@ const FullScreenPhone = () => {
       </div>
 
       {view === "cover" && lines && (
-        <button onClick={() => setView("lyrics")} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, textAlign: "center" }}>
+        <button className="fsp-peek" onClick={() => setView("lyrics")} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, textAlign: "center" }}>
           <span style={{ fontSize: 16 }}>{lines[activeIdx] ? lines[activeIdx].l : ""}</span>
           <span style={{ fontSize: 14, color: "var(--mut2)" }}>{lines[activeIdx + 1] ? lines[activeIdx + 1].l : ""}</span>
         </button>
@@ -775,13 +777,13 @@ const FullScreenPhone = () => {
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <PlusButton trackId={tr.id} size={46} className="ring" />
         <DLButton trackId={tr.id} size={46} className="ring" />
-        <button className="btn ghost" style={{ flex: 1, minHeight: 46, padding: "0 12px" }} onClick={() => app.openDonate({ kind: "track", id: tr.id })}><span className="mono">$</span>{t.donate}</button>
+        <button className="btn ghost fsp-donate" style={{ flex: 1, minHeight: 46, padding: "0 12px" }} aria-label={t.donate} onClick={() => app.openDonate({ kind: "track", id: tr.id })}><span className="mono">$</span><span className="fsp-donate-l">{t.donate}</span></button>
         <button className="iconbtn ring" aria-pressed={view === "lyrics"} aria-label={t.lyrics} onClick={() => toggle("lyrics")}
           style={{ width: 46, height: 46, background: view === "lyrics" ? "var(--acc)" : "transparent", color: view === "lyrics" ? "var(--acc-ink)" : "var(--text)" }}><Ic d={ICONS.mic} size={18} /></button>
         <button className="iconbtn ring" aria-pressed={view === "queue"} aria-label={t.queue} onClick={() => toggle("queue")}
           style={{ width: 46, height: 46, background: view === "queue" ? "var(--acc)" : "transparent", color: view === "queue" ? "var(--acc-ink)" : "var(--text)" }}><Ic d={ICONS.queue} size={18} /></button>
       </div>
-      <div style={{ textAlign: "center" }}><YouGave artistId={ar.id} short={true} style={{ fontSize: 10 }} /></div>
+      <div className="fsp-gave" style={{ textAlign: "center" }}><YouGave artistId={ar.id} short={true} style={{ fontSize: 10 }} /></div>
     </div>
   );
 };

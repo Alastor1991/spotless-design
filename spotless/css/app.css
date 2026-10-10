@@ -571,6 +571,17 @@ input, textarea { font-family: inherit; }
 [data-theme="dot"] .navitem.setitem .nav-ic, [data-theme="dot"] .navitem.setitem svg { display: block; }
 [data-theme="dot"] .navitem.setitem.active { background: var(--bg2); }
 
+/* ---------- Онбординг ---------- */
+.ob {
+  position: fixed; inset: 0; z-index: 100; background: var(--bg0);
+  display: flex; flex-direction: column;
+  padding: calc(24px + env(safe-area-inset-top)) 32px calc(28px + env(safe-area-inset-bottom));
+}
+.ob-top { display: flex; align-items: center; justify-content: space-between; min-height: 44px; flex-shrink: 0; }
+.ob-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; align-items: center; padding: 16px 0; }
+.ob-inner { margin-block: auto; max-width: 100%; text-align: center; display: flex; flex-direction: column; align-items: center; }
+.ob-foot { display: flex; flex-direction: column; gap: 16px; align-items: center; padding-top: 12px; flex-shrink: 0; }
+
 /* ---------- Телефон (Android) ----------
    Раскладку включает JS (useMedia(PHONE_Q)): сайдбар и правая панель уходят,
    снизу — навигация и мини-плеер; форма плеера — та же настройка, что на десктопе */
@@ -616,6 +627,18 @@ input, textarea { font-family: inherit; }
   background: radial-gradient(circle, var(--bg2) 0 1.1px, transparent 1.5px) 0 0 / 16px 16px, var(--bg0);
 }
 
+.fsp-stage {
+  flex: 1; min-height: 0; container-type: size;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+}
+/* Короткий экран (браузер с панелями, окно приложения): сначала уходят второстепенные строки */
+@media (max-height: 800px) { .fsp { gap: 12px; } .fsp-peek { display: none !important; } }
+@media (max-height: 660px) { .fsp-gave { display: none; } }
+@media (max-width: 380px) {
+  .fsp-donate { flex: 0 0 46px !important; padding: 0 !important; }
+  .fsp-donate-l { display: none; }
+}
+
 .psearch {
   display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 6px 0 16px; margin-bottom: 22px;
   background: var(--bg2); border-radius: 24px; cursor: text;
@@ -655,6 +678,10 @@ input, textarea { font-family: inherit; }
   .genre-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .search-grid { margin-top: 8px; }
   .theme-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .ob { padding: calc(10px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom)); }
+  .ob-foot { gap: 12px; }
+  .ob-themes { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px !important; width: 100%; }
+  .ob-themes > button > div:first-child { width: 100% !important; height: 76px !important; }
   .theme-grid > button > div:first-child { width: 100% !important; }
   .set-row { flex-wrap: wrap; gap: 10px 20px !important; }
   .set-row > div:first-child { flex: 1 1 190px !important; }
@@ -667,4 +694,44 @@ input, textarea { font-family: inherit; }
   }
   .modal::before { content: ""; display: block; width: 36px; height: 4px; border-radius: 2px; background: var(--bg3); margin: -10px auto 14px; }
   .bellpop { position: fixed !important; top: 64px !important; left: 12px !important; right: 12px !important; width: auto !important; }
+}
+
+/* ---------- Плотность (Настройки → Внешний вид) ----------
+   «Обычно» — базовые значения выше; здесь только отклонения. Правила стоят в конце файла,
+   чтобы перебивать и телефонные, и тематические отступы строк */
+[data-density="c"] .main { --pad: 22px; }
+[data-density="c"] .trow { padding-top: 3px; padding-bottom: 3px; gap: 10px; }
+[data-density="c"] .trow.nocover { padding-top: 6px; padding-bottom: 6px; }
+[data-density="c"] .trow .tt { font-size: 14px; }
+[data-density="c"] .trow .ta { font-size: 12px; }
+[data-density="c"] .cardrow { grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); }
+[data-density="c"] .card { padding: 7px; gap: 7px; }
+[data-density="c"] .widget { padding: 18px; }
+[data-density="c"] .home-bento, [data-density="c"] .sup-grid { gap: 10px; }
+[data-density="c"] .h-row { margin-bottom: 10px; }
+[data-density="c"] .hero { padding-top: 20px; padding-bottom: 18px; gap: 24px; }
+[data-density="c"] .navitem { padding-top: 7px; padding-bottom: 7px; }
+[data-density="c"] .plitem { padding-top: 3px; padding-bottom: 3px; }
+[data-density="c"] .set-row { padding-top: 10px !important; padding-bottom: 10px !important; }
+
+[data-density="s"] .main { --pad: 44px; }
+[data-density="s"] .trow { padding-top: 11px; padding-bottom: 11px; gap: 16px; }
+[data-density="s"] .trow.nocover { padding-top: 15px; padding-bottom: 15px; }
+[data-density="s"] .trow .tt { font-size: 16.5px; }
+[data-density="s"] .trow .ta { font-size: 13.5px; margin-top: 2px; }
+[data-density="s"] .cardrow { grid-template-columns: repeat(auto-fill, minmax(184px, 1fr)); gap: 12px; }
+[data-density="s"] .card { padding: 12px; gap: 12px; }
+[data-density="s"] .widget { padding: 30px; }
+[data-density="s"] .home-bento, [data-density="s"] .sup-grid { gap: 20px; }
+[data-density="s"] .h-row { margin-bottom: 20px; }
+[data-density="s"] .hero { padding-top: 40px; padding-bottom: 34px; gap: 44px; }
+[data-density="s"] .navitem { padding-top: 14px; padding-bottom: 14px; }
+[data-density="s"] .plitem { padding-top: 9px; padding-bottom: 9px; }
+[data-density="s"] .set-row { padding-top: 20px !important; padding-bottom: 20px !important; }
+
+@media (max-width: 640px) {
+  [data-density="c"] .cardrow:not(.hscroll) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  [data-density="s"] .cardrow:not(.hscroll) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  [data-density="c"] .cardrow.hscroll > * { flex-basis: 116px; }
+  [data-density="s"] .cardrow.hscroll > * { flex-basis: 164px; }
 }

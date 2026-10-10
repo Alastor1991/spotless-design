@@ -13,26 +13,27 @@ const ObDots = ({ step }) => (
   </div>
 );
 
-const ObWrap = ({ app, t, step, setStep, wide, children }) => (
-  <div data-screen-label={"Онбординг шаг " + (step + 1)} style={{
-    position: "fixed", inset: 0, zIndex: 100, background: "var(--bg0)",
-    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40,
-  }}>
-    <div className="fade-up" key={step} style={{ width: wide ? 880 : 520, maxWidth: "100%", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
-      {children}
+// Три зоны в потоке, без абсолютного позиционирования: верхняя строка, прокручиваемое
+// содержимое (по центру, если влезает) и низ с точками шагов — на коротком экране ничего не наезжает
+const ObWrap = ({ app, t, step, setStep, wide, onBack, children }) => (
+  <div className="ob" data-screen-label={"Онбординг шаг " + (step + 1)}>
+    <div className="ob-top">
+      {step > 0
+        ? <button className="iconbtn" style={{ width: 44, height: 44 }} aria-label={t.back} onClick={onBack || (() => setStep(step - 1))}><Ic d={ICONS.back} size={18} /></button>
+        : <span></span>}
+      <button className="more" onClick={app.finishOnboarding}>{t.skipAll}</button>
     </div>
-    <div style={{ position: "absolute", bottom: 36, display: "flex", flexDirection: "column", gap: 18, alignItems: "center" }}>
+    <div className="ob-body">
+      <div className="fade-up ob-inner" key={step} style={{ width: wide ? 880 : 520 }}>
+        {children}
+      </div>
+    </div>
+    <div className="ob-foot">
       <ObDots step={step} />
       {step > 0 && step < 4 && (
         <button className="more" onClick={() => setStep(step + 1)}>{t.skip}</button>
       )}
     </div>
-    {step > 0 && (
-      <button className="iconbtn" style={{ position: "absolute", top: 28, left: 28 }} onClick={() => setStep(step - 1)}>
-        <Ic d={ICONS.back} size={18} />
-      </button>
-    )}
-    <button className="more" style={{ position: "absolute", top: 34, right: 36 }} onClick={app.finishOnboarding}>{t.skipAll}</button>
   </div>
 );
 
@@ -54,7 +55,7 @@ const Onboarding = () => {
         <span className="dots" style={{ fontSize: 30, letterSpacing: "0.02em" }}>SPOTLESS</span>
         <span className="hot-dot" style={{ width: 9, height: 9 }}></span>
       </div>
-      <h1 style={{ fontSize: 46, fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.12 }}>
+      <h1 style={{ fontSize: "clamp(34px, 9vw, 46px)", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.12 }}>
         {t.obWelcome1}<br />{t.obWelcome2}
       </h1>
       <p style={{ fontSize: 16.5, color: "var(--mut)", lineHeight: 1.6, margin: "22px 0 36px", maxWidth: 460, textWrap: "pretty" }}>
@@ -70,10 +71,7 @@ const Onboarding = () => {
     const words = seed.trim().split(/\s+/).filter(Boolean);
     const ok = words.length === 12;
     return (
-      <ObWrap {...W}>
-        <button className="iconbtn" style={{ position: "absolute", top: 28, left: 28 }} onClick={() => setSeedMode(false)}>
-          <Ic d={ICONS.back} size={18} />
-        </button>
+      <ObWrap {...W} onBack={() => setSeedMode(false)}>
         <div style={{ width: 60, height: 60, borderRadius: "50%", background: "var(--bg1)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--acc)", marginBottom: 22 }}>
           <Ic d={ICONS.key} size={26} />
         </div>
@@ -108,7 +106,7 @@ const Onboarding = () => {
   // Шаг 1 — выбор способа входа
   if (step === 1) return (
     <ObWrap {...W}>
-      <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 34 }}>{t.obSignTitle}</h1>
+      <h1 style={{ fontSize: "clamp(26px, 7vw, 32px)", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 34 }}>{t.obSignTitle}</h1>
       <div style={{ display: "flex", flexDirection: "column", gap: 14, width: 420, maxWidth: "100%" }}>
         <button onClick={() => setStep(2)} style={{
           display: "flex", alignItems: "center", gap: 16, textAlign: "left", padding: "18px 22px",
@@ -148,9 +146,9 @@ const Onboarding = () => {
   // Шаг 2 — тема
   if (step === 2) return (
     <ObWrap {...W} wide={true}>
-      <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 8 }}>{t.obThemeTitle}</h1>
-      <p style={{ fontSize: 14.5, color: "var(--mut)", marginBottom: 30 }}>{t.obThemeSub}</p>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 18, justifyContent: "center" }}>
+      <h1 style={{ fontSize: "clamp(26px, 7vw, 32px)", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 8, textWrap: "balance" }}>{t.obThemeTitle}</h1>
+      <p style={{ fontSize: 14.5, color: "var(--mut)", marginBottom: 30, textWrap: "pretty" }}>{t.obThemeSub}</p>
+      <div className="ob-themes" style={{ display: "flex", flexWrap: "wrap", gap: 18, justifyContent: "center" }}>
         {THEME_LIST.map(th => (
           <ThemeSwatch key={th.id} th={th} size="big" active={app.theme === th.id} onClick={() => app.setTheme(th.id)} />
         ))}
@@ -164,7 +162,7 @@ const Onboarding = () => {
     const val = custom ? parseFloat(custom) || 0 : amt;
     return (
       <ObWrap {...W}>
-        <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 12, textWrap: "balance" }}>{t.obAmountTitle}</h1>
+        <h1 style={{ fontSize: "clamp(26px, 7vw, 32px)", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 12, textWrap: "balance" }}>{t.obAmountTitle}</h1>
         <p style={{ fontSize: 14.5, color: "var(--mut)", lineHeight: 1.6, marginBottom: 30, maxWidth: 440, textWrap: "pretty" }}>{t.obAmountSub}</p>
         <div style={{ display: "flex", gap: 10, marginBottom: 26, flexWrap: "wrap", justifyContent: "center" }}>
           {[2, 5, 10].map(n => (
@@ -176,7 +174,7 @@ const Onboarding = () => {
             }}>${n}</button>
           ))}
           <div style={{
-            width: 110, display: "flex", alignItems: "center", justifyContent: "center",
+            width: 110, minHeight: 58, display: "flex", alignItems: "center", justifyContent: "center",
             borderRadius: "var(--r)", fontSize: 19, fontWeight: 800,
             background: "var(--bg1)", border: "1px solid " + (custom ? "var(--acc)" : "var(--line)"),
           }}>
@@ -208,7 +206,7 @@ const Onboarding = () => {
       <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 30 }}>{t.obTourTitle}</h1>
       <div key={card} className="fade-up" style={{
         width: 430, maxWidth: "100%", background: "var(--bg1)", border: "1px solid var(--line)",
-        borderRadius: "var(--r)", padding: "34px 34px 30px", marginBottom: 26,
+        borderRadius: "var(--r)", padding: "clamp(22px, 6vw, 34px) clamp(18px, 6vw, 34px) clamp(20px, 5vw, 30px)", marginBottom: 26,
       }}>
         <div style={{
           width: 64, height: 64, borderRadius: "50%", background: "var(--bg2)", color: c.icon === "heart" ? "var(--hot)" : "var(--acc)",
