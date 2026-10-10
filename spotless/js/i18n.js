@@ -158,6 +158,9 @@ window.I18N = {
     obFinish: "Поехали",
     // Тост
     addedTo: "Добавлено в", removedFrom: "Убрано из",
+    // Ошибки
+    errTitle: "Что-то пошло не так", errNote: "Этот экран не открылся из-за ошибки в прототипе. Ваши настройки, оценки и плейлисты на месте.",
+    errHome: "На главную", wallpaperBad: "Не получилось открыть картинку",
   },
   en: {
     home: "Home", search: "Search", library: "Library", support: "My support", navSupport: "Support",
@@ -303,5 +306,7 @@ window.I18N = {
     obTour3t: "The $ says thanks", obTour3s: "An extra tip for a track, an album, or just because. Service fee 0%.",
     obFinish: "Let's go",
     addedTo: "Added to", removedFrom: "Removed from",
+    errTitle: "Something went wrong", errNote: "This screen failed to open because of a bug in the prototype. Your settings, ratings and playlists are safe.",
+    errHome: "Go home", wallpaperBad: "Couldn't open that image",
   },
 };

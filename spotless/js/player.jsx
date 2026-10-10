@@ -127,6 +127,7 @@ const VolumeDots = ({ width = 72, pitch = 6 }) => {
 
 const PlayerIsland = () => {
   const app = useApp();
+  const pct = useProgress();
   const tr = DB.trackIndex[app.player.trackId];
   const al = DB.albums[tr.album];
   const ar = DB.artists[tr.artist];
@@ -160,8 +161,8 @@ const PlayerIsland = () => {
           <RepeatBtn size={32} icon={16} className="isl-sr" />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, width: "100%" }}>
-          <span className="isl-time mono" style={{ fontSize: 11, color: "var(--mut2)", width: 36, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{app.fmtTime(app.player.pct)}</span>
-          <DotBar pct={app.player.pct} pitch={6} onSeek={app.seek} label={app.lang === "ru" ? "Перемотка" : "Seek"} />
+          <span className="isl-time mono" style={{ fontSize: 11, color: "var(--mut2)", width: 36, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{app.fmtTime(pct)}</span>
+          <DotBar pct={pct} pitch={6} onSeek={app.seek} label={app.lang === "ru" ? "Перемотка" : "Seek"} />
           <span className="isl-time mono" style={{ fontSize: 11, color: "var(--mut2)", width: 36, fontVariantNumeric: "tabular-nums" }}>{tr.dur.padStart(5, "0")}</span>
         </div>
       </div>
@@ -200,6 +201,7 @@ const PlayerIsland = () => {
 // отсеки с подписями, первый отсек — ровно под сайдбаром.
 const PlayerDock = () => {
   const app = useApp();
+  const pct = useProgress();
   const t = app.t;
   const tr = DB.trackIndex[app.player.trackId];
   const al = DB.albums[tr.album];
@@ -207,7 +209,7 @@ const PlayerDock = () => {
   const st = app.trackState(tr.id);
   return (
     <footer className="dock" data-screen-label="Плеер-панель" onContextMenu={(e) => app.openCtx(e, { kind: "track", id: tr.id })}>
-      <DotBar pct={app.player.pct} pitch={8} onSeek={app.seek} label={app.lang === "ru" ? "Перемотка" : "Seek"} />
+      <DotBar pct={pct} pitch={8} onSeek={app.seek} label={app.lang === "ru" ? "Перемотка" : "Seek"} />
       <div className="dock-cells">
         <div className="dock-cell" style={{ paddingLeft: 24 }}>
           <span className="mlabel" style={{ fontSize: 9, display: "flex", alignItems: "center", gap: 7 }}>
@@ -242,7 +244,7 @@ const PlayerDock = () => {
         <div className="dock-cell dk-time">
           <span className="mlabel" style={{ fontSize: 9 }}>{t.dkTime}</span>
           <span className="row" style={{ gap: 8 }}>
-            <DotTime value={app.fmtTime(app.player.pct)} size={26} />
+            <DotTime value={app.fmtTime(pct)} size={26} />
             <span className="mono" style={{ fontSize: 11, color: "var(--mut2)" }}>/ {tr.dur.padStart(5, "0")}</span>
           </span>
         </div>
@@ -286,7 +288,7 @@ const NowPanel = () => {
   const al = DB.albums[tr.album];
   const ar = DB.artists[tr.artist];
   const [tab, setTab] = React.useState("now");
-  const queue = app.queueIds.filter(id => id !== tr.id).slice(0, 6);
+  const queue = upNext(app.queue, tr.id).slice(0, 6).map(x => x.id);
   return (
     <aside className="npanel fade-in" data-screen-label="Панель: сейчас играет">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
@@ -367,13 +369,22 @@ const NowPanel = () => {
   );
 };
 
+// Что заиграет дальше: треки после текущего, потом — с начала очереди (она крутится по кругу).
+// Раньше «Далее» показывало начало очереди, хотя играло совсем другое. i — индекс в самой
+// очереди: по нему удаляем и перетаскиваем. Трека нет в очереди — дальше вся очередь с начала.
+const upNext = (queue, current) => {
+  const all = queue.map((id, i) => ({ id, i }));
+  const k = queue.indexOf(current);
+  return (k < 0 ? all : [...all.slice(k + 1), ...all.slice(0, k)]).filter(x => x.id !== current);
+};
+
 // Очередь с перетаскиванием и удалением
 const QueueList = ({ current }) => {
   const app = useApp();
   const t = app.t;
   const [dragI, setDragI] = React.useState(null);
   const [overI, setOverI] = React.useState(null);
-  const rest = app.queue.map((id, i) => ({ id, i })).filter(x => x.id !== current);
+  const rest = upNext(app.queue, current);
   return (
     <div>
       <div className="mlabel" style={{ margin: "4px 0 10px" }}>{t.nowPlaying}</div>
@@ -430,6 +441,7 @@ const QueueRow = ({ id, active, qIndex }) => {
 // Полноэкранный режим: обложка, название, караоке-текст, точечный таймкод
 const FullScreen = () => {
   const app = useApp();
+  const pct = useProgress();
   const t = app.t;
   const tr = DB.trackIndex[app.player.trackId];
   const al = DB.albums[tr.album];
@@ -437,7 +449,7 @@ const FullScreen = () => {
   const st = app.trackState(tr.id);
   const lines = DB.lyricsFor(tr.id);
   const showLyrics = app.fullTab === "lyrics" && lines;
-  const activeIdx = lines ? lines.reduce((acc, l, i) => (app.player.pct >= l.at ? i : acc), 0) : -1;
+  const activeIdx = lines ? lines.reduce((acc, l, i) => (pct >= l.at ? i : acc), 0) : -1;
   const lyricsRef = React.useRef(null);
   const [glyph, setGlyph] = React.useState(false);
   React.useEffect(() => {
@@ -516,8 +528,8 @@ const FullScreen = () => {
       </div>
 
       <div className="fs-time" style={{ display: "flex", alignItems: "center", gap: 28, padding: "0 4px" }}>
-        <DotTime value={app.fmtTime(app.player.pct)} size={68} />
-        <DotBar pct={app.player.pct} pitch={12} r={3} onSeek={app.seek} label={app.lang === "ru" ? "Перемотка" : "Seek"} />
+        <DotTime value={app.fmtTime(pct)} size={68} />
+        <DotBar pct={pct} pitch={12} r={3} onSeek={app.seek} label={app.lang === "ru" ? "Перемотка" : "Seek"} />
         <DotTime value={tr.dur} size={68} color="var(--dot-off)" />
       </div>
 
@@ -566,6 +578,7 @@ const FullScreen = () => {
 const MINI_W = 248, MINI_H = 292;
 const MiniPlayer = () => {
   const app = useApp();
+  const pct = useProgress();
   const t = app.t;
   const tr = DB.trackIndex[app.player.trackId];
   const al = DB.albums[tr.album];
@@ -624,12 +637,14 @@ const MiniPlayer = () => {
 
       <Cover art={al.id} hue={al.hue} size={MINI_W} radius={0} style={{ width: MINI_W, height: MINI_W }} />
 
-      {/* Скрим с контролами по наведению */}
+      {/* Скрим с контролами по наведению. Поверх затемнённой обложки кнопки всегда светлые:
+          в светлых темах --text тёмный, и ⏮/⏭ на тёмном скриме было почти не видно */}
       <div style={{
         position: "absolute", top: 0, left: 0, right: 0, height: MINI_W,
         display: "flex", alignItems: "center", justifyContent: "center", gap: 14,
         background: "rgba(0,0,0,0.45)", opacity: hov ? 1 : 0, transition: "opacity 0.18s",
         pointerEvents: hov ? "auto" : "none", color: "#fff",
+        "--text": "#fff", "--acc": "#fff", "--acc-ink": "#000",
       }}>
         <PrevNext dir="prev" size={38} icon={22} />
         <PlayBtn size={54} />
@@ -645,18 +660,19 @@ const MiniPlayer = () => {
         <LikeButton trackId={tr.id} always={true} size={34} />
       </div>
       <div style={{ position: "absolute", bottom: 4, left: 12, right: 12, display: "flex" }}>
-        <DotBar pct={app.player.pct} pitch={5} onSeek={app.seek} label={app.lang === "ru" ? "Перемотка" : "Seek"} />
+        <DotBar pct={pct} pitch={5} onSeek={app.seek} label={app.lang === "ru" ? "Перемотка" : "Seek"} />
       </div>
     </div>
   );
 };
 
-Object.assign(window, { PlayerIsland, PlayerDock, NowPanel, QueueRow, QueueList, FullScreen, MiniPlayer, ShuffleBtn, RepeatBtn, PlayBtn, PrevNext, DevicesPop, DevicesBtn, VolumeDots, YouGave });
+Object.assign(window, { PlayerIsland, PlayerDock, NowPanel, QueueRow, QueueList, upNext, FullScreen, MiniPlayer, ShuffleBtn, RepeatBtn, PlayBtn, PrevNext, DevicesPop, DevicesBtn, VolumeDots, YouGave });
 
 // ---------- Телефон (Android) ----------
 // Мини-плеер над нижней навигацией: островок-капсула или панель во всю ширину (та же настройка)
 const MobilePlayer = () => {
   const app = useApp();
+  const pct = useProgress();
   const tr = DB.trackIndex[app.player.trackId];
   const al = DB.albums[tr.album];
   const ar = DB.artists[tr.artist];
@@ -693,14 +709,14 @@ const MobilePlayer = () => {
       onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { g.current = null; }}
       role="button" tabIndex={0} aria-label={app.t.openFull + ": " + tr.t}
       onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); app.setFull(true); } }}>
-      {docked && <div style={{ display: "flex" }}><DotBar pct={app.player.pct} pitch={6} onSeek={app.seek} label={app.lang === "ru" ? "Перемотка" : "Seek"} /></div>}
+      {docked && <div style={{ display: "flex" }}><DotBar pct={pct} pitch={6} onSeek={app.seek} label={app.lang === "ru" ? "Перемотка" : "Seek"} /></div>}
       <div className="mp-row" ref={rowRef}>
         <span key={"c" + tr.id} className="mp-swap" style={{ display: "inline-flex", flexShrink: 0 }}><Cover art={al.id} hue={al.hue} size={42} round={true} /></span>
         <div key={"t" + tr.id} className="mp-swap" style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: docked ? 3 : 6 }}>
           <span style={{ fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tr.t}{!docked && <span style={{ color: "var(--mut2)" }}> · {ar.name}</span>}</span>
           {docked
-            ? <span className="mlabel" style={{ fontSize: 10, letterSpacing: "0.08em" }}>{ar.name} · {app.fmtTime(app.player.pct).padStart(5, "0")}</span>
-            : <DotBar pct={app.player.pct} pitch={5} r={1.4} label={app.lang === "ru" ? "Прогресс трека" : "Track progress"} />}
+            ? <span className="mlabel" style={{ fontSize: 10, letterSpacing: "0.08em" }}>{ar.name} · {app.fmtTime(pct).padStart(5, "0")}</span>
+            : <DotBar pct={pct} pitch={5} r={1.4} label={app.lang === "ru" ? "Прогресс трека" : "Track progress"} />}
         </div>
         <LikeButton trackId={tr.id} always={true} size={44} />
         <PlayBtn size={44} />
@@ -713,6 +729,7 @@ const MobilePlayer = () => {
 // текст и очередь открываются на месте обложки
 const FullScreenPhone = () => {
   const app = useApp();
+  const pct = useProgress();
   const t = app.t;
   const tr = DB.trackIndex[app.player.trackId];
   const al = DB.albums[tr.album];
@@ -721,7 +738,7 @@ const FullScreenPhone = () => {
   const [view, setView] = React.useState("cover"); // cover | lyrics | queue
   const [glyph, setGlyph] = React.useState(true);
   const lines = DB.lyricsFor(tr.id);
-  const activeIdx = lines ? lines.reduce((acc, l, i) => (app.player.pct >= l.at ? i : acc), 0) : -1;
+  const activeIdx = lines ? lines.reduce((acc, l, i) => (pct >= l.at ? i : acc), 0) : -1;
   const lyricsRef = React.useRef(null);
   React.useEffect(() => {
     if (view !== "lyrics" || !lyricsRef.current) return;
@@ -729,7 +746,7 @@ const FullScreenPhone = () => {
     if (el) lyricsRef.current.scrollTo({ top: el.offsetTop - lyricsRef.current.clientHeight * 0.35, behavior: "smooth" });
   }, [activeIdx, view]);
   const [m, s] = tr.dur.split(":").map(Number);
-  const left = Math.max(0, Math.round((m * 60 + s) * (1 - app.player.pct)));
+  const left = Math.max(0, Math.round((m * 60 + s) * (1 - pct)));
   const toggle = (v) => setView(view === v ? "cover" : v);
 
   // Жесты: тянуть вниз — экран едет за пальцем и сворачивается; вбок по обложке — соседний трек
@@ -830,10 +847,10 @@ const FullScreenPhone = () => {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-          <DotTime value={app.fmtTime(app.player.pct)} size={40} />
+          <DotTime value={app.fmtTime(pct)} size={40} />
           <span className="mono" style={{ fontSize: 12, color: "var(--mut2)" }}>−{Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")}</span>
         </div>
-        <DotBar pct={app.player.pct} pitch={8} r={2.4} onSeek={app.seek} label={app.lang === "ru" ? "Перемотка" : "Seek"} />
+        <DotBar pct={pct} pitch={8} r={2.4} onSeek={app.seek} label={app.lang === "ru" ? "Перемотка" : "Seek"} />
       </div>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>

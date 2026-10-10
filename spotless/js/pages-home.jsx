@@ -286,12 +286,15 @@ const PageLibrary = () => {
   const [filter, setFilter] = React.useState("all");
   const [sort, setSort] = React.useState("recent");
   const items = [];
-  const likedN = app.likedIds().length;
-  items.push({ kind: "pl", id: "__liked", name: t.likedTracks, hue: 95, sub: `${t.filterPl.slice(0, -1)} · ${likedN} ${t.tracksN}`, pinned: true, dl: true });
+  // «Скачано» — по настоящим загрузкам: раньше у «Любимых», «Тихих часов» и «Для поезда» галочка
+  // стояла всегда, хотя на странице плейлиста кнопка предлагала «Скачать»
+  const allDl = (ids) => ids.length > 0 && ids.every(id => app.downloads[id] === "done");
+  const liked = app.likedIds();
+  items.push({ kind: "pl", id: "__liked", name: t.likedTracks, hue: 95, sub: `${t.filterPl.slice(0, -1)} · ${liked.length} ${t.tracksN}`, pinned: true, dl: allDl(liked) });
   app.allPlaylists.forEach(pl => items.push({
     kind: "pl", id: pl.id, name: app.lang === "ru" ? pl.name : pl.nameEn, hue: pl.hue,
     sub: `${app.playlistTracks(pl.id).length} ${t.tracksN}` + (pl.collab ? ` · ${t.collab}` : ""),
-    dl: pl.id === "quiet" || pl.id === "train",
+    dl: allDl(app.playlistTracks(pl.id)),
   }));
   app.followed.forEach(id => {
     const a = DB.artists[id];
@@ -299,7 +302,7 @@ const PageLibrary = () => {
   });
   ["grunt", "salt", "hourglass"].forEach(id => {
     const a = DB.albums[id];
-    const dl = a.tracks.every(tr => app.downloads[tr.id] === "done");
+    const dl = allDl(a.tracks.map(tr => tr.id));
     items.push({ kind: "al", id, name: a.title, hue: a.hue, art: id, sub: `${t[a.type]} · ${DB.artists[a.artist].name}`, dl });
   });
   let visible = items.filter(it => filter === "all" ? true : filter === "dl" ? it.dl : it.kind === filter);
@@ -341,7 +344,7 @@ const PageLibrary = () => {
       </div>
       <div className="cardrow" style={{ rowGap: 8 }}>
         {visible.map((it, i) => (
-          <div key={it.id || i} style={{ position: "relative" }}>
+          <div key={it.kind + ":" + it.id} style={{ position: "relative" }}>
             {it.pinned && <Ic d={ICONS.pin} size={13} style={{ position: "absolute", top: 18, right: 18, color: "var(--text)", zIndex: 2 }} />}
             {it.dl && <span title={t.downloaded} style={{ position: "absolute", top: 17, left: 17, zIndex: 2, width: 18, height: 18, borderRadius: "50%", background: "var(--acc)", color: "var(--acc-ink)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Ic d={ICONS.check} size={11} sw={3} />

@@ -264,6 +264,7 @@ const CreatePlaylistModal = () => {
   React.useEffect(() => {
     if (app.createPl) { setName(""); setHue([55, 120, 250, 300, 170, 35][Math.floor(Math.random() * 6)]); }
   }, [app.createPl]);
+  useEscape(() => app.closeCreatePl(), !!app.createPl);
   if (!app.createPl) return null;
   const create = () => {
     const nm = name.trim();
@@ -276,7 +277,7 @@ const CreatePlaylistModal = () => {
         <SheetGrip onClose={() => app.closeCreatePl()} />
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
           <div style={{ fontSize: 18, fontWeight: 800 }}>{t.newPlaylist}</div>
-          <button className="iconbtn" onClick={() => app.closeCreatePl()}><Ic d={ICONS.x} size={16} /></button>
+          <button className="iconbtn" aria-label={t.close} onClick={() => app.closeCreatePl()}><Ic d={ICONS.x} size={16} /></button>
         </div>
         <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 18 }}>
           <Cover hue={hue} size={64} radius={10} label="" />

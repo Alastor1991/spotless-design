@@ -406,6 +406,8 @@ input, textarea { font-family: inherit; }
 .trow:hover .acts .iconbtn { opacity: 1; }
 /* README 3.2: по наведению; всегда видно только сердечко (и метка «скачано» — это статус) */
 .trow .acts .iconbtn.hot, .trow .acts .iconbtn.neg, .trow .acts .dlb.lit { opacity: 1; }
+/* Поповер плюсика живёт в body: мышь уходит со строки в него — кнопка не должна гаснуть */
+.trow .acts .iconbtn[aria-expanded="true"] { opacity: 1; }
 .trow:not(:hover) .acts .dlb.lit circle { fill: var(--mut2); }
 .trow .acts .rate-n { opacity: 1; }
 .trow.playing .tt { color: var(--acc); }

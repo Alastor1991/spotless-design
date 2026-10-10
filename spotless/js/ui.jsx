@@ -3,6 +3,51 @@
 const AppCtx = React.createContext(null);
 const useApp = () => React.useContext(AppCtx);
 
+// Прогресс трека — отдельное маленькое хранилище, а не состояние App. Он меняется каждую секунду,
+// и через общий контекст это перерисовывало бы всё дерево (сотни элементов в секунду даже на
+// неподвижном экране). На него подписываются только плеерные компоненты — через useProgress().
+const createProgress = (initial = 0) => {
+  let pct = initial;
+  const subs = new Set();
+  return {
+    get: () => pct,
+    set: (v) => {
+      const n = Math.min(1, Math.max(0, Number(v) || 0));
+      if (n === pct) return;
+      pct = n;
+      subs.forEach(f => f());
+    },
+    subscribe: (f) => { subs.add(f); return () => subs.delete(f); },
+  };
+};
+const useProgress = () => {
+  const p = useApp().progress;
+  return React.useSyncExternalStore(p.subscribe, p.get);
+};
+
+// Граница ошибок: если экран упал при отрисовке, вместо чёрного окна — объяснение и выход.
+// fallback(reset) — что показать; при смене resetKey (например, другая страница) пробуем снова.
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null }; this.reset = () => this.setState({ error: null }); }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, info) { console.error("Spotless:", error, info && info.componentStack); }
+  componentDidUpdate(prev) { if (this.state.error && prev.resetKey !== this.props.resetKey) this.reset(); }
+  render() { return this.state.error ? this.props.fallback(this.reset) : this.props.children; }
+}
+
+// Esc закрывает окно. Слушаем в фазе перехвата и гасим событие, чтобы заодно не закрылся
+// полноэкранный плеер под окном. active = false — окно закрыто, не слушаем.
+const useEscape = (close, active = true) => {
+  const ref = React.useRef(close);
+  ref.current = close;
+  React.useEffect(() => {
+    if (!active) return;
+    const k = (e) => { if (e.key === "Escape") { e.stopPropagation(); ref.current(); } };
+    window.addEventListener("keydown", k, true);
+    return () => window.removeEventListener("keydown", k, true);
+  }, [active]);
+};
+
 const Ic = ({ d, size = 20, sw = 1.7, style = {}, fill = "none", className }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} className={className}
     stroke={fill === "none" ? "currentColor" : "none"} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"
@@ -184,13 +229,27 @@ const RateDots = ({ value, size = 6, gap = 4, on = "var(--text)" }) => (
 const buzz = (ms = 10) => { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {} };
 const isTouchUI = () => { try { return window.matchMedia("(hover: none)").matches; } catch (e) { return false; } };
 
+// После долгого нажатия гасим клик, который придёт при отпускании пальца, — где бы он ни оказался.
+// Меню всплывает листом прямо под пальцем, и этот клик «нажимал» пункт под ним (например, «В очередь»):
+// в эмуляции касаний — всегда, на телефоне — если отпустить раньше системного долгого нажатия.
+// Слушатель снимается сам: после первого клика или через 300 мс после отпускания.
+const swallowReleaseClick = () => {
+  let tm = null;
+  const off = () => { window.removeEventListener("click", eat, true); window.removeEventListener("pointerup", release, true); clearTimeout(tm); };
+  const eat = (e) => { e.stopPropagation(); e.preventDefault(); off(); };
+  const release = () => { clearTimeout(tm); tm = setTimeout(off, 300); };
+  window.addEventListener("click", eat, true);
+  window.addEventListener("pointerup", release, true);
+};
+
 // Долгое нажатие пальцем (мышь не трогаем — у неё есть ПКМ). Сдвиг больше 10px — это прокрутка, отмена.
-// После срабатывания гасим следующий клик, чтобы трек не включился сам.
+// После срабатывания гасим следующий клик, чтобы трек не включился сам и не нажался пункт меню.
 const useLongPress = (onLong, ms = 450) => {
   const timer = React.useRef(null);
   const start = React.useRef(null);
   const fired = React.useRef(false);
   const clear = () => { clearTimeout(timer.current); timer.current = null; };
+  React.useEffect(() => clear, []);
   return {
     onPointerDown: (e) => {
       if (e.pointerType === "mouse") return;
@@ -198,7 +257,7 @@ const useLongPress = (onLong, ms = 450) => {
       const x = e.clientX, y = e.clientY;
       start.current = [x, y];
       clear();
-      timer.current = setTimeout(() => { fired.current = true; buzz(12); onLong(x, y); }, ms);
+      timer.current = setTimeout(() => { fired.current = true; buzz(12); swallowReleaseClick(); onLong(x, y); }, ms);
     },
     onPointerMove: (e) => {
       if (timer.current && start.current && Math.hypot(e.clientX - start.current[0], e.clientY - start.current[1]) > 10) clear();
@@ -495,21 +554,53 @@ const RatingPop = ({ trackId, anchor, scaleRef, draft, onCommit, onClear, close 
   );
 };
 
-// Плюсик: поповер со списком плейлистов.
-// Сам поповер — отдельный компонент: он монтируется только при открытии,
-// поэтому usePopClamp замеряет его в правильный момент (фикс обрезания у края).
-const PlusPop = ({ trackId, inPls }) => {
+// Плюсик: поповер со списком плейлистов. ids — один трек или сразу несколько (весь альбом):
+// галочка стоит, только если в плейлисте все они.
+// Поповер рендерится в body (портал) с fixed-позицией от кнопки: внутри прокручиваемой страницы
+// его обрезал край .main и перекрывала липкая шапка — на странице альбома верхний плейлист
+// было не нажать. Монтируется только при открытии, поэтому замер позиции — в правильный момент.
+const PlusPop = ({ ids, inPls, anchor, close }) => {
   const app = useApp();
-  const [ref, dx] = usePopClamp();
-  return (
-    <div ref={ref} className="pop fade-up" onMouseDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}
-      style={{ bottom: "calc(100% + 10px)", left: `calc(50% + ${dx}px)`, marginLeft: -120, width: 240, padding: 6 }}>
+  const ref = React.useRef(null);
+  const [pos, setPos] = React.useState(null);
+  React.useLayoutEffect(() => {
+    if (!ref.current || !anchor.current) return;
+    const a = anchor.current.getBoundingClientRect();
+    const p = ref.current.getBoundingClientRect();
+    const left = Math.max(10, Math.min(window.innerWidth - 10 - p.width, a.left + a.width / 2 - p.width / 2));
+    let top = a.top - p.height - 10;                                    // над кнопкой,
+    if (top < 10) top = Math.min(a.bottom + 10, window.innerHeight - 10 - p.height); // а не влезает — под ней
+    setPos({ left, top: Math.max(10, top) });
+  }, []);
+  React.useEffect(() => {
+    const outside = (e) => {
+      if (ref.current && ref.current.contains(e.target)) return;
+      if (anchor.current && anchor.current.contains(e.target)) return; // кнопка открывает и закрывает сама
+      close();
+    };
+    // Прокрутили то, в чём живёт кнопка, — она уехала, поповер закрываем (прокрутка текста песни не в счёт)
+    const scroll = (e) => {
+      const el = e.target;
+      if (!anchor.current || (ref.current && ref.current.contains(el))) return;
+      if (el === document || (el.contains && el.contains(anchor.current))) close();
+    };
+    window.addEventListener("pointerdown", outside, true); // перехват: многие элементы гасят всплытие
+    window.addEventListener("scroll", scroll, true);
+    return () => { window.removeEventListener("pointerdown", outside, true); window.removeEventListener("scroll", scroll, true); };
+  }, []);
+  // Граница событий: портал всплывает по дереву React к строке трека и жестам плеера — не пускаем
+  const wall = (e) => e.stopPropagation();
+  return ReactDOM.createPortal(
+    <div ref={ref} className="pop fade-up"
+      onPointerDown={wall} onPointerMove={wall} onPointerUp={wall} onMouseDown={wall} onTouchStart={wall}
+      onClick={wall} onDoubleClick={wall} onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
+      style={{ position: "fixed", left: pos ? pos.left : -9999, top: pos ? pos.top : -9999, width: 240, padding: 6, zIndex: 300 }}>
       <div className="mlabel" style={{ padding: "8px 10px 8px" }}>{app.t.addToPlaylist}</div>
       <div style={{ maxHeight: 235, overflowY: "auto" }}>
         {app.allPlaylists.filter(p => p.byMe).map(pl => {
           const on = inPls.includes(pl.id);
           return (
-            <button key={pl.id} onClick={() => app.togglePlaylist(trackId, pl.id)}
+            <button key={pl.id} onClick={() => app.togglePlaylist(ids, pl.id)}
               style={{
                 display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left",
                 padding: "7px 10px", borderRadius: 10, fontSize: 13.5, color: "var(--text)",
@@ -524,36 +615,32 @@ const PlusPop = ({ trackId, inPls }) => {
         })}
       </div>
       <div className="divider" style={{ margin: "6px 0" }}></div>
-      <button onClick={() => app.openCreatePl({ thenAdd: trackId })}
+      <button onClick={() => { close(); app.openCreatePl({ thenAdd: ids }); }}
         style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "7px 10px", borderRadius: 10, fontSize: 13.5, color: "var(--mut)" }}
         onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg3)"}
         onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
         <Ic d={ICONS.plus} size={16} /><span>{app.t.newPlaylist}</span>
       </button>
-    </div>
+    </div>,
+    document.body
   );
 };
 
-const PlusButton = ({ trackId, size = 30, className = "" }) => {
+// trackId — один трек; trackIds — несколько (плюсик на странице альбома работает со всем альбомом)
+const PlusButton = ({ trackId, trackIds, size = 30, className = "" }) => {
   const app = useApp();
   const [open, setOpen] = React.useState(false);
-  React.useEffect(() => {
-    if (!open) return;
-    const h = () => setOpen(false);
-    window.addEventListener("mousedown", h);
-    window.addEventListener("touchstart", h);
-    return () => { window.removeEventListener("mousedown", h); window.removeEventListener("touchstart", h); };
-  }, [open]);
-  const inPls = app.trackPlaylists(trackId);
+  const btnRef = React.useRef(null);
+  const ids = trackIds || [trackId];
+  const inPls = app.playlistsWithAll(ids);
   return (
     <span style={{ position: "relative", display: "inline-flex" }}>
-      <button className={"iconbtn " + className + (inPls.length ? " lit" : "")} style={{ width: size, height: size }}
+      <button ref={btnRef} className={"iconbtn " + className + (inPls.length ? " lit" : "")} style={{ width: size, height: size }}
         title={app.t.addToPlaylist} aria-label={app.t.addToPlaylist} aria-expanded={open}
-        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
-        onMouseDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}>
+        onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}>
         <Ic d={inPls.length ? ICONS.check : ICONS.plus} size={size * 0.53} sw={2} />
       </button>
-      {open && <PlusPop trackId={trackId} inPls={inPls} />}
+      {open && <PlusPop ids={ids} inPls={inPls} anchor={btnRef} close={() => setOpen(false)} />}
     </span>
   );
 };
@@ -572,20 +659,18 @@ const DonateButton = ({ target, size = 30, className = "" }) => {
 
 // Кнопка загрузки: общее состояние в app.downloads — релиз и его треки связаны.
 // trackId — один трек; albumId — весь релиз; listIds — произвольный список (плейлист).
+// У списка «загрузка» — только пока что-то правда качается: частично скачанный альбом
+// раньше навсегда показывал кольцо прогресса, хотя ничего не происходило.
 const DLButton = ({ trackId, albumId, listIds, size = 42, className = "" }) => {
   const app = useApp();
   let state = "idle", dur = 2400;
+  const ids = trackId ? null : albumId ? DB.albums[albumId].tracks.map(t => t.id) : listIds;
   if (trackId) {
     state = app.downloads[trackId] || "idle";
-  } else if (albumId) {
-    const ids = DB.albums[albumId].tracks.map(t => t.id);
-    if (ids.every(id => app.downloads[id] === "done")) state = "done";
-    else if (ids.some(id => app.downloads[id])) state = "loading";
+  } else if (ids) {
+    if (ids.length && ids.every(id => app.downloads[id] === "done")) state = "done";
+    else if (ids.some(id => app.downloads[id] === "loading")) state = "loading";
     dur = ids.length * 450 + 1500;
-  } else if (listIds) {
-    if (listIds.length && listIds.every(id => app.downloads[id] === "done")) state = "done";
-    else if (listIds.some(id => app.downloads[id])) state = "loading";
-    dur = listIds.length * 450 + 1500;
   }
   const click = (e) => {
     e.stopPropagation();
@@ -711,7 +796,7 @@ const Toasts = () => {
   );
 };
 
-Object.assign(window, { buzz, isTouchUI, useLongPress, SheetGrip, Marquee, RateScale, AppCtx, useApp, Ic, ICONS, Cover, coverBg, ALBUM_ART, ARTIST_ART, DotBar, DotTime, RateDots, useWidth, LikeButton, RatingPop, PlusButton, DonateButton, DLButton, TrackRow, MediaCard, Toasts, usePopClamp });
+Object.assign(window, { buzz, isTouchUI, useLongPress, SheetGrip, Marquee, RateScale, AppCtx, useApp, Ic, ICONS, Cover, coverBg, ALBUM_ART, ARTIST_ART, DotBar, DotTime, RateDots, useWidth, LikeButton, RatingPop, PlusButton, DonateButton, DLButton, TrackRow, MediaCard, Toasts, usePopClamp, createProgress, useProgress, ErrorBoundary, useEscape });
 
 // Деньги: в русском интерфейсе — десятичная запятая ($1,90), в английском — точка
 const fmtMoney = (n, lang, keepZeros) => {
@@ -721,7 +806,35 @@ const fmtMoney = (n, lang, keepZeros) => {
 };
 // Вклад слушателя в текущем месяце для артиста (строка «в июне вы слушали…»)
 const supportFor = (artistId) => DB.supportSplit.find(s => s.artist === artistId) || null;
-Object.assign(window, { fmtMoney, supportFor });
+// Своя сумма в поле ввода: цифры и один десятичный разделитель — запятая или точка, как набрал
+// человек, и не больше двух знаков после него. Одно правило на все поля: раньше в онбординге
+// запятая выбрасывалась, и «2,5» превращалось в $25.
+const cleanAmount = (s) => {
+  const v = String(s).replace(/[^\d.,]/g, "");
+  const i = v.search(/[.,]/);
+  return i < 0 ? v : v.slice(0, i + 1) + v.slice(i + 1).replace(/[.,]/g, "").slice(0, 2);
+};
+const parseAmount = (s) => parseFloat(String(s).replace(",", "."));
+Object.assign(window, { fmtMoney, supportFor, cleanAmount, parseAmount });
+
+// Настройки внешнего вида: значения по умолчанию и проверка. Нужна дважды — при загрузке
+// сохранённого и при импорте темы из JSON: раньше туда попадало что угодно («island»: "zzz").
+// base — что оставить, если значение не годится (при импорте — текущие настройки).
+const DEFAULT_SETTINGS = { island: "pill", density: "n", accent: null, wallpaper: null, wallpaperImg: null, likeRating: 10 };
+const isHue = (v) => typeof v === "number" && isFinite(v) && v >= 0 && v <= 360;
+const cleanSettings = (s, base = DEFAULT_SETTINGS) => {
+  const o = s && typeof s === "object" ? s : {};
+  const pick = (k, ok) => (o[k] !== undefined && ok(o[k]) ? o[k] : base[k]);
+  return {
+    island: pick("island", v => ["pill", "square", "panel"].includes(v)),
+    density: pick("density", v => ["c", "n", "s"].includes(v)),
+    accent: pick("accent", v => v === null || isHue(v)),
+    wallpaper: pick("wallpaper", v => v === null || isHue(v)),
+    wallpaperImg: pick("wallpaperImg", v => v === null || (typeof v === "string" && v.startsWith("data:image/"))),
+    likeRating: pick("likeRating", v => Number.isInteger(v) && v >= 5 && v <= 10),
+  };
+};
+Object.assign(window, { DEFAULT_SETTINGS, cleanSettings });
 
 // Телефонная раскладка (Android): ниже 640px — нижняя навигация и свой плеер
 const PHONE_Q = "(max-width: 640px)";

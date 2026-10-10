@@ -61,7 +61,7 @@ const PageSupport = () => {
                 color: app.customAmt ? "var(--acc-ink)" : "var(--text)",
                 boxShadow: app.customAmt ? "none" : "inset 0 0 0 1px var(--bg3)",
               }}>
-                <span className="mono">$</span><input value={app.customAmt} onChange={(e) => app.setCustomAmt(e.target.value.replace(/[^\d.,]/g, "").replace(",", "."))}
+                <span className="mono">$</span><input value={app.customAmt} inputMode="decimal" onChange={(e) => app.setCustomAmt(cleanAmount(e.target.value))}
                   onBlur={app.commitCustom} aria-label={t.supCustom}
                   placeholder={t.supCustom} style={{
                     width: 96, background: "none", border: "none", outline: "none",
@@ -179,15 +179,23 @@ const PageSupport = () => {
 };
 
 // ---------- Модалка доната ----------
+// Окно монтируется заново при каждом открытии: раньше его состояние жило между открытиями,
+// и на долю секунды мелькало «Спасибо» от прошлого доната, а таймер закрытия от прошлого раза
+// мог закрыть новое окно
 const DonateModal = () => {
   const app = useApp();
-  const t = app.t;
   const tgt = app.donateTarget;
+  return tgt ? <DonateSheet key={tgt.kind + ":" + tgt.id} tgt={tgt} /> : null;
+};
+const DonateSheet = ({ tgt }) => {
+  const app = useApp();
+  const t = app.t;
   const [amt, setAmt] = React.useState(2);
   const [custom, setCustom] = React.useState("");
   const [sent, setSent] = React.useState(false);
-  React.useEffect(() => { if (tgt) { setSent(false); setCustom(""); setAmt(2); } }, [tgt]);
-  if (!tgt) return null;
+  const timer = React.useRef(null);
+  React.useEffect(() => () => clearTimeout(timer.current), []);
+  useEscape(() => app.closeDonate());
 
   let title, sub, hue, art, round = false;
   if (tgt.kind === "track") {
@@ -200,7 +208,9 @@ const DonateModal = () => {
     const a = DB.artists[tgt.id];
     title = a.name; sub = t.dnArtist; hue = a.hue; art = "ar:" + a.id; round = true;
   }
-  const val = custom ? parseFloat(custom) || 0 : amt;
+  const val = custom ? parseAmount(custom) || 0 : amt;
+  // Донат идёт с баланса: больше, чем на нём есть, не отправить — вместо этого предлагаем пополнить
+  const short = val > BALANCE;
 
   return (
     <div className="scrim fade-in" onClick={() => app.closeDonate()}>
@@ -228,17 +238,21 @@ const DonateModal = () => {
                 flex: 1.3, display: "flex", alignItems: "center", borderRadius: 99, padding: "0 14px", fontSize: 15,
                 boxShadow: custom ? "inset 0 0 0 2px var(--acc)" : "inset 0 0 0 1px var(--bg3)",
               }}>
-                <span className="mono">$</span><input value={custom} onChange={(e) => setCustom(e.target.value.replace(/[^\d.,]/g, "").replace(",", "."))} placeholder="…" aria-label={t.supCustom}
+                <span className="mono">$</span><input value={custom} inputMode="decimal" onChange={(e) => setCustom(cleanAmount(e.target.value))} placeholder="…" aria-label={t.supCustom}
                   style={{ width: "100%", background: "none", border: "none", outline: "none", color: "var(--text)", fontSize: 15, padding: "12px 0 12px 2px" }} />
               </label>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 13, color: "var(--mut)", marginBottom: 20, flexWrap: "wrap" }}>
-              <span>{t.dnFrom}: <span className="mono" style={{ color: "var(--text)" }}>{fmtMoney(BALANCE, app.lang)}</span></span>
+              <span>{t.dnFrom}: <span className="mono" style={{ color: short ? "var(--bad)" : "var(--text)" }}>{fmtMoney(BALANCE, app.lang)}</span></span>
               <span>{t.dnNote}</span>
             </div>
             <button className="btn" style={{ width: "100%", minHeight: 52, fontSize: 15 }}
-              onClick={() => { if (val <= 0) return; setSent(true); setTimeout(() => app.closeDonate(), 1600); }}>
-              {t.dnSend} {val > 0 ? fmtMoney(val, app.lang) : ""}
+              onClick={() => {
+                if (short) { app.closeDonate(); app.openTopUp(); return; }
+                if (val <= 0) return;
+                setSent(true); timer.current = setTimeout(() => app.closeDonate(), 1600);
+              }}>
+              {short ? t.tuTitle : <React.Fragment>{t.dnSend} {val > 0 ? fmtMoney(val, app.lang) : ""}</React.Fragment>}
             </button>
           </React.Fragment>
         ) : (
@@ -261,19 +275,20 @@ const DonateModal = () => {
 // Два равноправных пути (см. README 1.2): фиат-виджет партнёра / перевод с другого кошелька.
 const TU_ADDRESS = "7XbR4wqLmZk2tNcVAhuFD9rGoyPe8sJv31MxBqWnK9Qe";
 
-const TopUpModal = () => {
+// Как и донат, монтируется заново при каждом открытии — без вспышки «Счёт пополнен» от прошлого раза
+const TopUpModal = () => (useApp().topUp ? <TopUpSheet /> : null);
+const TopUpSheet = () => {
   const app = useApp();
   const t = app.t;
   const [mode, setMode] = React.useState("choose"); // choose | card | wallet | done
   const [amt, setAmt] = React.useState(10);
   const [custom, setCustom] = React.useState("");
   const [method, setMethod] = React.useState("apple");
-  React.useEffect(() => {
-    if (app.topUp) { setMode("choose"); setAmt(10); setCustom(""); setMethod("apple"); }
-  }, [app.topUp]);
-  if (!app.topUp) return null;
+  const timer = React.useRef(null);
+  React.useEffect(() => () => clearTimeout(timer.current), []);
+  useEscape(() => app.closeTopUp());
 
-  const val = custom ? parseFloat(custom) || 0 : amt;
+  const val = custom ? parseAmount(custom) || 0 : amt;
   const fee = val > 0 ? Math.max(0.25, val * 0.024) : 0;
   const landed = Math.max(0, val - fee);
   const methods = [
@@ -347,7 +362,7 @@ const TopUpModal = () => {
                   flex: 1.1, display: "flex", alignItems: "center", borderRadius: 99, padding: "0 13px", fontSize: 14.5,
                   boxShadow: custom ? "inset 0 0 0 2px var(--acc)" : "inset 0 0 0 1px var(--bg3)",
                 }}>
-                  <span className="mono">$</span><input value={custom} onChange={(e) => setCustom(e.target.value.replace(/[^\d.,]/g, "").replace(",", "."))} placeholder="…" aria-label={t.tuAmount}
+                  <span className="mono">$</span><input value={custom} inputMode="decimal" onChange={(e) => setCustom(cleanAmount(e.target.value))} placeholder="…" aria-label={t.tuAmount}
                     style={{ width: "100%", background: "none", border: "none", outline: "none", color: "var(--text)", fontSize: 14.5, padding: "10px 0 10px 2px" }} />
                 </label>
               </div>
@@ -363,7 +378,7 @@ const TopUpModal = () => {
                 <span>{t.tuLandedNote}</span>
               </div>
               <button className="btn" style={{ width: "100%", minHeight: 50, fontSize: 15 }}
-                onClick={() => { if (val <= 0) return; setMode("done"); setTimeout(() => app.closeTopUp(), 1600); }}>
+                onClick={() => { if (landed <= 0) return; setMode("done"); timer.current = setTimeout(() => app.closeTopUp(), 1600); }}>
                 {t.tuPay} {val > 0 ? fmtMoney(val, app.lang) : ""}
               </button>
             </div>
@@ -412,4 +427,4 @@ const TopUpModal = () => {
   );
 };
 
-Object.assign(window, { PageSupport, DonateModal, TopUpModal, fmtUsd, BigMoney, BALANCE });
+Object.assign(window, { PageSupport, DonateModal, DonateSheet, TopUpModal, TopUpSheet, fmtUsd, BigMoney, BALANCE });

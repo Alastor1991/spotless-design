@@ -38,13 +38,13 @@ const PagePlaylist = ({ id }) => {
       </header>
 
       <div className="actions">
-        <button className="playbig" onClick={() => app.playContext(ids)} style={{ opacity: ids.length ? 1 : 0.4 }}>
+        <button className="playbig" aria-label={t.play} onClick={() => app.playContext(ids)} style={{ opacity: ids.length ? 1 : 0.4 }}>
           <Ic d={ICONS.play} size={24} fill="currentColor" />
         </button>
         <span style={{ display: "inline-flex" }}><ShuffleBtn size={42} icon={19} /></span>
         {ids.length > 0 && <DLButton size={42} listIds={ids} />}
-        <button className="iconbtn" style={{ width: 42, height: 42 }} title={t.share} onClick={() => app.toast(t.copied)}><Ic d={ICONS.shareIc} size={18} /></button>
-        <button className="iconbtn" style={{ width: 42, height: 42 }} title={t.more}
+        <button className="iconbtn" style={{ width: 42, height: 42 }} title={t.share} aria-label={t.share} onClick={() => app.toast(t.copied)}><Ic d={ICONS.shareIc} size={18} /></button>
+        <button className="iconbtn" style={{ width: 42, height: 42 }} title={t.more} aria-label={t.more}
           onClick={(e) => app.openCtxAt(e.currentTarget, { kind: "playlist", id })}>
           <Ic d={ICONS.more} size={20} sw={3.4} />
         </button>
@@ -98,12 +98,12 @@ const PageLiked = () => {
       </header>
 
       <div className="actions">
-        <button className="playbig" onClick={() => app.playContext(ids)}>
+        <button className="playbig" aria-label={t.play} onClick={() => app.playContext(ids)}>
           <Ic d={ICONS.play} size={24} fill="currentColor" />
         </button>
         <span style={{ display: "inline-flex" }}><ShuffleBtn size={42} icon={19} /></span>
         <DLButton size={42} listIds={ids} />
-        <button className="iconbtn" style={{ width: 42, height: 42 }} title={t.share} onClick={() => app.toast(t.copied)}><Ic d={ICONS.shareIc} size={18} /></button>
+        <button className="iconbtn" style={{ width: 42, height: 42 }} title={t.share} aria-label={t.share} onClick={() => app.toast(t.copied)}><Ic d={ICONS.shareIc} size={18} /></button>
       </div>
 
       <div className="trow-head">
@@ -145,16 +145,16 @@ const PageShowAll = ({ id }) => {
       }
       if (r.kind === "artist") {
         const ar = DB.artists[r.id];
-        return { title: ar.name, sub: t.artists.slice(0, -1), hue: ar.hue, round: true, onClick: () => app.go("artist", ar.id), ctx: { kind: "artist", id: ar.id } };
+        return { title: ar.name, sub: t.artists.slice(0, -1), hue: ar.hue, art: "ar:" + ar.id, round: true, onClick: () => app.go("artist", ar.id), ctx: { kind: "artist", id: ar.id } };
       }
       const al = DB.albums[r.id];
-      return { title: al.title, sub: `${t[al.type]} · ${DB.artists[al.artist].name}`, hue: al.hue, onClick: () => app.go("album", al.id), onPlay: () => app.playContext(al.tracks.map(x => x.id)), ctx: { kind: "album", id: al.id } };
+      return { title: al.title, sub: `${t[al.type]} · ${DB.artists[al.artist].name}`, hue: al.hue, art: al.id, onClick: () => app.go("album", al.id), onPlay: () => app.playContext(al.tracks.map(x => x.id)), ctx: { kind: "album", id: al.id } };
     });
   } else if (key === "new") {
     title = t.newFromArtists;
     cards = ["glass", "animal", "pole", "hourglass", "cassette", "salt", "seven", "grunt"].map(aid => {
       const al = DB.albums[aid];
-      return { title: al.title, sub: `${t[al.type]} · ${DB.artists[al.artist].name}`, hue: al.hue, onClick: () => app.go("album", al.id), onPlay: () => app.playContext(al.tracks.map(x => x.id)), ctx: { kind: "album", id: al.id } };
+      return { title: al.title, sub: `${t[al.type]} · ${DB.artists[al.artist].name}`, hue: al.hue, art: al.id, onClick: () => app.go("album", al.id), onPlay: () => app.playContext(al.tracks.map(x => x.id)), ctx: { kind: "album", id: al.id } };
     });
   } else if (key === "mixes") {
     title = t.madeForYou;
@@ -164,6 +164,7 @@ const PageShowAll = ({ id }) => {
     }));
   } else if (key === "disc") {
     const ar = DB.artists[arg];
+    if (!ar) return <PageHome />;
     title = `${t.discography} — ${ar.name}`;
     cards = Object.values(DB.albums).filter(a => a.artist === arg).map(al => ({
       title: al.title, sub: `${t[al.type]} · ${al.year}`, hue: al.hue, art: al.id,
@@ -171,6 +172,7 @@ const PageShowAll = ({ id }) => {
     }));
   } else if (key === "similar") {
     const ar = DB.artists[arg];
+    if (!ar) return <PageHome />;
     title = `${t.similar} — ${ar.name}`;
     cards = Object.values(DB.artists).filter(a => a.id !== arg).map(a => ({
       title: a.name, sub: `${a.listeners.toLocaleString(app.lang === "ru" ? "ru" : "en")} ${t.monthlyListeners}`, hue: a.hue, art: "ar:" + a.id, round: true,

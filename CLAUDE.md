@@ -240,7 +240,9 @@ spotless/
   js/i18n.js                  ← строки RU/EN
   js/ui.jsx                   ← примитивы: Ic/ICONS, Cover, DotBar, DotTime, RateDots, RateScale, LikeButton,
                                  RatingPop, PlusButton, DonateButton, DLButton, TrackRow, MediaCard, Toasts,
-                                 SheetGrip, Marquee, useLongPress, usePopClamp, useMedia/PHONE_Q, fmtMoney, buzz
+                                 SheetGrip, Marquee, useLongPress, usePopClamp, useMedia/PHONE_Q, fmtMoney, buzz,
+                                 createProgress/useProgress, ErrorBoundary, useEscape, cleanAmount/parseAmount,
+                                 cleanSettings
   js/player.jsx               ← PlayerIsland, PlayerDock, NowPanel, QueueList, FullScreen, MiniPlayer,
                                  MobilePlayer, FullScreenPhone, YouGave, VolumeDots, DevicesPop
   js/pages-home.jsx           ← Главная (виджеты), Поиск, Медиатека
@@ -251,7 +253,8 @@ spotless/
   js/pages-settings.jsx       ← Настройки, THEME_LIST, галерея тем, транзакции
   js/menus.jsx                ← ContextMenu (на телефоне — лист с CtxHead), BellPop, CreatePlaylistModal
   js/onboarding.jsx           ← онбординг (ObWrap/ObDots на верхнем уровне)
-  js/app.jsx                  ← App (состояние и api), Sidebar, TopBar, MobileNav
+  js/app.jsx                  ← App (состояние и api), cleanSaved/routeOk, PageError/AppCrash, Sidebar, TopBar,
+                                 MobileNav
 docs/screens/                 ← скриншоты для README
 lib/, Стилевые направления.html ← история первых направлений, не трогать
 ```
@@ -265,8 +268,11 @@ lib/, Стилевые направления.html ← история первы
 
 ### 7.4. Состояние
 
-- `localStorage["spotless_proto_v1"]`, внутри `uiVersion: 2` (старые сохранения один раз переводятся на «Точку»).
-- `settings`: `island` (`pill` | `square` | `panel`), `density` (`c` | `n` | `s`), `accent`, `wallpaper` / `wallpaperImg`, `likeRating`.
+- `localStorage["spotless_proto_v1"]`, внутри `uiVersion: 2` (старые сохранения один раз переводятся на «Точку»). Читается один раз и проходит `cleanSaved`: id, которых нет в мок-базе, и мусор отбрасываются, остальное не трогается. Меняешь id в `data.js` — сохранения тестеров не ломаются. `saveLS` при переполнении квоты сохраняет всё, кроме картинки обоев.
+- `settings`: `island` (`pill` | `square` | `panel`), `density` (`c` | `n` | `s`), `accent`, `wallpaper` / `wallpaperImg`, `likeRating`. Допустимые значения — `cleanSettings` (при загрузке и при импорте темы). Картинка обоев пережимается (`shrinkImage`, 1600 px, JPEG).
+- **Прогресс трека** — не в состоянии App, а в хранилище `createProgress` (`app.progress`); читают его только плеерные компоненты через `useProgress()`. Шаг тика — секунда трека; трек доиграл — следующий из очереди, с повтором — тот же сначала.
+- **Очередь** крутится по кругу; «Далее» — `upNext(queue, current)` (после текущего, потом с начала). Трека нет в очереди — «следующий» = начало очереди, «предыдущий» = начало трека; пустая очередь — кнопки ничего не делают.
+- Суммы из полей ввода — `cleanAmount` (запятая или точка) и `parseAmount`, без своих регулярок.
 - `trackStates[id] = { rating, liked, playlists }`: читать **только** через `trackState(id)`, менять **только** через `setRating` / `toggleLike` / `patchTrack`. Обновления функциональные: `stateFrom(all, id)` считает из снимка, а не из замыкания.
 - Тосты: `toast(msg, action?)`, где `action = { label, run }` — такой тост живёт дольше и показывает кнопку.
 
@@ -274,8 +280,8 @@ lib/, Стилевые направления.html ← история первы
 
 1. **Поверхность с жестами сама распознаёт тап** (сдвиг < `SLOP` = 10px) и не полагается на всплывающий `click` от детей.
 2. **Элементы управления внутри поверхности исключаются по цели**: `e.target.closest("button, [role=slider], .dotbar.seek")`.
-3. **Долгое нажатие** — `useLongPress`: только палец, сдвиг > `SLOP` — прокрутка, следующий клик после срабатывания гасится; на сенсорных устройствах нативный `contextmenu` гасится (`isTouchUI()`).
-4. **Окна над прокручиваемым контентом** — портал в `body` + граница событий на корне (`stopPropagation` на pointer- и click-событиях): события портала всплывают по дереву React.
+3. **Долгое нажатие** — `useLongPress`: только палец, сдвиг > `SLOP` — прокрутка; клик при отпускании пальца гасится **где угодно** (`swallowReleaseClick`): меню всплывает листом под пальцем; на сенсорных устройствах нативный `contextmenu` гасится (`isTouchUI()`).
+4. **Окна над прокручиваемым контентом** — портал в `body` + граница событий на корне (`stopPropagation` на pointer- и click-событиях): события портала всплывают по дереву React. Так устроены `RatingPop` и поповер плюсика `PlusPop` (он ещё и открывается вниз, если сверху нет места). Окна-модалки закрываются по Esc (`useEscape`).
 5. **«Клик мимо»** — слушатель на `window` в фазе перехвата (`addEventListener(..., true)`); исключать сам поповер и якорь.
 6. **Сердечко** — машина состояний `press → armed → scrub` с `setPointerCapture`; шкала — общий `RateScale` (палец, мышь, клавиатура, `onPreview` для живой цифры).
 7. Элементы с жестами — `touch-action: none`; списки внутри — `pan-y`; прокрутка — `overscroll-behavior: contain`.
@@ -336,7 +342,11 @@ sed 's/data-theme/data-sp-theme/g' spotless/css/app.css > out/css/app.css
 - **Doto**: двоеточие при 900 некрасивое → `font-variation-settings: 'ROND' 100`, двоеточие в `DotTime` своими точками; кириллицы в Doto нет.
 - **Поповер с замером позиции** монтировать только при открытии.
 - **Компоненты, объявленные внутри рендера**, перемонтируются и мигают → всё на верхнем уровне модуля.
-- **Тикающий прогресс ререндерит дерево** → тяжёлые поддеревья не должны зависеть от `player.pct`.
+- **Тикающий прогресс в общем контексте перерисовывал всё дерево** (430–760 элементов в секунду на неподвижном экране): значение контекста меняется — перерисовываются все `useApp()`, даже те, кто прогресс не читает. → Прогресс — в отдельном хранилище (`useProgress`), в состояние App и контекст его не класть.
+- **Сохранённый id, которого нет в мок-базе** (маршрут, очередь, плейлист), ронял приложение при каждом запуске — до очистки данных сайта. → `cleanSaved` при загрузке, страницы без данных показывают главную, `ErrorBoundary` вокруг страницы и всего приложения.
+- **Картинка в `localStorage`**: фото с телефона не влезало в квоту, и `saveLS` молча переставал сохранять вообще всё. → пережимать и не класть в хранилище ничего крупного.
+- **Своё правило ввода сумм в каждом поле**: в онбординге запятая выбрасывалась, «2,5» → $25. → одно `cleanAmount` на все поля.
+- **Меню под пальцем после долгого нажатия**: клик при отпускании нажимал пункт листа («В очередь»). Гасить строку мало — гасить клик глобально (`swallowReleaseClick`).
 - **Контейнер тостов с `left: 50%` + `translateX(-50%)`** ограничен половиной ширины экрана — текст переносился. Контейнер во всю ширину, тосты по центру.
 
 ---

@@ -41,8 +41,11 @@ const Onboarding = () => {
   const app = useApp();
   const t = app.t;
   const [step, setStep] = React.useState(0);
-  const [amt, setAmt] = React.useState(5);
-  const [custom, setCustom] = React.useState("");
+  // Сумма — та, что уже выбрана (при повторном знакомстве из настроек раньше подставлялись $5,
+  // и «Далее» молча перезаписывало сумму человека)
+  const preset = [2, 5, 10].includes(app.monthly);
+  const [amt, setAmt] = React.useState(preset ? app.monthly : 5);
+  const [custom, setCustom] = React.useState(preset ? "" : String(app.monthly).replace(".", app.lang === "ru" ? "," : "."));
   const [card, setCard] = React.useState(0);
   const [seedMode, setSeedMode] = React.useState(false);
   const [seed, setSeed] = React.useState("");
@@ -159,7 +162,9 @@ const Onboarding = () => {
 
   // Шаг 3 — взнос
   if (step === 3) {
-    const val = custom ? parseFloat(custom) || 0 : amt;
+    const val = custom ? parseAmount(custom) || 0 : amt;
+    // Своя сумма остаётся своей и в разделе «Артистам» (там она живёт в капсуле «Своя сумма»)
+    const commit = () => { if (val > 0) { app.setMonthly(val); if (![2, 5, 10].includes(val)) app.setCustomAmt(String(val).replace(".", app.lang === "ru" ? "," : ".")); } setStep(4); };
     return (
       <ObWrap {...W}>
         <h1 style={{ fontSize: "clamp(26px, 7vw, 32px)", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 12, textWrap: "balance" }}>{t.obAmountTitle}</h1>
@@ -178,7 +183,7 @@ const Onboarding = () => {
             borderRadius: "var(--r)", fontSize: 19, fontWeight: 800,
             background: "var(--bg1)", border: "1px solid " + (custom ? "var(--acc)" : "var(--line)"),
           }}>
-            $<input value={custom} onChange={(e) => setCustom(e.target.value.replace(/[^\d.]/g, ""))}
+            $<input value={custom} inputMode="decimal" aria-label={t.supCustom} onChange={(e) => setCustom(cleanAmount(e.target.value))}
               placeholder="…" style={{
                 width: 56, background: "none", border: "none", outline: "none",
                 color: "var(--text)", fontSize: 19, fontWeight: 800, textAlign: "left",
@@ -186,8 +191,8 @@ const Onboarding = () => {
           </div>
         </div>
         <button className="btn" style={{ padding: "13px 44px", fontSize: 15 }}
-          onClick={() => { if (val > 0) app.setMonthly(val); setStep(4); }}>
-          {t.next}{val > 0 ? ` · $${val}/${t.supMonth}` : ""}
+          onClick={commit}>
+          {t.next}{val > 0 ? ` · ${fmtMoney(val, app.lang)}/${t.supMonth}` : ""}
         </button>
         <button className="more" style={{ marginTop: 14 }} onClick={() => setStep(4)}>{t.obAmountSkip}</button>
       </ObWrap>

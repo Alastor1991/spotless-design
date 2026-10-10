@@ -10,6 +10,7 @@ const PageAlbum = ({ id }) => {
   const app = useApp();
   const t = app.t;
   const al = DB.albums[id];
+  if (!al) return <PageHome />; // такого релиза нет (старая ссылка) — не падаем
   const ar = DB.artists[al.artist];
   const ids = al.tracks.map(x => x.id);
   const dlN = ids.filter(x => app.downloads[x] === "done").length;
@@ -37,7 +38,8 @@ const PageAlbum = ({ id }) => {
           <Ic d={ICONS.play} size={22} fill="currentColor" />
         </button>
         <span className="iconbtn ring" style={{ width: 48, height: 48, padding: 0 }}><ShuffleBtn size={48} icon={19} /></span>
-        <PlusButton trackId={al.tracks[0].id} size={48} className="ring" />
+        {/* Плюсик релиза — весь релиз в плейлист (раньше он работал только с первым треком) */}
+        <PlusButton trackIds={ids} size={48} className="ring" />
         <span className="btn ghost" style={{ padding: "0 16px 0 8px", minHeight: 48, gap: 4, cursor: "default" }}>
           <DLButton size={34} albumId={id} />
           <span className="mono" style={{ fontSize: 12 }} aria-label={app.lang === "ru" ? `Скачано ${dlN} из ${ids.length}` : `${dlN} of ${ids.length} downloaded`}>{dlN}/{ids.length}</span>
@@ -91,6 +93,7 @@ const PageArtist = ({ id }) => {
   const app = useApp();
   const t = app.t;
   const ar = DB.artists[id];
+  if (!ar) return <PageHome />;
   const discs = Object.values(DB.albums).filter(a => a.artist === id);
   const top = Object.values(DB.trackIndex).filter(tr => tr.artist === id)
     .sort((a, b) => parseInt(b.plays.replace(/\D/g, "")) - parseInt(a.plays.replace(/\D/g, ""))).slice(0, 5);

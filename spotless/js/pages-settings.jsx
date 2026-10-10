@@ -73,13 +73,14 @@ const COMMUNITY_THEMES = [
 const GalleryModal = ({ close }) => {
   const app = useApp();
   const t = app.t;
+  useEscape(close);
   return (
     <div className="scrim fade-in" onClick={close}>
       <div className="modal fade-up" onClick={(e) => e.stopPropagation()} style={{ width: 560 }} data-screen-label="Галерея тем">
         <SheetGrip onClose={close} />
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
           <div style={{ fontSize: 18, fontWeight: 800 }}>{t.stThemeGallery}</div>
-          <button className="iconbtn" onClick={close}><Ic d={ICONS.x} size={16} /></button>
+          <button className="iconbtn" aria-label={t.close} onClick={close}><Ic d={ICONS.x} size={16} /></button>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
           {COMMUNITY_THEMES.map(th => (
@@ -110,6 +111,7 @@ const GalleryModal = ({ close }) => {
 const TxModal = ({ close }) => {
   const app = useApp();
   const t = app.t;
+  useEscape(close);
   const rows = [
     { d: app.lang === "ru" ? "12 июня" : "Jun 12", title: app.lang === "ru" ? "Ежемесячный платёж артистам" : "Monthly support", amount: -5.0, fee: 0.012 },
     { d: app.lang === "ru" ? "9 июня" : "Jun 9", title: app.lang === "ru" ? "Донат · Молоко и мёд" : "Tip · Молоко и мёд", amount: -1.0, fee: 0.011 },
@@ -122,7 +124,7 @@ const TxModal = ({ close }) => {
         <SheetGrip onClose={close} />
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
           <div style={{ fontSize: 18, fontWeight: 800 }}>{t.stTx}</div>
-          <button className="iconbtn" onClick={close}><Ic d={ICONS.x} size={16} /></button>
+          <button className="iconbtn" aria-label={t.close} onClick={close}><Ic d={ICONS.x} size={16} /></button>
         </div>
         <p style={{ fontSize: 12.5, color: "var(--mut)", marginBottom: 14, lineHeight: 1.5 }}>{t.txNote}</p>
         <div>
@@ -146,6 +148,25 @@ const TxModal = ({ close }) => {
   );
 };
 
+// Картинку для обоев уменьшаем и пережимаем в JPEG: целая фотография с телефона (3–8 МБ) не влезала
+// в localStorage (~5 МБ на сайт), и после этого переставало сохраняться вообще всё. Обои лежат
+// за затемнением, так что 1600 px по длинной стороне хватает с запасом.
+const shrinkImage = (file, max = 1600, quality = 0.82) => new Promise((resolve, reject) => {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(img.naturalWidth * k));
+    c.height = Math.max(1, Math.round(img.naturalHeight * k));
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(url);
+    resolve(c.toDataURL("image/jpeg", quality));
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("not an image")); };
+  img.src = url;
+});
+
 const PageSettings = () => {
   const app = useApp();
   const t = app.t;
@@ -157,29 +178,31 @@ const PageSettings = () => {
   const [importVal, setImportVal] = React.useState("");
   const [folder, setFolder] = React.useState("music");
   const wallRef = React.useRef(null);
+  const S = app.settings;
   const exportTheme = () => {
     const json = JSON.stringify({ theme: app.theme, accent: S.accent, wallpaper: S.wallpaper, island: S.island, density: S.density }, null, 0);
     try { navigator.clipboard.writeText(json); } catch {}
     app.toast(t.themeCopied);
   };
+  // Импорт темы: берём только известное и только допустимые значения (cleanSettings).
+  // Раньше сохранялось что угодно — например, несуществующая тема или «island»: "zzz"
   const applyImport = () => {
-    try {
-      const o = JSON.parse(importVal);
-      if (o.theme) app.setTheme(o.theme);
-      app.setSettings({ ...S, accent: o.accent ?? S.accent, wallpaper: o.wallpaper ?? S.wallpaper, island: o.island || S.island, density: o.density || S.density });
-      app.toast(t.imported); setImportOpen(false); setImportVal("");
-    } catch { app.toast(t.importBad); }
+    let o = null;
+    try { o = JSON.parse(importVal); } catch (e) {}
+    const themeOk = !!o && THEME_LIST.some(th => th.id === o.theme);
+    const next = o && typeof o === "object" ? cleanSettings({ ...o, wallpaperImg: undefined }, S) : S;
+    if (!themeOk && Object.keys(next).every(k => next[k] === S[k])) { app.toast(t.importBad); return; } // ничего годного
+    if (themeOk) app.setTheme(o.theme);
+    app.setSettings(next);
+    app.toast(t.imported); setImportOpen(false); setImportVal("");
   };
   const pickWallpaper = (e) => {
     const f = e.target.files && e.target.files[0];
-    if (!f) return;
-    const r = new FileReader();
-    r.onload = () => { app.setWallpaperImg(r.result); app.toast(t.wallpaperSet); };
-    r.readAsDataURL(f);
     e.target.value = "";
+    if (!f) return;
+    shrinkImage(f).then((data) => { app.setWallpaperImg(data); app.toast(t.wallpaperSet); }, () => app.toast(t.wallpaperBad));
   };
   const [pb, setPb] = React.useState({ stream: "auto", dlq: "high", metered: false, cache: "5", normalize: true, cross: "0", gapless: true });
-  const S = app.settings;
 
   const sections = [
     ["appearance", t.stAppearance, "sparkle"],
@@ -244,7 +267,7 @@ const PageSettings = () => {
                   outline: S.wallpaperImg ? "2px solid var(--acc)" : "none",
                   border: S.wallpaperImg ? "none" : "1px dashed var(--mut)",
                   display: "flex", alignItems: "center", justifyContent: "center", color: "var(--mut)", overflow: "hidden",
-                  background: S.wallpaperImg ? `url(${S.wallpaperImg}) center / cover` : "transparent",
+                  background: S.wallpaperImg ? `url("${S.wallpaperImg}") center / cover` : "transparent",
                 }}>{!S.wallpaperImg && <Ic d={ICONS.image} size={14} />}</button>
               </div>
             </SettingRow>

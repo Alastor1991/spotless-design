@@ -2,10 +2,81 @@
 
 const LS_KEY = "spotless_proto_v1";
 const loadLS = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch { return {}; } };
-const saveLS = (obj) => { try { localStorage.setItem(LS_KEY, JSON.stringify(obj)); } catch {} };
+const saveLS = (obj) => {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(obj)); }
+  catch (e) {
+    // Не влезло в квоту браузера (~5 МБ на сайт) — сохраняем всё, кроме картинки обоев:
+    // иначе молча переставало сохраняться вообще всё (темы, оценки, плейлисты)
+    console.warn("Spotless: состояние не влезло в localStorage, обои не сохранены", e);
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ ...obj, settings: { ...obj.settings, wallpaperImg: null } })); } catch (e2) {}
+  }
+};
+
+const DEFAULT_QUEUE = ["gl1", "s2", "h2", "a2", "g9", "b2", "p3"];
+
+// Длительность трека в секундах (из строки «3:56»)
+const trackSec = (id) => {
+  const tr = DB.trackIndex[id];
+  const [m, s] = tr ? tr.dur.split(":").map(Number) : [3, 0];
+  return m * 60 + s || 180;
+};
+
+// Маршрут ведёт на то, что есть в мок-базе (или в своих плейлистах)?
+const routeOk = (r, userPls) => {
+  if (!r || typeof r !== "object") return false;
+  const id = r.id;
+  switch (r.page) {
+    case "home": case "search": case "library": case "support": case "settings": case "liked": case "jam": return true;
+    case "album": return !!DB.albums[id];
+    case "artist": return !!DB.artists[id];
+    case "genre": return !!DB.genres[id];
+    case "playlist": return !!(DB.findPlaylist(id) || (userPls || []).some(p => p.id === id));
+    case "profile": return !id || id === "me" || DB.friends.some(f => f.id === id);
+    case "showall": {
+      const [k, a] = String(id || "").split(":");
+      return ["recent", "new", "mixes"].includes(k) || ((k === "disc" || k === "similar") && !!DB.artists[a]);
+    }
+    default: return false;
+  }
+};
+
+// Сохранённое состояние проверяем при загрузке. В нём могут остаться id, которых в мок-базе уже нет
+// (трек переименовали, плейлист удалили), и мусор из импорта темы. Раньше любой такой id ронял
+// приложение при каждом запуске — чёрный экран до очистки данных сайта. Отбрасываем только битое,
+// всё остальное (настройки, оценки, плейлисты) остаётся как было.
+const cleanSaved = (raw) => {
+  const s = raw && typeof raw === "object" ? { ...raw } : {};
+  const arr = (v) => (Array.isArray(v) ? v : []);
+  const obj = (v) => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
+  const isTrack = (id) => !!DB.trackIndex[id];
+  if (s.queue != null) {
+    const q = arr(s.queue).filter(isTrack);
+    // Очередь целиком из пропавших треков — берём стартовую, а не пустую
+    if (q.length || !arr(s.queue).length) s.queue = q; else delete s.queue;
+  }
+  const ts = {};
+  Object.entries(obj(s.trackStates)).forEach(([id, st]) => {
+    if (isTrack(id) && st && typeof st === "object") ts[id] = { ...st, playlists: arr(st.playlists).filter(p => typeof p === "string") };
+  });
+  s.trackStates = ts;
+  if (s.followed != null) s.followed = arr(s.followed).filter(id => DB.artists[id]);
+  s.userPlaylists = arr(s.userPlaylists).filter(p => p && typeof p.id === "string" && typeof p.name === "string");
+  const plr = {};
+  Object.entries(obj(s.plRemoved)).forEach(([k, v]) => { plr[k] = arr(v); });
+  s.plRemoved = plr;
+  if (s.downloads != null) s.downloads = obj(s.downloads); // нет вовсе — App положит стартовые загрузки
+  s.settings = cleanSettings(s.settings);
+  if (!THEME_LIST.some(th => th.id === s.theme)) delete s.theme;
+  if (!(typeof s.monthly === "number" && s.monthly > 0)) delete s.monthly;
+  if (!(typeof s.volume === "number" && s.volume >= 0 && s.volume <= 1)) delete s.volume;
+  if (s.lang !== "ru" && s.lang !== "en") delete s.lang;
+  if (!routeOk(s.route, s.userPlaylists)) s.route = { page: "home", id: null };
+  return s;
+};
 
 const App = () => {
-  const saved = React.useRef(loadLS()).current;
+  // Читаем сохранённое один раз (раньше — на каждом рендере, то есть каждую секунду)
+  const saved = React.useState(() => cleanSaved(loadLS()))[0];
 
   // Навигация
   const [route, setRoute] = React.useState(saved.route || { page: "home", id: null });
@@ -17,10 +88,13 @@ const App = () => {
   const [theme, setThemeRaw] = React.useState(saved.uiVersion === 2 ? (saved.theme || "dot") : "dot");
   const [lang, setLang] = React.useState(saved.lang || "ru");
   const [currency, setCurrency] = React.useState(saved.currency || "usd");
-  const [settings, setSettings] = React.useState(saved.settings || { island: "pill", density: "n", accent: null, wallpaper: null, likeRating: 10 });
+  const [settings, setSettings] = React.useState(saved.settings);
   const [onboarded, setOnboarded] = React.useState(saved.onboarded === true);
-  // Плеер
-  const [player, setPlayer] = React.useState({ trackId: "gl1", playing: true, pct: 0.34, shuffle: 0, repeat: false });
+  // Плеер. Прогресс (0–1) — не здесь, а в отдельном хранилище: см. createProgress в ui.jsx
+  const [player, setPlayer] = React.useState({ trackId: DB.trackIndex.gl1 ? "gl1" : Object.keys(DB.trackIndex)[0], playing: true, shuffle: 0, repeat: false });
+  const progress = React.useState(() => createProgress(0.34))[0];
+  const playerRef = React.useRef(player);
+  playerRef.current = player;
   const [panel, setPanel] = React.useState(true);
   const [volume, setVolume] = React.useState(saved.volume != null ? saved.volume : 0.7);
   const [full, setFull] = React.useState(false);
@@ -72,17 +146,22 @@ const App = () => {
     if (settings.accent != null) root.style.setProperty("--hot", `oklch(0.66 0.17 ${settings.accent})`);
   }, [theme, settings.accent, settings.density]);
 
-  // Тикающий прогресс
+  // Тикающий прогресс. Шаг — ровно секунда трека, поэтому время на экране идёт с настоящей скоростью
+  // (раньше шаг был один на все треки, и часы шли примерно вдвое медленнее). Пишем в хранилище
+  // прогресса, а не в состояние App, — тик не перерисовывает всё дерево. Трек доиграл —
+  // onEndRef.current (задаётся ниже, рядом с очередью; через ref — чтобы видеть свежую очередь).
+  const onEndRef = React.useRef(null);
   React.useEffect(() => {
     if (!player.playing) return;
     const iv = setInterval(() => {
-      setPlayer(p => ({ ...p, pct: p.pct + 0.0022 > 1 ? 0 : p.pct + 0.0022 }));
+      const next = progress.get() + 1 / trackSec(playerRef.current.trackId);
+      if (next >= 1) onEndRef.current(); else progress.set(next);
     }, 1000);
     return () => clearInterval(iv);
   }, [player.playing]);
 
   // Очередь — изменяемая: добавление, удаление, перетаскивание
-  const [queue, setQueue] = React.useState(saved.queue || ["gl1", "s2", "h2", "a2", "g9", "b2", "p3"]);
+  const [queue, setQueue] = React.useState(saved.queue || DEFAULT_QUEUE);
   const queueIds = queue;
 
   // API
@@ -130,20 +209,38 @@ const App = () => {
     const stIn = ((trackStates[tid] && trackStates[tid].playlists) || []).includes(plId);
     return baseIn || stIn;
   };
-  const trackPlaylists = (id) => allPlaylists.filter(p => inPlaylist(id, p.id)).map(p => p.id);
+  // Плейлисты, в которых есть все эти треки (у плюсика альбома галочка — только если там весь альбом)
+  const playlistsWithAll = (ids) => allPlaylists.filter(p => ids.length && ids.every(id => inPlaylist(id, p.id))).map(p => p.id);
+  const trackPlaylists = (id) => playlistsWithAll([id]);
   const plToastName = (plId) => { const pl = findPl(plId); return lang === "ru" ? pl.name : (pl.nameEn || pl.name); };
-  const togglePlaylist = (id, plId) => {
+  // Добавить (on) или убрать сразу несколько треков. Базовые треки плейлиста включаются и выключаются
+  // через plRemoved, остальные — через trackStates. Обновления функциональные: считаем от снимка.
+  const setInPlaylist = (ids, plId, on) => {
     const meta = findPl(plId);
-    const stPls = trackState(id).playlists;
-    if (inPlaylist(id, plId)) {
-      if (stPls.includes(plId)) patchTrack(id, { playlists: stPls.filter(p => p !== plId) });
-      if (meta && (meta.tracks || []).includes(id)) setPlRemoved(r => ({ ...r, [plId]: [...(r[plId] || []), id] }));
-      toast(`${t.removedFrom} «${plToastName(plId)}»`);
-    } else {
-      if (meta && (meta.tracks || []).includes(id)) setPlRemoved(r => ({ ...r, [plId]: (r[plId] || []).filter(x => x !== id) }));
-      else patchTrack(id, { playlists: [...stPls, plId] });
-      toast(`${t.addedTo} «${plToastName(plId)}»`);
-    }
+    const base = (meta && meta.tracks) || [];
+    const baseIds = ids.filter(id => base.includes(id));
+    if (baseIds.length) setPlRemoved(r => {
+      const cur = r[plId] || [];
+      return { ...r, [plId]: on ? cur.filter(x => !baseIds.includes(x)) : [...cur, ...baseIds.filter(x => !cur.includes(x))] };
+    });
+    const own = on ? ids.filter(id => !base.includes(id)) : ids;
+    if (own.length) setTrackStates(all => {
+      const next = { ...all };
+      own.forEach(id => {
+        const s = stateFrom(all, id);
+        const rest = s.playlists.filter(p => p !== plId);
+        if (!on && rest.length === s.playlists.length) return; // этого трека там и не было
+        next[id] = { ...s, playlists: on ? [...rest, plId] : rest };
+      });
+      return next;
+    });
+  };
+  // Один трек или список: если в плейлисте уже все — убираем, иначе добавляем недостающие
+  const togglePlaylist = (idOrIds, plId) => {
+    const ids = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
+    const on = !ids.every(id => inPlaylist(id, plId));
+    setInPlaylist(ids, plId, on);
+    toast(`${on ? t.addedTo : t.removedFrom} «${plToastName(plId)}»`);
   };
   const removeFromPlaylist = (id, plId) => { if (inPlaylist(id, plId)) togglePlaylist(id, plId); };
   const playlistTracks = (plId) => {
@@ -159,7 +256,7 @@ const App = () => {
   const createPlaylist = (name, thenAdd, hue) => {
     const id = "u" + Date.now().toString(36);
     setUserPlaylists(u => [...u, { id, name, nameEn: name, hue: hue != null ? hue : 55, byMe: true, collab: false, tracks: [], user: true }]);
-    if (thenAdd) patchTrack(thenAdd, { playlists: [...trackState(thenAdd).playlists, id] });
+    if (thenAdd) setInPlaylist(Array.isArray(thenAdd) ? thenAdd : [thenAdd], id, true); // трек или весь альбом
     setCreatePl(null);
     toast(t.plCreated);
     go("playlist", id);
@@ -172,43 +269,55 @@ const App = () => {
   const toggleFollow = (id) => setFollowed(f => f.includes(id) ? f.filter(x => x !== id) : [...f, id]);
 
   // —— Загрузки ——
+  // Таймеры: dlTimers[id] — загрузка трека, dlTimers["st_" + id] — его место в каскаде релиза
+  const clearDl = (id) => {
+    clearTimeout(dlTimers.current[id]); clearTimeout(dlTimers.current["st_" + id]);
+    delete dlTimers.current[id]; delete dlTimers.current["st_" + id];
+  };
+  const dropDl = (ids) => setDownloads(d => { const nd = { ...d }; ids.forEach(id => delete nd[id]); return nd; });
   const startTrackDl = (id, dur = 2400) => {
+    clearDl(id);
     setDownloads(d => ({ ...d, [id]: "loading" }));
-    clearTimeout(dlTimers.current[id]);
     dlTimers.current[id] = setTimeout(() => {
+      delete dlTimers.current[id];
       setDownloads(d => d[id] === "loading" ? { ...d, [id]: "done" } : d);
     }, dur);
   };
   const toggleDl = (id) => {
-    if (dlRef.current[id]) {
-      clearTimeout(dlTimers.current[id]);
-      setDownloads(d => { const nd = { ...d }; delete nd[id]; return nd; });
-    } else { startTrackDl(id); hint("dl", t.hintDl); }
+    if (dlRef.current[id] || dlTimers.current["st_" + id]) { clearDl(id); dropDl([id]); }
+    else { startTrackDl(id); hint("dl", t.hintDl); }
   };
+  // Релиз или плейлист. Идёт загрузка — нажатие её отменяет (как у отдельного трека), скачанное остаётся;
+  // всё скачано — убирает загрузку; иначе докачивает недостающее каскадом. Раньше нажатие во время
+  // загрузки запускало её заново, а отложенные треки каскада потом всё равно начинали качаться.
   const toggleDlList = (ids) => {
-    const allDone = ids.length && ids.every(id => dlRef.current[id] === "done");
-    if (allDone) {
-      setDownloads(d => { const nd = { ...d }; ids.forEach(id => delete nd[id]); return nd; });
-    } else {
-      // каскад: треки стартуют со сдвигом, каждый со своей анимацией
-      let k = 0;
-      ids.forEach((id) => {
-        if (dlRef.current[id] === "done") return;
-        const delay = k * 450; k++;
-        dlTimers.current["st_" + id] = setTimeout(() => startTrackDl(id, 1400), delay);
-      });
-      hint("dl", t.hintDl);
-    }
+    const cur = dlRef.current;
+    const busy = ids.filter(id => cur[id] === "loading" || dlTimers.current["st_" + id]);
+    if (busy.length) { busy.forEach(clearDl); dropDl(busy); return; }
+    if (ids.length && ids.every(id => cur[id] === "done")) { dropDl(ids); return; }
+    // каскад: треки стартуют со сдвигом, каждый со своей анимацией
+    let k = 0;
+    ids.forEach((id) => {
+      if (cur[id] === "done") return;
+      const delay = k++ * 450;
+      dlTimers.current["st_" + id] = setTimeout(() => { delete dlTimers.current["st_" + id]; startTrackDl(id, 1400); }, delay);
+    });
+    hint("dl", t.hintDl);
   };
   const toggleDlAlbum = (albumId) => toggleDlList(DB.albums[albumId].tracks.map(tr => tr.id));
 
   const go = (page, id = null) => {
     if (page === "onboarding") { setOnboarded(false); return; }
+    const main = document.querySelector(".main");
+    // Уже здесь — просто наверх. Раньше в историю ложился дубль, и «Назад» загоралась впустую
+    if (page === route.page && (id || null) === (route.id || null)) {
+      if (main) main.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     setHistory(h => [...h, route]);
     setFuture([]);
     setRoute({ page, id });
     if (page !== "search") setQuery("");
-    const main = document.querySelector(".main");
     if (main) main.scrollTop = 0;
   };
   const goBack = () => {
@@ -224,15 +333,30 @@ const App = () => {
     setFuture(f => f.slice(1));
   };
 
-  const playTrack = (id) => setPlayer(p => ({ ...p, trackId: id, playing: true, pct: 0.02 }));
+  const playTrack = (id) => {
+    if (!DB.trackIndex[id]) return; // неизвестный id уронил бы весь плеер
+    setPlayer(p => ({ ...p, trackId: id, playing: true }));
+    progress.set(0);
+  };
   const togglePlay = () => setPlayer(p => ({ ...p, playing: !p.playing }));
+  // Очередь крутится по кругу: после последнего — первый. Играющего трека может не быть в очереди
+  // (включили из списка, очередь не меняли) — тогда «следующий» — её начало, а «предыдущий» —
+  // начало этого же трека. Пустая очередь — кнопки ничего не делают (раньше это роняло приложение).
   const nextTrack = () => {
-    const i = queueIds.indexOf(player.trackId);
-    playTrack(queueIds[(i + 1) % queueIds.length]);
+    if (!queue.length) return;
+    const i = queue.indexOf(player.trackId);
+    playTrack(queue[(i + 1) % queue.length]);
   };
   const prevTrack = () => {
-    const i = queueIds.indexOf(player.trackId);
-    playTrack(queueIds[(i - 1 + queueIds.length) % queueIds.length]);
+    const i = queue.indexOf(player.trackId);
+    if (i < 0) { progress.set(0); return; }
+    playTrack(queue[(i - 1 + queue.length) % queue.length]);
+  };
+  // Трек доиграл: с повтором — сначала он же, иначе следующий из очереди; очередь пуста — пауза
+  onEndRef.current = () => {
+    if (player.repeat) progress.set(0);
+    else if (queue.length) nextTrack();
+    else { setPlayer(p => ({ ...p, playing: false })); progress.set(0); }
   };
   const addToQueue = (x) => {
     setQueue(q => [...q, ...(Array.isArray(x) ? x : [x]).filter(id => !q.includes(id))]);
@@ -240,9 +364,11 @@ const App = () => {
     hint("queue", t.hintQueue);
   };
   const removeFromQueue = (i) => setQueue(q => q.filter((_, k) => k !== i));
+  // Трек встаёт перед тем, над которым его отпустили (линия-подсказка рисуется над ним).
+  // Раньше при переносе вниз он вставал на одну позицию дальше.
   const moveInQueue = (from, to) => setQueue(q => {
     if (from == null || to == null || from === to) return q;
-    const n = [...q]; const [x] = n.splice(from, 1); n.splice(to, 0, x); return n;
+    const n = [...q]; const [x] = n.splice(from, 1); n.splice(from < to ? to - 1 : to, 0, x); return n;
   });
   // Слушать контекст целиком: очередь = список, играет первый
   const playContext = (ids) => { if (!ids || !ids.length) return; setQueue(ids); playTrack(ids[0]); };
@@ -254,9 +380,9 @@ const App = () => {
   const toggleRepeat = () => setPlayer(p => ({ ...p, repeat: !p.repeat }));
   const seek = (e) => {
     const r = e.currentTarget.getBoundingClientRect();
-    setPlayer(p => ({ ...p, pct: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) }));
+    progress.set((e.clientX - r.left) / r.width);
   };
-  const seekTo = (pct) => setPlayer(p => ({ ...p, pct }));
+  const seekTo = (pct) => progress.set(pct);
   const fmtTime = (pct) => {
     const tr = DB.trackIndex[player.trackId];
     const [m, s] = tr.dur.split(":").map(Number);
@@ -313,17 +439,28 @@ const App = () => {
   const setWallpaperImg = (data) => setSettings(s => ({ ...s, wallpaperImg: data, wallpaper: null }));
   const finishOnboarding = () => setOnboarded(true);
   const setMonthlyV = (v) => { setMonthly(v); setCustomAmt(""); };
-  // Своя сумма: фиксируется по клику вне поля, значение остаётся в капсуле
-  const commitCustom = () => { const v = parseFloat(customAmt); if (v > 0) setMonthly(v); };
+  // Своя сумма: фиксируется по клику вне поля, значение остаётся в капсуле.
+  // Непонятное («0», «,») не принимаем и очищаем поле — иначе в капсуле висел «0», а сумма оставалась прежней
+  const commitCustom = () => { const v = parseAmount(customAmt); if (v > 0) setMonthly(v); else setCustomAmt(""); };
+
+  // Фон окна с обоями: строка с картинкой может весить сотни килобайт — собираем её, только когда обои меняются.
+  // Хук — до раннего return онбординга, чтобы порядок хуков не прыгал
+  const wp = settings.wallpaper;
+  const wpi = settings.wallpaperImg;
+  const shellBg = React.useMemo(() => wpi
+    ? { background: `linear-gradient(color-mix(in oklab, var(--bg0) 84%, transparent), var(--bg0) 76%), url("${wpi}") center / cover` }
+    : wp != null
+      ? { background: `linear-gradient(160deg, oklch(var(--cover-l1) 0.04 ${wp}) 0%, var(--bg0) 55%)` }
+      : undefined, [wp, wpi]);
 
   const api = {
     t, lang, setLang, currency, setCurrency,
     route, go, goBack, goFwd, history, future,
     theme, setTheme, settings, setSettings, setAccent, setWallpaper, setWallpaperImg,
-    player, playTrack, togglePlay, nextTrack, prevTrack, toggleShuffle, toggleRepeat, seek, seekTo, fmtTime,
+    player, progress, playTrack, togglePlay, nextTrack, prevTrack, toggleShuffle, toggleRepeat, seek, seekTo, fmtTime,
     panel, setPanel, full, setFull, mini, setMini, fullTab, setFullTab, queueIds, volume, setVolume,
     queue, addToQueue, removeFromQueue, moveInQueue, playContext,
-    trackState, toggleLike, setRating, likeRating, trackPlaylists, togglePlaylist,
+    trackState, toggleLike, setRating, likeRating, trackPlaylists, playlistsWithAll, togglePlaylist,
     allPlaylists, findPl, playlistTracks, likedIds, removeFromPlaylist, createPlaylist, deletePlaylist,
     followed, toggleFollow,
     downloads, toggleDl, toggleDlAlbum, toggleDlList,
@@ -364,13 +501,6 @@ const App = () => {
     : <PageHome />;
 
   const docked = settings.island === "panel";
-  const wp = settings.wallpaper;
-  const wpi = settings.wallpaperImg;
-  const shellBg = wpi
-    ? { background: `linear-gradient(color-mix(in oklab, var(--bg0) 84%, transparent), var(--bg0) 76%), url(${wpi}) center / cover` }
-    : wp != null
-      ? { background: `linear-gradient(160deg, oklch(var(--cover-l1) 0.04 ${wp}) 0%, var(--bg0) 55%)` }
-      : undefined;
 
   return (
     <AppCtx.Provider value={api}>
@@ -378,7 +508,10 @@ const App = () => {
         {!phone && <Sidebar />}
         <main className="main">
           <TopBar />
-          {page}
+          {/* Упала страница — остальное (плеер, навигация) живёт; другая страница — новая попытка */}
+          <ErrorBoundary resetKey={route.page + ":" + route.id} fallback={(reset) => <PageError reset={reset} />}>
+            {page}
+          </ErrorBoundary>
         </main>
         {!phone && panel && <NowPanel />}
         {phone
@@ -393,6 +526,33 @@ const App = () => {
       <ContextMenu />
       <Toasts />
     </AppCtx.Provider>
+  );
+};
+
+// ---------- Ошибки ----------
+// Упала одна страница: объяснение и выход на главную, плеер и навигация остаются
+const PageError = ({ reset }) => {
+  const app = useApp();
+  const t = app.t;
+  return (
+    <div className="fade-in" role="alert" style={{ padding: "72px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 14, textAlign: "center" }}>
+      <h1 style={{ fontSize: 34 }}>{t.errTitle}</h1>
+      <p style={{ fontSize: 14.5, color: "var(--mut)", maxWidth: 420, lineHeight: 1.6, textWrap: "pretty" }}>{t.errNote}</p>
+      <button className="btn" style={{ marginTop: 8 }} onClick={() => { app.go("home"); reset(); }}>{t.errHome}</button>
+    </div>
+  );
+};
+// Упало всё приложение: та же подсказка. Из сохранённого меняем только маршрут — открываем главную,
+// настройки, оценки и плейлисты не трогаем
+const AppCrash = () => {
+  const t = I18N[loadLS().lang === "en" ? "en" : "ru"];
+  return (
+    <div className="ob" role="alert" style={{ alignItems: "center", justifyContent: "center", gap: 14, textAlign: "center" }}>
+      <h1 style={{ fontSize: 34 }}>{t.errTitle}</h1>
+      <p style={{ fontSize: 14.5, color: "var(--mut)", maxWidth: 420, lineHeight: 1.6, textWrap: "pretty" }}>{t.errNote}</p>
+      <button className="btn" style={{ marginTop: 8 }}
+        onClick={() => { saveLS({ ...loadLS(), route: { page: "home", id: null } }); location.reload(); }}>{t.errHome}</button>
+    </div>
   );
 };
 
@@ -498,6 +658,16 @@ const TopBar = () => {
     m.addEventListener("scroll", h, { passive: true });
     return () => m.removeEventListener("scroll", h);
   }, [app.phone, app.route.page, app.route.id]);
+  // ⌘K / Ctrl+K — к поиску: подсказка в поле обещает это сочетание. По e.code — работает и в русской раскладке
+  const searchRef = React.useRef(null);
+  React.useEffect(() => {
+    if (app.phone) return;
+    const k = (e) => {
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && e.code === "KeyK" && searchRef.current) { e.preventDefault(); searchRef.current.focus(); }
+    };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [app.phone]);
   const bell = (
     <span style={{ position: "relative", display: "inline-flex" }}>
       <button className={"iconbtn" + (bellOpen ? " lit" : "")} style={{ width: 44, height: 44 }} title={t.notifTitle} aria-label={t.notifTitle} aria-expanded={bellOpen}
@@ -567,7 +737,7 @@ const TopBar = () => {
       }}
         onClick={() => app.route.page !== "search" && app.go("search")}>
         <Ic d={ICONS.search} size={17} style={{ color: "var(--mut2)" }} />
-        <input value={app.query} placeholder={t.searchPh} aria-label={t.search}
+        <input ref={searchRef} value={app.query} placeholder={t.searchPh} aria-label={t.search}
           onChange={(e) => { app.setQuery(e.target.value); if (app.route.page !== "search") app.go("search"); }}
           style={{ flex: 1, minWidth: 0, background: "none", border: "none", outline: "none", color: "var(--text)", fontSize: 14 }} />
         <span className="mono tb-k" style={{ fontSize: 11, border: "1px solid var(--bg3)", borderRadius: 8, padding: "4px 8px", color: "var(--mut2)" }}>⌘K</span>
@@ -614,4 +784,6 @@ const MobileNav = () => {
   );
 };
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <ErrorBoundary fallback={() => <AppCrash />}><App /></ErrorBoundary>
+);
