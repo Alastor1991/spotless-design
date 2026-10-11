@@ -38,7 +38,7 @@ const MonthlyWidget = ({ split }) => {
   const passed = DB.supportHistory.reduce((a, h) => a + h.amount + h.extra, 0);
   const preset = (n) => !app.customAmt && app.monthly === n;
   // Выбрали новую сумму в месяц, а на балансе меньше — предложить пополнить счёт на разницу сейчас
-  const chosen = (v) => { if (v != null && v !== app.monthly && v > DB.balance) app.offerTopUp(v); };
+  const chosen = (v) => { if (v != null && v !== app.monthly && v > app.balance) app.offerTopUp(v); };
   return (
     <section className="widget" style={{ display: "flex", gap: 32, flexWrap: "wrap", padding: "26px 28px" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -89,14 +89,19 @@ const BalanceWidget = () => {
   const app = useApp();
   const t = app.t;
   const m = app.money;
-  const { whole, cents, sep } = m.parts(DB.balance);
+  const { whole, cents, sep } = m.parts(app.balance);
+  // Крупный баланс вписывается в ширину виджета
+  const balRef = React.useRef(null);
+  const k = useFitScale(balRef, [app.balance, m]);
   return (
     <section className="widget" style={{ display: "flex", flexDirection: "column", gap: 12, padding: "26px 24px 22px" }}>
       <span className="mlabel">{t.supBalance}</span>
-      <span style={{ display: "flex", alignItems: "baseline", gap: 2, fontWeight: 300, lineHeight: 1, letterSpacing: "-0.04em", margin: "6px 0 6px" }}>
-        <span style={{ fontSize: 30, color: "var(--mut)" }}>{m.sign}</span>
-        <span style={{ fontSize: 60 }}>{whole}</span>
-        <span style={{ fontSize: 32, color: "var(--mut2)" }}>{sep}{cents}</span>
+      <span style={{ display: "flex", alignItems: "baseline", fontWeight: 300, lineHeight: 1, letterSpacing: "-0.04em", margin: "6px 0 6px" }}>
+        <span ref={balRef} style={{ display: "inline-flex", alignItems: "baseline", gap: 2 }}>
+          <span style={{ fontSize: 30 * k, color: "var(--mut)" }}>{m.sign}</span>
+          <span style={{ fontSize: 60 * k }}>{whole}</span>
+          <span style={{ fontSize: 32 * k, color: "var(--mut2)" }}>{sep}{cents}</span>
+        </span>
       </span>
       <button className="btn" onClick={() => app.openTopUp()}><Ic d={ICONS.plus} size={15} sw={2} />{t.supTopUp}</button>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
@@ -123,7 +128,10 @@ const SplitWidget = ({ split, total }) => {
   const barCell = React.useRef(null);
   const cellW = useWidth(barCell);
   const maxDots = cellW ? Math.max(3, Math.floor(cellW / 8)) : 38;
-  const unit = DOT_UNITS.find(u => split[0].amount / u <= maxDots) || Math.ceil(split[0].amount / maxDots);
+  // От чего считать: от самой крупной доли (её полоса — во всю ширину) или от всей суммы (вся ширина —
+  // сумма в месяц) — настройка «Полосы распределения денег»
+  const base = app.settings.dotScale === "total" ? total : split[0].amount;
+  const unit = DOT_UNITS.find(u => base / u <= maxDots) || Math.ceil(base / maxDots);
   const link = { color: "var(--text)", textDecoration: "underline", textUnderlineOffset: 3 };
   // Колонка сумм — по самой длинной (13px моноширинного ≈ 7,9px на знак), не уже 60px: огромная сумма
   // раньше вылезала из строки и давала прокрутку вбок
@@ -265,10 +273,11 @@ const DonateSheet = ({ tgt }) => {
   const { title, sub, hue, art, round = false } = donateHead(t, tgt);
   const val = custom ? parseAmount(custom) || 0 : amt;
   // Донат идёт с баланса: больше, чем на нём есть, не отправить — вместо этого предлагаем пополнить
-  const short = val > DB.balance;
+  const short = val > app.balance;
   const send = () => {
     if (short) { close(); app.openTopUp(); return; }
     if (val <= 0) return;
+    app.payFromBalance(val, title);
     setSent(true); timer.current = setTimeout(close, 1600);
   };
 
@@ -301,7 +310,7 @@ const DonateSheet = ({ tgt }) => {
             </label>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 13, color: "var(--mut)", marginBottom: 20, flexWrap: "wrap" }}>
-            <span>{t.dnFrom}: <span className="mono" style={{ color: short ? "var(--bad)" : "var(--text)" }}>{m.fmt(DB.balance)}</span></span>
+            <span>{t.dnFrom}: <span className="mono" style={{ color: short ? "var(--bad)" : "var(--text)", overflowWrap: "anywhere" }}>{m.fmt(app.balance)}</span></span>
             <span>{t.dnNote}</span>
           </div>
           <button className="btn" style={{ width: "100%", minHeight: 52, fontSize: 15, opacity: short || val > 0 ? 1 : 0.45 }} onClick={send}>
@@ -342,13 +351,13 @@ const TopUpOffer = () => {
   const t = app.t;
   const m = app.money;
   const monthly = app.topUpOffer;
-  const need = Math.round((monthly - DB.balance) * 100) / 100;
+  const need = Math.round((monthly - app.balance) * 100) / 100;
   const close = () => app.closeTopUpOffer();
   return (
     <Sheet close={close} label={t.offerTitle} screen="Предложение пополнить счёт" width={420}>
       <SheetHead title={t.offerTitle} close={close} />
       <p style={{ fontSize: 14.5, color: "var(--mut)", lineHeight: 1.6, marginBottom: 20, overflowWrap: "anywhere", textWrap: "pretty" }}>
-        {t.offerNote(m.fmt(monthly), m.fmt(DB.balance), m.fmt(need))}
+        {t.offerNote(m.fmt(monthly), m.fmt(app.balance), m.fmt(need))}
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <button className="btn" style={{ minHeight: 50, fontSize: 15, whiteSpace: "normal", overflowWrap: "anywhere" }}
@@ -485,7 +494,7 @@ const TopUpSheet = ({ need }) => {
   const timer = React.useRef(null);
   React.useEffect(() => () => clearTimeout(timer.current), []);
   const close = () => app.closeTopUp();
-  const paid = (sum) => { setLanded(sum); setMode("done"); timer.current = setTimeout(close, 1600); };
+  const paid = (sum) => { app.topUpBalance(sum); setLanded(sum); setMode("done"); timer.current = setTimeout(close, 1600); };
 
   return (
     <Sheet close={close} label={t.tuTitle} screen="Пополнение счёта">

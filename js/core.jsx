@@ -255,7 +255,8 @@ const copyText = (s) => {
 // Значения по умолчанию и проверка. Нужна дважды — при загрузке сохранённого и при импорте темы
 // из JSON: раньше туда попадало что угодно («island»: "zzz").
 // base — что оставить, если значение не годится (при импорте — текущие настройки).
-const DEFAULT_SETTINGS = { island: "pill", density: "n", accent: null, wallpaper: null, wallpaperImg: null, likeRating: 10 };
+// dotScale — от чего считать полосы распределения денег: от самой крупной доли (share) или от всей суммы (total)
+const DEFAULT_SETTINGS = { island: "pill", density: "n", accent: null, wallpaper: null, wallpaperImg: null, likeRating: 10, dotScale: "share" };
 const isHue = (v) => typeof v === "number" && isFinite(v) && v >= 0 && v <= 360;
 const cleanSettings = (s, base = DEFAULT_SETTINGS) => {
   const o = s && typeof s === "object" ? s : {};
@@ -267,6 +268,7 @@ const cleanSettings = (s, base = DEFAULT_SETTINGS) => {
     wallpaper: pick("wallpaper", v => v === null || isHue(v)),
     wallpaperImg: pick("wallpaperImg", v => v === null || (typeof v === "string" && v.startsWith("data:image/"))),
     likeRating: pick("likeRating", v => Number.isInteger(v) && v >= 5 && v <= 10),
+    dotScale: pick("dotScale", v => v === "share" || v === "total"),
   };
 };
 

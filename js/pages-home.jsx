@@ -50,7 +50,8 @@ const SupportWidget = () => {
   const split = splitNow(app.monthly);
   const top = split.slice(0, 4);
   const rest = split.slice(4);
-  const max = split[0].amount || 1;
+  // Полосы — от самой крупной доли или от всей суммы (настройка «Полосы распределения денег»)
+  const max = (app.settings.dotScale === "total" ? app.monthly : split[0].amount) || 1;
   const restSum = rest.reduce((a, s) => a + s.amount, 0);
   const { whole, cents, sep } = m.parts(app.monthly);
   // Крупная сумма вписывается в ширину виджета: раньше большая своя сумма уходила за край

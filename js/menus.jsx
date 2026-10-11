@@ -246,7 +246,7 @@ const BellPop = ({ close }) => {
   const items = [
     { hue: 15, icon: "note", title: t.notifSingle, sub: t.notifSingleSub, go: () => app.go("album", "cassette") },
     { hue: 35, icon: "users", title: t.notifAdded, sub: t.notifAddedSub, go: () => app.go("playlist", "kitchen") },
-    { hue: 95, icon: "wallet", title: t.notifTopUp, sub: t.notifTopUpSub(app.money), go: () => app.openTopUp() },
+    { hue: 95, icon: "wallet", title: t.notifTopUp, sub: t.notifTopUpSub(app.money.fmt(app.balance)), go: () => app.openTopUp() },
     { hue: 145, icon: "heart", title: t.notifThanks, sub: t.notifThanksSub(app.money), go: () => app.go("artist", "milk") },
   ];
   return (

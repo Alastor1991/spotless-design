@@ -105,7 +105,10 @@ const GalleryModal = ({ close }) => {
   );
 };
 
-// Транзакции за июнь (мок): суммы — свои, комиссии сети — в долларах, по курсу
+// Дата своей операции: «11 октября» / «Oct 11» — как у записей из мок-базы
+const txDate = (iso, ru) => new Date(iso).toLocaleDateString(ru ? "ru-RU" : "en-US", ru ? { day: "numeric", month: "long" } : { month: "short", day: "numeric" });
+
+// История операций: записи мок-базы и свои (пополнения, донаты); суммы — свои, комиссии сети — в долларах, по курсу
 const TxModal = ({ close }) => {
   const app = useApp();
   const t = app.t;
@@ -116,14 +119,14 @@ const TxModal = ({ close }) => {
       <SheetHead title={t.stTx} close={close} style={{ marginBottom: 6 }} />
       <p style={{ fontSize: 12.5, color: "var(--mut)", marginBottom: 14, lineHeight: 1.5 }}>{t.txNote}</p>
       <div>
-        {DB.transactions.map((r, i) => (
+        {app.txs.map((r, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: "1px solid var(--line)" }}>
             <span className={r.amount < 0 ? undefined : "ok-text"} style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--bg2)", color: r.amount < 0 ? "var(--acc)" : undefined, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <Ic d={r.amount < 0 ? ICONS.dollar : ICONS.downloadCircle} size={16} />
             </span>
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: "block", fontSize: 13.5, fontWeight: 600 }}>{ru ? r.title : r.titleEn}</span>
-              <span style={{ display: "block", fontSize: 11.5, color: "var(--mut)", marginTop: 1 }}>{ru ? r.d : r.dEn} · {t.txFee} {m.fee(m.usd(r.fee))}</span>
+              <span style={{ display: "block", fontSize: 13.5, fontWeight: 600 }}>{r.kind === "topup" ? t.txTopUp : r.kind === "tip" ? t.txTip(r.name) : ru ? r.title : r.titleEn}</span>
+              <span style={{ display: "block", fontSize: 11.5, color: "var(--mut)", marginTop: 1 }}>{r.at ? txDate(r.at, ru) : ru ? r.d : r.dEn} · {t.txFee} {m.fee(m.usd(r.fee))}</span>
             </span>
             <span className={"mono" + (r.amount < 0 ? "" : " ok-text")} style={{ fontSize: 13.5, fontWeight: 700, color: r.amount < 0 ? "var(--text)" : undefined }}>
               {r.amount < 0 ? "−" : "+"}{m.fmt(Math.abs(r.amount), true)}
@@ -266,6 +269,10 @@ const SetAppearance = ({ openModal }) => {
       <SettingRow label={t.stDensity}>
         <Seg value={S.density} onChange={set("density")}
           options={[["c", t.stDensityC], ["n", t.stDensityN], ["s", t.stDensityS]]} />
+      </SettingRow>
+      <SettingRow label={t.stDots} note={t.stDotsNote}>
+        <Seg value={S.dotScale} onChange={set("dotScale")}
+          options={[["share", t.stDotsShare], ["total", t.stDotsTotal]]} />
       </SettingRow>
       <SettingRow label={t.stAccent} note={t.stAccentNote}>
         <div style={{ display: "flex", gap: 6 }}>

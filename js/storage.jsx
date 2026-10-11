@@ -67,6 +67,12 @@ const cleanSaved = (raw) => {
   // Сумма — любая положительная, в пределах точности (AMOUNT_MAX); мусор — к сумме по умолчанию
   if (!(typeof s.monthly === "number" && s.monthly > 0 && s.monthly <= AMOUNT_MAX)) { delete s.monthly; delete s.customAmt; }
   if (s.customAmt != null) s.customAmt = typeof s.customAmt === "string" ? cleanAmount(s.customAmt) : "";
+  if (!(typeof s.balance === "number" && isFinite(s.balance) && s.balance >= 0 && s.balance <= AMOUNT_MAX)) delete s.balance;
+  // История операций: записи из мок-базы (title, d) и свои (kind, at); остальное — мусор
+  const txOk = (r) => r && typeof r === "object" && typeof r.amount === "number" && isFinite(r.amount) && typeof r.fee === "number" && (
+    (typeof r.title === "string" && typeof r.titleEn === "string" && typeof r.d === "string" && typeof r.dEn === "string") ||
+    (typeof r.at === "string" && (r.kind === "topup" || (r.kind === "tip" && typeof r.name === "string"))));
+  if (s.txs != null) s.txs = arr(s.txs).filter(txOk).slice(0, 50);
   if (!(typeof s.volume === "number" && s.volume >= 0 && s.volume <= 1)) delete s.volume;
   if (s.lang !== "ru" && s.lang !== "en") delete s.lang;
   if (!DB.currencies[s.currency]) delete s.currency;
