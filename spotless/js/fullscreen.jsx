@@ -80,26 +80,26 @@ const FsControls = ({ tr, showLyrics }) => {
   const t = app.t;
   const st = app.trackState(tr.id);
   return (
-    <div className="fs-ctrl" style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+    <div className="fs-ctrl">
+      <div className="fs-ctrl-l">
         <span className="like-pill" style={{ display: "inline-flex", alignItems: "center", gap: 10, height: 48, padding: "0 16px 0 6px", borderRadius: 24, boxShadow: "inset 0 0 0 1px var(--bg3)" }}>
           <LikeButton trackId={tr.id} always={true} size={38} />
           <RateScale value={st.rating} variant="inline" showValue={true} onCommit={(n) => app.setRating(tr.id, n)} />
         </span>
         <PlusButton trackId={tr.id} size={48} className="ring" />
-        <DLButton trackId={tr.id} size={48} className="ring" />
-        <button className="btn ghost" style={{ padding: "0 20px", minHeight: 48 }} onClick={() => app.openDonate({ kind: "track", id: tr.id })}>
-          <span className="mono">$</span>{t.donate}
+        <DLButton trackId={tr.id} size={48} className="ring fs-dl" />
+        <button className="btn ghost fs-donate" title={t.donate} aria-label={t.donate} onClick={() => app.openDonate({ kind: "track", id: tr.id })}>
+          <span className="mono">$</span><span className="fs-donate-l">{t.donate}</span>
         </button>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+      <div className="fs-ctrl-c">
         <ShuffleBtn size={44} icon={21} />
         <PrevNext dir="prev" size={52} icon={25} />
         <PlayBtn size={76} />
         <PrevNext dir="next" size={52} icon={25} />
         <RepeatBtn size={44} icon={21} />
       </div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
+      <div className="fs-ctrl-r">
         <button className="iconbtn ring" aria-pressed={showLyrics} title={t.lyrics} aria-label={t.lyrics}
           style={{ width: 48, height: 48, background: showLyrics ? "var(--acc)" : "transparent", color: showLyrics ? "var(--acc-ink)" : "var(--text)" }}
           onClick={() => app.setFullTab(app.fullTab === "lyrics" ? "cover" : "lyrics")}>
@@ -144,15 +144,15 @@ const FullScreen = () => {
     }}>
       <FsHeader tr={tr} al={al} />
 
+      {/* Раскладка сцены и размер обложки (--fs-cover) — в app.css: inline-стиль перебил бы
+          медиа-правила, и на узком окне обложка не пряталась */}
       <div className={"fs-grid" + (showLyrics ? " with-lyrics" : "")}>
-        <div className="fs-side" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, justifySelf: showLyrics ? "stretch" : "center" }}>
-          <Cover art={al.id} hue={al.hue} glyph={glyph} radius={28}
-            size={showLyrics ? "min(100%, calc(100dvh - 380px))" : "min(52vw, calc(100dvh - 400px))"}
-            style={{ maxWidth: 520, maxHeight: 520, aspectRatio: "1", "--gp": "10px", "--gr": "3.4px" }} />
+        <div className="fs-side">
+          <Cover art={al.id} hue={al.hue} glyph={glyph} radius={28} size="var(--fs-cover)" style={{ "--gp": "10px", "--gr": "3.4px" }} />
           <CoverToggle glyph={glyph} setGlyph={setGlyph} h={30} bg="var(--bg0)" />
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, maxHeight: "100%" }}>
+        <div className="fs-info">
           <h1 style={{ fontSize: "clamp(38px, 5.6vw, 80px)", lineHeight: 0.95, marginBottom: 12 }}>{tr.t}</h1>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 6 }}>
             <button style={{ fontSize: 19, color: "var(--text)", opacity: 0.86 }} onClick={() => { app.setFull(false); app.go("artist", ar.id); }}>{ar.name}</button>
