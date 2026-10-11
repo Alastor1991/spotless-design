@@ -9,6 +9,7 @@
 | `spotless-icon-square.svg` | значок на чёрном квадрате |
 | `spotless-mark.svg` / `spotless-mark-dark.svg` | только знак, без фона — для тёмного / светлого фона |
 | `spotless-logo.svg` / `spotless-logo-dark.svg` | знак с надписью, без фона — для тёмного / светлого фона |
+| `spotless-logo-black.svg` | знак с надписью на чёрной скруглённой плашке — шапка README, виден в светлой и тёмной теме GitHub |
 | `github-social-preview.png` | картинка-превью репозитория, 1280×640 |
 
 В прототипе логотип пока не используется.

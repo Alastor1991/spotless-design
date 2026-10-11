@@ -1,6 +1,4 @@
-# Spotless
-
-<img src="docs/logo/spotless-icon.svg" alt="Логотип Spotless" width="96">
+<img src="docs/logo/spotless-logo-black.svg" alt="Spotless" width="460">
 
 **Музыка — людям. Деньги — артистам.**
 
