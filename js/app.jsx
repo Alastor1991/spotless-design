@@ -40,5 +40,5 @@ const App = () => {
 };
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <ErrorBoundary fallback={() => <AppCrash />}><App /></ErrorBoundary>
+  <ErrorBoundary fallback={(reset, detail) => <AppCrash detail={detail} />}><App /></ErrorBoundary>
 );

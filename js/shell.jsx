@@ -32,7 +32,7 @@ const Shell = () => {
         <main className="main">
           <TopBar />
           {/* Упала страница — остальное (плеер, навигация) живёт; другая страница — новая попытка */}
-          <ErrorBoundary resetKey={route.page + ":" + route.id} fallback={(reset) => <PageError reset={reset} />}>
+          <ErrorBoundary resetKey={route.page + ":" + route.id} fallback={(reset, detail) => <PageError reset={reset} detail={detail} />}>
             <Page id={route.id} />
           </ErrorBoundary>
         </main>
@@ -53,26 +53,32 @@ const Shell = () => {
 };
 
 // ---------- Ошибки ----------
+// Текст ошибки мелким моноширинным шрифтом — для скриншота в отчёте о баге
+const ErrDetail = ({ text }) => text
+  ? <code className="mono" style={{ fontSize: 11, lineHeight: 1.5, color: "var(--mut2)", maxWidth: 520, overflowWrap: "anywhere", userSelect: "all" }}>{text}</code>
+  : null;
 // Упала одна страница: объяснение и выход на главную, плеер и навигация остаются
-const PageError = ({ reset }) => {
+const PageError = ({ reset, detail }) => {
   const app = useApp();
   const t = app.t;
   return (
     <div className="fade-in" role="alert" style={{ padding: "72px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 14, textAlign: "center" }}>
       <h1 style={{ fontSize: 34 }}>{t.errTitle}</h1>
       <p style={{ fontSize: 14.5, color: "var(--mut)", maxWidth: 420, lineHeight: 1.6, textWrap: "pretty" }}>{t.errNote}</p>
+      <ErrDetail text={detail} />
       <button className="btn" style={{ marginTop: 8 }} onClick={() => { app.go("home"); reset(); }}>{t.errHome}</button>
     </div>
   );
 };
 // Упало всё приложение: та же подсказка. Из сохранённого меняем только маршрут — открываем главную,
 // настройки, оценки и плейлисты не трогаем
-const AppCrash = () => {
+const AppCrash = ({ detail }) => {
   const t = I18N[loadLS().lang === "en" ? "en" : "ru"];
   return (
     <div className="ob" role="alert" style={{ alignItems: "center", justifyContent: "center", gap: 14, textAlign: "center" }}>
       <h1 style={{ fontSize: 34 }}>{t.errTitle}</h1>
       <p style={{ fontSize: 14.5, color: "var(--mut)", maxWidth: 420, lineHeight: 1.6, textWrap: "pretty" }}>{t.errNote}</p>
+      <ErrDetail text={detail} />
       <button className="btn" style={{ marginTop: 8 }}
         onClick={() => { saveLS({ ...loadLS(), route: { page: "home", id: null } }); location.reload(); }}>{t.errHome}</button>
     </div>

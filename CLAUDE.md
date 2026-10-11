@@ -21,7 +21,7 @@
 - инфраструктура: деплой серверов, Docker и CI для бэкенда;
 - проектирование бэкенда за владельца: API-контракты, схемы данных, протоколы — ни кода, ни псевдокода реализации.
 
-**Что можно — фронтенд:** прототип (HTML, CSS, JS/React), дизайн, тексты, моки внутри прототипа (`spotless/js/data.js`, имитация ответов прямо в браузере, без настоящего сервера), проверки прототипа, документация. Позже — интерфейс клиента (разметка Slint и логика экранов), но не его ядро. Объяснять понятия и отвечать на вопросы о бэкенде, если владелец спрашивает сам, можно — без готового кода.
+**Что можно — фронтенд:** прототип (HTML, CSS, JS/React), дизайн, тексты, моки внутри прототипа (`js/data.js`, имитация ответов прямо в браузере, без настоящего сервера), проверки прототипа, документация. Позже — интерфейс клиента (разметка Slint и логика экранов), но не его ядро. Объяснять понятия и отвечать на вопросы о бэкенде, если владелец спрашивает сам, можно — без готового кода.
 
 **Если просьба — бэкенд (целиком или частично):**
 1. Бэкенд-часть не делать. Фронтенд-часть, если она есть, сделать.
@@ -53,10 +53,10 @@
 
 ```sh
 python3 -m http.server 8765        # из корня репозитория
-# прототип: http://localhost:8765/spotless/
+# прототип: http://localhost:8765/
 ```
 
-- Точка входа — `spotless/index.html`. Корневой `index.html` перенаправляет туда, `404.html` ловит старые ссылки (в том числе на прежнее имя `Spotless - десктоп.html`).
+- Точка входа — `index.html` в корне: прототип открывается прямо по адресу демо, без перенаправлений. `404.html` ведёт любой несуществующий адрес на прототип.
 - Сборки нет: `.jsx` компилирует Babel прямо в браузере.
 - Публичное демо — GitHub Pages из ветки `main`: https://alastor1991.github.io/spotless-design/
 - Состояние прототипа живёт в `localStorage["spotless_proto_v1"]`. Чтобы открыть сразу нужный экран без онбординга, положи туда `{"uiVersion":2,"onboarded":true,"route":{"page":"album","id":"grunt"}}`.
@@ -65,7 +65,7 @@ python3 -m http.server 8765        # из корня репозитория
 
 ## 2. Порядок работы с владельцем
 
-- Владелец гоняет прототип руками — на компьютере (в том числе в тайлинге, на пол-экрана) и на Android-телефоне в приложении Claude (окно около **412×757**). Присылает правки со скриншотами. Каждая мелочь важна.
+- Владелец гоняет прототип руками — на компьютере в **Chrome, Яндекс Браузере и Firefox** (в том числе в тайлинге, на пол-экрана) и на Android-телефоне **Nothing Phone (3a) Lite** (6,77″, 1080×2392, коэффициент 2,625): в Chrome — страница **412×806** при видимой строке адреса, в приложении Claude — окно около **412×757**. Открывает демо по ссылке из README, часто сразу после выкладки. Присылает правки со скриншотами. Каждая мелочь важна.
 - **Не переходить к следующему крупному пункту**, пока текущий не доведён полностью.
 - **Сначала воспроизвести, потом чинить.** Найти настоящую причину; если проблемы в одном слое повторяются — пересмотреть устройство всего слоя, а не латать симптом (так пересобраны лайк и оценка, см. 6.3 и 10).
 - Правки — точечно; после каждой партии — проверка по разделу 9.
@@ -230,6 +230,9 @@ Spotless — открытый музыкальный сервис: по функ
 - Валюта: свои деньги — те же числа в выбранной валюте; по курсу-заглушке (EUR 0,92, GBP 0,79) — только доходы артистов и комиссии сети. Знак перед числом и у € и £. Значок `$` у доната и вкладки «Артистам» — не по валюте.
 - Настройки: фраза-ключ и поле импорта темы сворачиваются при уходе из раздела.
 - Полный экран на компьютере без текста песни: обложка слева, название справа (так было до «Точки»; в «Точке» название стояло под обложкой и ложилось на кнопки). Нижний ряд на узком окне — в два ряда, «Поддержать» местами сжимается до `$` (ступени — в 7.3).
+- Суммы: не больше 9 999,99 в любом поле (до запятой — 4 цифры); сохранённая сумма больше этого сбрасывается к $5. Цена точки на «Артистам» — до 1000.
+- Экран ошибки показывает под объяснением строку с текстом ошибки и компонентом (моноширинно, мелко) — чтобы для отчёта хватало скриншота.
+- Прототип переехал в корень: демо открывается по `https://alastor1991.github.io/spotless-design/` без перенаправления; старый адрес `/spotless/` ведёт туда же через `404.html`. Ещё короче — только переименовать репозиторий или свой домен (решает владелец).
 - Новые тексты: «Что-то пошло не так»; «Этот экран не открылся из-за ошибки в прототипе. Ваши настройки, оценки и плейлисты на месте.»; «На главную»; «Не получилось открыть картинку»; «По запросу «…» ничего не нашлось»; «1 точка = 25 пенсов».
 
 **Не трогал — решать владельцу:**
@@ -251,45 +254,45 @@ Spotless — открытый музыкальный сервис: по функ
 - Один `css/app.css`: переменные, container queries, без Tailwind.
 - Один корневой `App` + контекст `AppCtx` / `useApp()`. Состояние разложено по хукам-разделам в `state.jsx`, `App` (`app.jsx`) склеивает их в один объект `api` — его и читают компоненты (7.4).
 - Код должен работать **и без Babel** (живая сборка, раздел 8): `const` до объявления — ошибка.
+- **Свежие файлы после выкладки.** GitHub Pages разрешает браузеру 10 минут брать файлы из кэша, а обычное обновление перепроверяет только сам HTML — сразу после выкладки страница собиралась из старых скриптов. Поэтому к адресам файлов прототипа дописывается `?v=` — время выкладки (`document.lastModified`): `app.css`, `data.js` и `i18n.js` подключаются через `document.write` в `index.html`, у тегов `text/babel` версию дописывает скрипт в конце `index.html` (Babel скачивает их позже). Новый `.jsx` — обычный тег `<script type="text/babel" src="js/…">` в общем списке.
 
 ### 7.2. Файлы
 
 ```
-index.html, 404.html          ← перенаправления на прототип (GitHub Pages)
-spotless/
-  index.html                  ← точка входа (компьютер и телефон); порядок скриптов — как ниже
-  css/app.css                 ← токены и темы, каркас, компоненты, наведение, телефон, плотность, жесты
-  js/data.js                  ← мок-база (в т. ч. валюты с курсами-заглушками, баланс, транзакции)
-  js/i18n.js                  ← строки RU/EN
-  js/core.jsx                 ← основа без картинки: AppCtx/useApp, createProgress/useProgress, ErrorBoundary,
-                                 useMedia/PHONE_Q, useEscape, usePopClamp, useWidth, жесты (HOLD_MS, SLOP, buzz,
+index.html                    ← точка входа (компьютер и телефон); порядок скриптов — как ниже, адреса — с ?v= (7.1)
+404.html                      ← любой несуществующий адрес → прототип (GitHub Pages)
+css/app.css                   ← токены и темы, каркас, компоненты, наведение, телефон, плотность, жесты
+js/data.js                    ← мок-база (в т. ч. валюты с курсами-заглушками, баланс, транзакции)
+js/i18n.js                    ← строки RU/EN
+js/core.jsx                   ← основа без картинки: AppCtx/useApp, createProgress/useProgress, ErrorBoundary,
+                                 useMedia/PHONE_Q, useEscape, usePopClamp, useWidth, useFitScale, жесты (HOLD_MS, SLOP, buzz,
                                  isTouchUI, useLongPress), помощники мок-базы (trackInfo, trackSec, minutesOf,
                                  albumIds, artistAlbums, topTracks, plName), деньги (makeMoney, amountText,
-                                 cleanAmount/parseAmount, splitNow, shareOf), copyText, cleanSettings
-  js/ui.jsx                   ← примитивы: Ic/ICONS, Cover, DotBar, DotTime, RateDots, SheetGrip, Marquee,
+                                 AMOUNT_MAX, cleanAmount/parseAmount, splitNow, shareOf), copyText, cleanSettings
+js/ui.jsx                     ← примитивы: Ic/ICONS, Cover, DotBar, DotTime, RateDots, SheetGrip, Marquee,
                                  Sheet/SheetHead (окно поверх всего), MediaCard + albumCard/artistCard/playlistCard,
                                  listenersLine, Toasts
-  js/rating.jsx               ← лайк и оценка: RateScale, LikeButton, RatingPop
-  js/track.jsx                ← PlusButton/PlusPop, DonateButton, DLButton, TrackRow
-  js/player.jsx               ← плеер внизу: PlayerIsland, PlayerDock и их кнопки, DevicesPop, VolumeDots, YouGave
-  js/queue.jsx                ← правая панель NowPanel, upNext, QueueList, QueueRow
-  js/fullscreen.jsx           ← FullScreen, FullScreenPhone, CoverToggle, useLyricLine, жесты полного экрана
-  js/miniplayer.jsx           ← MiniPlayer (окно на компьютере), MobilePlayer (капсула телефона) и её жесты
-  js/pages-home.jsx           ← Главная (виджеты), Поиск, Медиатека
-  js/pages-album.jsx          ← Альбом, Артист
-  js/pages-playlist.jsx       ← Плейлист, Любимые, «Показать все», Жанр
-  js/pages-social.jsx         ← Профиль (свой и друга), Jam
-  js/pages-support.jsx        ← «Артистам» (виджеты), DonateModal, TopUpModal
-  js/pages-settings.jsx       ← Настройки (раздел — свой компонент), THEME_LIST, галерея тем, транзакции
-  js/menus.jsx                ← ContextMenu (пункты — по видам; на телефоне — лист с CtxHead), BellPop,
+js/rating.jsx                 ← лайк и оценка: RateScale, LikeButton, RatingPop
+js/track.jsx                  ← PlusButton/PlusPop, DonateButton, DLButton, TrackRow
+js/player.jsx                 ← плеер внизу: PlayerIsland, PlayerDock и их кнопки, DevicesPop, VolumeDots, YouGave
+js/queue.jsx                  ← правая панель NowPanel, upNext, QueueList, QueueRow
+js/fullscreen.jsx             ← FullScreen, FullScreenPhone, CoverToggle, useLyricLine, жесты полного экрана
+js/miniplayer.jsx             ← MiniPlayer (окно на компьютере), MobilePlayer (капсула телефона) и её жесты
+js/pages-home.jsx             ← Главная (виджеты), Поиск, Медиатека
+js/pages-album.jsx            ← Альбом, Артист
+js/pages-playlist.jsx         ← Плейлист, Любимые, «Показать все», Жанр
+js/pages-social.jsx           ← Профиль (свой и друга), Jam
+js/pages-support.jsx          ← «Артистам» (виджеты), DonateModal, TopUpModal
+js/pages-settings.jsx         ← Настройки (раздел — свой компонент), THEME_LIST, галерея тем, транзакции
+js/menus.jsx                  ← ContextMenu (пункты — по видам; на телефоне — лист с CtxHead), BellPop,
                                  CreatePlaylistModal
-  js/onboarding.jsx           ← онбординг (шаг — свой компонент; ObWrap/ObDots на верхнем уровне)
-  js/storage.jsx              ← localStorage: loadLS/saveLS, usePersist, cleanSaved/routeOk
-  js/state.jsx                ← состояние по разделам: useLocale, useFeedback, useNav, useSettings, useLayout,
+js/onboarding.jsx             ← онбординг (шаг — свой компонент; ObWrap/ObDots на верхнем уровне)
+js/storage.jsx                ← localStorage: loadLS/saveLS, usePersist, cleanSaved/routeOk
+js/state.jsx                  ← состояние по разделам: useLocale, useFeedback, useNav, useSettings, useLayout,
                                  useMoney, useOverlays, usePlayer, useLibrary, useDownloads
-  js/shell.jsx                ← каркас: Shell (страница по маршруту, плеер, окна), Sidebar, TopBar, MobileNav,
+js/shell.jsx                  ← каркас: Shell (страница по маршруту, плеер, окна), Sidebar, TopBar, MobileNav,
                                  PageError/AppCrash
-  js/app.jsx                  ← App: хуки → один api, сохранение, онбординг или Shell
+js/app.jsx                    ← App: хуки → один api, сохранение, онбординг или Shell
 docs/pitfalls.md              ← грабли: ошибки, из-за которых были баги (раздел 10)
 docs/screens/                 ← скриншоты для README
 docs/logo/                    ← логотип (SVG) и запасные значки; в коде не используются
@@ -314,7 +317,7 @@ lib/, Стилевые направления.html ← история первы
 - **Прогресс трека** — не в состоянии App, а в хранилище `createProgress` (`app.progress`); читают его только плеерные компоненты через `useProgress()`. Шаг тика — секунда трека; трек доиграл — следующий из очереди, с повтором — тот же сначала.
 - **Очередь** крутится по кругу; «Далее» — `upNext(queue, current)` (после текущего, потом с начала). Трека нет в очереди — «следующий» = начало очереди, «предыдущий» = начало трека; пустая очередь — кнопки ничего не делают.
 - **Деньги** — `app.money` (`makeMoney(currency, lang)` в `core.jsx`): `fmt(n, keepZeros)`, `num` (без знака), `int` (крупные), `fee` (комиссии сети, 3 знака), `parts` (целые и копейки для крупных цифр), `sign`, `usd(n)` — пересчёт по курсу. Свои деньги человека (сумма в месяц, баланс, донаты, история, чипы сумм) — в его валюте теми же числами: валюту выбирают один раз. По курсу (`DB.currencies`, заглушка) пересчитываются только долларовые суммы сервиса: доходы артистов и комиссии сети. Значок `$` у кнопки доната — значок действия, а не валюта. Литералов `$` в суммах нет.
-- Суммы из полей ввода — `cleanAmount` (запятая или точка) и `parseAmount`, без своих регулярок; обратно в поле — `amountText`. Доля артиста — `splitNow(monthly)` / `shareOf(artistId, monthly)`.
+- Суммы из полей ввода — `cleanAmount` (запятая или точка, до запятой не больше 4 цифр — `AMOUNT_MAX` = 9 999,99; большее в сохранённом `cleanSaved` сбрасывает к $5) и `parseAmount`, без своих регулярок; крупное число вписывается в ширину виджета через `useFitScale`; обратно в поле — `amountText`. Доля артиста — `splitNow(monthly)` / `shareOf(artistId, monthly)`.
 - `trackStates[id] = { rating, liked, playlists }`: читать **только** через `trackState(id)`, менять **только** через `setRating` / `toggleLike` / `patchTrack`. Обновления функциональные: `stateFrom(all, id)` считает из снимка, а не из замыкания.
 - Тосты: `toast(msg, action?)`, где `action = { label, run }` — такой тост живёт дольше и показывает кнопку.
 
@@ -337,29 +340,29 @@ lib/, Стилевые направления.html ← история первы
 
 Владелец удобнее всего тестирует на телефоне через артефакт Claude. Просмотрщик артефактов ставит свой `data-theme` на корень и требует скриптов с разрешённых CDN, поэтому:
 
-1. JSX компилируется заранее esbuild-ом (`--loader=jsx --jsx=transform --target=es2020`, вход через stdin) в обычные `.js`, порядок файлов как в `spotless/index.html`.
+1. JSX компилируется заранее esbuild-ом (`--loader=jsx --jsx=transform --target=es2020`, вход через stdin) в обычные `.js`, порядок файлов как в `index.html`.
 2. `data-theme` в CSS и JS переименовывается в `data-sp-theme`.
-3. Страница артефакта — без `<!doctype>/<html>/<head>/<body>` (их добавит публикация): `<title>`, ссылка на Google Fonts (как в `spotless/index.html`), `css/app.css`, `<div id="root">`, React и ReactDOM 18.3.1 production с cdnjs, затем скрипты.
+3. Страница артефакта — без `<!doctype>/<html>/<head>/<body>` (их добавит публикация): `<title>`, ссылка на Google Fonts (как в `index.html`), `css/app.css`, `<div id="root">`, React и ReactDOM 18.3.1 production с cdnjs, затем скрипты.
 4. Публикация — многофайловым артефактом (`files`: `css/app.css`, `js/*.js`), повторная публикация — тот же путь файла, ссылка сохраняется.
 5. После сборки — те же проверки (раздел 9) на собранной версии.
 
 ```sh
 mkdir -p out/js out/css
-# список и порядок файлов — из spotless/index.html, чтобы не расходились
-for f in $(grep -o 'src="js/[a-z-]*\.jsx"' spotless/index.html | sed 's/src="js\///; s/\.jsx"//'); do
-  npx esbuild --loader=jsx --jsx=transform --target=es2020 < spotless/js/$f.jsx | sed 's/data-theme/data-sp-theme/g' > out/js/$f.js
+# список и порядок файлов — из index.html, чтобы не расходились
+for f in $(grep -o 'src="js/[a-z-]*\.jsx"' index.html | sed 's/src="js\///; s/\.jsx"//'); do
+  npx esbuild --loader=jsx --jsx=transform --target=es2020 < js/$f.jsx | sed 's/data-theme/data-sp-theme/g' > out/js/$f.js
 done
-cp spotless/js/data.js spotless/js/i18n.js out/js/
-sed 's/data-theme/data-sp-theme/g' spotless/css/app.css > out/css/app.css
+cp js/data.js js/i18n.js out/js/
+sed 's/data-theme/data-sp-theme/g' css/app.css > out/css/app.css
 ```
 
 ---
 
 ## 9. Проверка
 
-Каждая партия изменений — в Chromium через Playwright (Chromium предустановлен, `playwright install` не нужен), без ошибок в консоли:
+Каждая партия изменений — **в трёх браузерах владельца**, без ошибок в консоли: Chromium через Playwright (предустановлен, `playwright install` не нужен); **Яндекс Браузер** — пакет с repo.yandex.ru, распаковать `dpkg-deb -x`, запускать тем же Playwright (`executablePath`, `--no-sandbox`); **Firefox** — `npx @puppeteer/browsers install firefox@stable` и `puppeteer-core` (WebDriver BiDi), прокси — через `extraPrefsFirefox`. Проверка только в Chromium пропустила баги, которые владелец ловил в Яндексе и Firefox. После выкладки — те же проверки на живом демо.
 
-- **Размеры**: компьютер 1440×900, 1280×800, 1000×800, 700×800; телефон 412×915, **412×757**, 360×640.
+- **Размеры**: компьютер 1440×900, 1280×800, 1000×800, 700×800; телефон **412×806** (Nothing Phone (3a) Lite в Chrome, коэффициент 2,625), 412×915, **412×757**, 360×640.
 - **Касания — настоящие** touch-события через CDP: `cdp.send('Input.dispatchTouchEvent', { type: 'touchStart' | 'touchMove' | 'touchEnd', touchPoints })`. Клики мышью не ловят ошибки жестов.
 - **Лайк и оценка (обязательно)**: быстрый тап ставит `likeRating` и не разворачивает мини-плеер; кнопка не прыгает; удержание с дрожанием 3px не ставит оценку и не закрывает окно; ведение меняет крупную цифру на ходу; тап по точкам ставит и правит, окно не закрывается само; чёрточка и тап мимо закрывают; «Убрать оценку» гасит сердечко; тап по горящему снимает, «Вернуть» возвращает; `likeRating: 7` → тап ставит 7; на компьютере — удержание мышью, клик по точке, правый клик по строке.
 - **Жесты**: свайпы мини-плеера, смахивание полного экрана и листов, долгое нажатие на строке (строка должна быть в видимой области — мини-плеер перекрывает низ), заголовок в шапке при прокрутке.

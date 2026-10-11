@@ -64,7 +64,9 @@ const cleanSaved = (raw) => {
   if (s.downloads != null) s.downloads = obj(s.downloads); // нет вовсе — положим стартовые загрузки
   s.settings = cleanSettings(s.settings);
   if (!THEME_LIST.some(th => th.id === s.theme)) delete s.theme;
-  if (!(typeof s.monthly === "number" && s.monthly > 0)) delete s.monthly;
+  // Сумма больше допустимой (раньше поле принимало сколько угодно цифр) — обратно к сумме по умолчанию
+  if (!(typeof s.monthly === "number" && s.monthly > 0 && s.monthly <= AMOUNT_MAX)) { delete s.monthly; delete s.customAmt; }
+  if (s.customAmt != null) s.customAmt = typeof s.customAmt === "string" ? cleanAmount(s.customAmt) : "";
   if (!(typeof s.volume === "number" && s.volume >= 0 && s.volume <= 1)) delete s.volume;
   if (s.lang !== "ru" && s.lang !== "en") delete s.lang;
   if (!DB.currencies[s.currency]) delete s.currency;

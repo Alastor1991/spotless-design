@@ -1,35 +1,16 @@
 // Spotless — раздел «Артистам» (кому идут ваши деньги) и окна доната и пополнения.
 // Суммы — в валюте человека (app.money, см. core.jsx).
 
-// Цена одной точки в распределении: от 5 центов до 100 — для любой суммы в месяц
-const DOT_UNITS = [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100];
+// Цена одной точки в распределении: от 5 центов до 1000 — для любой суммы в месяц до 9 999,99
+// (до 100 не хватало: у четырёхзначных сумм полосы обрезались, и доли выглядели одинаково)
+const DOT_UNITS = [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100, 250, 500, 1000];
 
 // Крупная сумма: знак валюты тонким шрифтом, целые — точечным, копейки — приглушённо.
-// Вписывается в ширину своего виджета: на телефоне 360 px «$25,50» и четырёхзначные суммы
-// вылезали за край и давали горизонтальную прокрутку страницы
+// Вписывается в ширину своего виджета (useFitScale)
 const BigMoney = ({ value, size: full = 150 }) => {
   const m = useApp().money;
   const ref = React.useRef(null);
-  const kRef = React.useRef(1);
-  const [k, setK] = React.useState(1);
-  React.useLayoutEffect(() => {
-    const el = ref.current;
-    const box = el && el.closest(".widget");
-    if (!box) return;
-    const fit = () => {
-      const cs = getComputedStyle(box);
-      const avail = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-      const natural = el.getBoundingClientRect().width / kRef.current; // ширина при полном размере
-      const next = Math.min(1, Math.floor((avail / natural) * 100) / 100);
-      if (next !== kRef.current) { kRef.current = next; setK(next); }
-    };
-    fit();
-    if (typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(fit);
-    ro.observe(box);
-    return () => ro.disconnect();
-  }, [value, m]);
-  const size = full * k;
+  const size = full * useFitScale(ref, [value, m]);
   const { whole, cents, sep } = m.parts(value);
   return (
     <span ref={ref} aria-label={m.fmt(value)} style={{ display: "inline-flex", alignItems: "baseline", gap: size * 0.03 }}>
