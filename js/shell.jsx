@@ -44,6 +44,7 @@ const Shell = () => {
       {app.full && (phone ? <FullScreenPhone /> : <FullScreen />)}
       {app.mini && !phone && <MiniPlayer />}
       <DonateModal />
+      <TopUpOfferModal />
       <TopUpModal />
       <CreatePlaylistModal />
       <ContextMenu />

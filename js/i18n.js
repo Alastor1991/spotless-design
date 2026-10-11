@@ -68,6 +68,9 @@ window.I18N = {
     supCustom: "Своя сумма", supChange: "Изменить сумму", supMonth: "мес",
     supNoFees: (fee) => `Без скрытых комиссий: сетевые издержки ~${fee} показываются до подтверждения.`,
     // Пополнение
+    offerTitle: "Пополнить счёт сейчас?",
+    offerNote: (mo, bal, need) => `Вы выбрали ${mo} в месяц, а на балансе ${bal}. Если пополнить счёт на ${need}, денег хватит на этот месяц.`,
+    offerGo: (need) => `Пополнить на ${need}`, offerLater: "Не сейчас",
     tuTitle: "Пополнить счёт", tuChoose: "Как вам удобнее?",
     tuCard: "С карты", tuCardNote: "Apple Pay, Google Pay или карта. Один раз подтвердить личность — дальше в два касания.",
     tuWallet: "С другого кошелька", tuWalletNote: "Прямой перевод на ваш адрес. Подтверждение личности не понадобится.",
@@ -246,6 +249,9 @@ window.I18N = {
     supCustom: "Custom amount", supChange: "Change amount", supMonth: "mo",
     supNoFees: (fee) => `No hidden fees: network costs (~${fee}) are shown before you confirm.`,
     // Top up
+    offerTitle: "Top up now?",
+    offerNote: (mo, bal, need) => `You chose ${mo} a month, but your balance is ${bal}. Top up ${need} and this month is covered.`,
+    offerGo: (need) => `Top up ${need}`, offerLater: "Not now",
     tuTitle: "Top up your balance", tuChoose: "What works best for you?",
     tuCard: "From a card", tuCardNote: "Apple Pay, Google Pay or a card. Verify your identity once — two taps from then on.",
     tuWallet: "From another wallet", tuWalletNote: "A direct transfer to your own address. No identity verification needed.",

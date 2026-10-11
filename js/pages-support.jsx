@@ -1,9 +1,10 @@
 // Spotless — раздел «Артистам» (кому идут ваши деньги) и окна доната и пополнения.
 // Суммы — в валюте человека (app.money, см. core.jsx).
 
-// Цена одной точки в распределении: от 5 центов до 1000 — для любой суммы в месяц до 9 999,99
-// (до 100 не хватало: у четырёхзначных сумм полосы обрезались, и доли выглядели одинаково)
-const DOT_UNITS = [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100, 250, 500, 1000];
+// Цена одной точки в распределении: ровный ряд от 5 центов до 100, а если и 100 мало —
+// целая часть от деления (с округлением вверх) самой крупной доли на число точек, которое
+// помещается в колонку. Потолка нет: раньше ряд кончался на 100, и у крупных сумм полосы обрезались
+const DOT_UNITS = [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100];
 
 // Крупная сумма: знак валюты тонким шрифтом, целые — точечным, копейки — приглушённо.
 // Вписывается в ширину своего виджета (useFitScale)
@@ -36,6 +37,8 @@ const MonthlyWidget = ({ split }) => {
   const m = app.money;
   const passed = DB.supportHistory.reduce((a, h) => a + h.amount + h.extra, 0);
   const preset = (n) => !app.customAmt && app.monthly === n;
+  // Выбрали новую сумму в месяц, а на балансе меньше — предложить пополнить счёт на разницу сейчас
+  const chosen = (v) => { if (v != null && v !== app.monthly && v > DB.balance) app.offerTopUp(v); };
   return (
     <section className="widget" style={{ display: "flex", gap: 32, flexWrap: "wrap", padding: "26px 28px" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -46,7 +49,7 @@ const MonthlyWidget = ({ split }) => {
         <div role="radiogroup" aria-label={t.supMonthly} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {[2, 5, 10].map(n => (
             <button key={n} role="radio" aria-checked={preset(n)} className={"chip mono" + (preset(n) ? " on" : "")}
-              style={{ minHeight: 44, padding: "0 20px" }} onClick={() => app.setMonthly(n)}>{m.sign}{n}</button>
+              style={{ minHeight: 44, padding: "0 20px" }} onClick={() => { chosen(n); app.setMonthly(n); }}>{m.sign}{n}</button>
           ))}
           <label style={{
             display: "flex", alignItems: "center", gap: 4, borderRadius: 99, minHeight: 44,
@@ -56,7 +59,7 @@ const MonthlyWidget = ({ split }) => {
             boxShadow: app.customAmt ? "none" : "inset 0 0 0 1px var(--bg3)",
           }}>
             <span className="mono">{m.sign}</span><input value={app.customAmt} inputMode="decimal" onChange={(e) => app.setCustomAmt(cleanAmount(e.target.value))}
-              onBlur={app.commitCustom} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} aria-label={t.supCustom}
+              onBlur={() => chosen(app.commitCustom())} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} aria-label={t.supCustom}
               placeholder={t.supCustom} style={{
                 width: 96, background: "none", border: "none", outline: "none",
                 color: "inherit", fontSize: 14, padding: "10px 0",
@@ -120,13 +123,18 @@ const SplitWidget = ({ split, total }) => {
   const barCell = React.useRef(null);
   const cellW = useWidth(barCell);
   const maxDots = cellW ? Math.max(3, Math.floor(cellW / 8)) : 38;
-  const unit = DOT_UNITS.find(u => split[0].amount / u <= maxDots) || DOT_UNITS[DOT_UNITS.length - 1];
+  const unit = DOT_UNITS.find(u => split[0].amount / u <= maxDots) || Math.ceil(split[0].amount / maxDots);
   const link = { color: "var(--text)", textDecoration: "underline", textUnderlineOffset: 3 };
+  // Колонка сумм — по самой длинной (13px моноширинного ≈ 7,9px на знак), не уже 60px: огромная сумма
+  // раньше вылезала из строки и давала прокрутку вбок
+  const amtW = Math.max(60, Math.ceil(Math.max(...split.map(s => m.fmt(s.amount, true).length)) * 7.9));
+  // Длинные суммы на телефоне уходят строкой ниже — иначе полосам не остаётся места (app.css)
+  const longAmt = amtW > 100;
   return (
     <section className="widget" style={{ padding: "24px 28px 24px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
         <h2 style={{ fontSize: 18, fontWeight: 700 }}>{t.howSplit(m.fmt(total))}</h2>
-        <span className="mlabel" style={{ fontSize: 10, letterSpacing: "0.1em" }}>{t.dotIsC(unit, m.currency, m.fmt(unit))}</span>
+        <span className="mlabel" style={{ fontSize: 10, letterSpacing: "0.1em" }}>{t.dotIsC(unit, m.currency, unit >= 1000 ? m.int(unit) : m.fmt(unit))}</span>
       </div>
       <div style={{ display: "flex", flexDirection: "column" }}>
         {split.map((s) => {
@@ -134,8 +142,8 @@ const SplitWidget = ({ split, total }) => {
           const open = detail === s.artist;
           return (
             <div key={s.artist}>
-              <button onClick={() => setDetail(open ? null : s.artist)} aria-expanded={open} className="split-row" style={{
-                display: "grid", gridTemplateColumns: "28px minmax(90px, 170px) 64px minmax(0, 1fr) 60px", alignItems: "center",
+              <button onClick={() => setDetail(open ? null : s.artist)} aria-expanded={open} className={"split-row" + (longAmt ? " is-long" : "")} style={{
+                display: "grid", gridTemplateColumns: `28px minmax(90px, 170px) 64px minmax(0, 1fr) ${amtW}px`, alignItems: "center",
                 gap: 14, width: "100%", textAlign: "left", padding: "7px 8px", borderRadius: 12,
               }}>
                 <Cover art={"ar:" + a.id} hue={a.hue} size={28} round={true} />
@@ -319,8 +327,37 @@ const DonateSheet = ({ tgt }) => {
 // Два равноправных пути: виджет платёжного партнёра (с карты) или перевод с другого кошелька.
 const TU_ADDRESS = "7XbR4wqLmZk2tNcVAhuFD9rGoyPe8sJv31MxBqWnK9Qe";
 
+// Комиссия партнёра при пополнении с карты (заглушка) и сколько заплатить, чтобы на баланс дошло need
+const topUpFee = (val) => (val > 0 ? Math.max(0.25, val * 0.024) : 0);
+const payFor = (need) => Math.ceil(Math.max(need + 0.25, need / 0.976) * 100 - 1e-6) / 100;
+
 // Как и донат, монтируется заново при каждом открытии — без вспышки «Счёт пополнен» от прошлого раза
-const TopUpModal = () => (useApp().topUp ? <TopUpSheet /> : null);
+const TopUpModal = () => { const tu = useApp().topUp; return tu ? <TopUpSheet need={tu.amount} /> : null; };
+
+// Выбрали сумму в месяц больше баланса: предложить пополнить на разницу сейчас. «Пополнить» открывает
+// обычное окно пополнения (оба пути), в пути «с карты» сумма подставлена так, чтобы дошла вся разница
+const TopUpOfferModal = () => (useApp().topUpOffer ? <TopUpOffer /> : null);
+const TopUpOffer = () => {
+  const app = useApp();
+  const t = app.t;
+  const m = app.money;
+  const monthly = app.topUpOffer;
+  const need = Math.round((monthly - DB.balance) * 100) / 100;
+  const close = () => app.closeTopUpOffer();
+  return (
+    <Sheet close={close} label={t.offerTitle} screen="Предложение пополнить счёт" width={420}>
+      <SheetHead title={t.offerTitle} close={close} />
+      <p style={{ fontSize: 14.5, color: "var(--mut)", lineHeight: 1.6, marginBottom: 20, overflowWrap: "anywhere", textWrap: "pretty" }}>
+        {t.offerNote(m.fmt(monthly), m.fmt(DB.balance), m.fmt(need))}
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <button className="btn" style={{ minHeight: 50, fontSize: 15, whiteSpace: "normal", overflowWrap: "anywhere" }}
+          onClick={() => { close(); app.openTopUp(need); }}>{t.offerGo(m.fmt(need))}</button>
+        <button className="btn ghost" style={{ minHeight: 46 }} onClick={close}>{t.offerLater}</button>
+      </div>
+    </Sheet>
+  );
+};
 
 // Выбор пути: две равноправные карточки
 const TopUpChoice = ({ setMode }) => {
@@ -362,7 +399,7 @@ const TopUpCard = ({ order, setOrder, onPaid }) => {
   const setCustom = (v) => setOrder(o => ({ ...o, custom: v }));
   const setMethod = (id) => setOrder(o => ({ ...o, method: id }));
   const val = custom ? parseAmount(custom) || 0 : amt;
-  const fee = val > 0 ? Math.max(0.25, val * 0.024) : 0;
+  const fee = topUpFee(val);
   const landed = Math.max(0, val - fee);
   const methods = [
     { id: "apple", label: "Apple Pay" },
@@ -438,11 +475,12 @@ const TopUpWallet = () => {
   );
 };
 
-const TopUpSheet = () => {
+// need — сколько должно дойти до баланса (из предложения пополнить): в пути «с карты» сумма подставлена
+const TopUpSheet = ({ need }) => {
   const app = useApp();
   const t = app.t;
   const [mode, setMode] = React.useState("choose"); // choose | card | wallet | done
-  const [order, setOrder] = React.useState({ amt: 10, custom: "", method: "apple" });
+  const [order, setOrder] = React.useState({ amt: 10, custom: need ? amountText(payFor(need), app.lang) : "", method: "apple" });
   const [landed, setLanded] = React.useState(0);
   const timer = React.useRef(null);
   React.useEffect(() => () => clearTimeout(timer.current), []);
@@ -488,4 +526,4 @@ const TopUpSheet = () => {
   );
 };
 
-Object.assign(window, { PageSupport, DonateModal, DonateSheet, TopUpModal, TopUpSheet, BigMoney });
+Object.assign(window, { PageSupport, DonateModal, DonateSheet, TopUpModal, TopUpSheet, TopUpOfferModal, TopUpOffer, BigMoney });
