@@ -14,6 +14,8 @@
   // скриптов и стилей — исправленное казалось неисправленным, смесь версий роняла приложение.
   // С версией в адресе новая выкладка — новые адреса файлов; между выкладками кэш работает как обычно
   var SPOTLESS_V = document.lastModified.replace(/\D/g, "");
+  // ?r= приходит из 404.html (обход кэша при переходе со старого адреса) — в строке адреса он не нужен
+  if (/[?&]r=/.test(location.search)) history.replaceState(null, "", location.pathname + location.hash);
   document.write('<link rel="stylesheet" href="css/app.css?v=' + SPOTLESS_V + '">');
 </script>
 </head>

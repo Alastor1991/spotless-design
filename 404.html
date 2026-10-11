@@ -5,10 +5,11 @@
 <title>Spotless</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- GitHub Pages отдаёт этот файл на любой несуществующий адрес: опечатка или устаревший
-     адрес ведут в прототип -->
+     адрес ведут в прототип. ?r= — новый адрес, которого нет в кэше браузера: иначе закэшированная
+     старая главная (перенаправление на /spotless/) гоняла бы по кругу; прототип параметр убирает -->
 <script>
   var base = location.pathname.indexOf("/spotless-design/") === 0 ? "/spotless-design/" : "/";
-  location.replace(base + location.hash);
+  location.replace(base + "?r=" + Date.now() + location.hash);
 </script>
 </head>
 <body>
