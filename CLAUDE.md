@@ -176,7 +176,7 @@ Spotless — открытый музыкальный сервис: по функ
 - **Новые формулировки такого рода сверять с русскоязычными источниками**: словари (Ожегов, Ушаков, Розенталь, Грамота.ру), реальные российские сервисы. Пример: «1 поддержка» — ошибка (в значении помощи только ед. ч., Ушаков); «поддержка артисту» — дательный при самом существительном нормален только в значении «опора» (Розенталь), в «оказать поддержку кому» он у глагола.
 - **Чуть более длинная естественная фраза лучше рубленой.**
 - **«Комиссия сервиса 0%»** — ровно так.
-- Деньги в RU — с запятой: `fmtMoney(n, lang)` → `$1,90`. Числительные склонять («и ещё 2 артиста»).
+- Деньги — только через `app.money` (знак валюты перед числом; в RU — с запятой: `money.fmt(1.9)` → `$1,90`, `€1,90`), см. 7.4. Числительные склонять («и ещё 2 артиста»).
 - Названия треков и артистов не переводить. Все строки — в `js/i18n.js`, RU и EN.
 
 ---
@@ -226,7 +226,7 @@ Spotless — открытый музыкальный сервис: по функ
 - React 18.3.1 UMD + Babel standalone в браузере. Версии и `integrity` в тегах скриптов не менять.
 - Каждый `.jsx` — отдельный `<script type="text/babel">`; общие компоненты отдаются через `Object.assign(window, {...})`.
 - Один `css/app.css`: переменные, container queries, без Tailwind.
-- Один корневой `App` + контекст `AppCtx` / `useApp()`; всё API приложения — в объекте `api` в `app.jsx`.
+- Один корневой `App` + контекст `AppCtx` / `useApp()`. Состояние разложено по хукам-разделам в `state.jsx`, `App` (`app.jsx`) склеивает их в один объект `api` — его и читают компоненты (7.4).
 - Код должен работать **и без Babel** (живая сборка, раздел 8): `const` до объявления — ошибка.
 
 ### 7.2. Файлы
@@ -234,30 +234,44 @@ Spotless — открытый музыкальный сервис: по функ
 ```
 index.html, 404.html          ← перенаправления на прототип (GitHub Pages)
 spotless/
-  index.html                  ← точка входа (компьютер и телефон)
-  css/app.css                 ← токены и темы, каркас, компоненты, телефон, плотность, жесты
-  js/data.js                  ← мок-база
+  index.html                  ← точка входа (компьютер и телефон); порядок скриптов — как ниже
+  css/app.css                 ← токены и темы, каркас, компоненты, наведение, телефон, плотность, жесты
+  js/data.js                  ← мок-база (в т. ч. валюты с курсами-заглушками, баланс, транзакции)
   js/i18n.js                  ← строки RU/EN
-  js/ui.jsx                   ← примитивы: Ic/ICONS, Cover, DotBar, DotTime, RateDots, RateScale, LikeButton,
-                                 RatingPop, PlusButton, DonateButton, DLButton, TrackRow, MediaCard, Toasts,
-                                 SheetGrip, Marquee, useLongPress, usePopClamp, useMedia/PHONE_Q, fmtMoney, buzz,
-                                 createProgress/useProgress, ErrorBoundary, useEscape, cleanAmount/parseAmount,
-                                 cleanSettings
-  js/player.jsx               ← PlayerIsland, PlayerDock, NowPanel, QueueList, FullScreen, MiniPlayer,
-                                 MobilePlayer, FullScreenPhone, YouGave, VolumeDots, DevicesPop
+  js/core.jsx                 ← основа без картинки: AppCtx/useApp, createProgress/useProgress, ErrorBoundary,
+                                 useMedia/PHONE_Q, useEscape, usePopClamp, useWidth, жесты (HOLD_MS, SLOP, buzz,
+                                 isTouchUI, useLongPress), помощники мок-базы (trackInfo, trackSec, minutesOf,
+                                 albumIds, artistAlbums, topTracks, plName), деньги (makeMoney, amountText,
+                                 cleanAmount/parseAmount, splitNow, shareOf), copyText, cleanSettings
+  js/ui.jsx                   ← примитивы: Ic/ICONS, Cover, DotBar, DotTime, RateDots, SheetGrip, Marquee,
+                                 Sheet/SheetHead (окно поверх всего), MediaCard + albumCard/artistCard/playlistCard,
+                                 listenersLine, Toasts
+  js/rating.jsx               ← лайк и оценка: RateScale, LikeButton, RatingPop
+  js/track.jsx                ← PlusButton/PlusPop, DonateButton, DLButton, TrackRow
+  js/player.jsx               ← плеер внизу: PlayerIsland, PlayerDock и их кнопки, DevicesPop, VolumeDots, YouGave
+  js/queue.jsx                ← правая панель NowPanel, upNext, QueueList, QueueRow
+  js/fullscreen.jsx           ← FullScreen, FullScreenPhone, CoverToggle, useLyricLine, жесты полного экрана
+  js/miniplayer.jsx           ← MiniPlayer (окно на компьютере), MobilePlayer (капсула телефона) и её жесты
   js/pages-home.jsx           ← Главная (виджеты), Поиск, Медиатека
   js/pages-album.jsx          ← Альбом, Артист
   js/pages-playlist.jsx       ← Плейлист, Любимые, «Показать все», Жанр
-  js/pages-social.jsx         ← Профиль, Jam
-  js/pages-support.jsx        ← «Артистам», DonateModal, TopUpModal
-  js/pages-settings.jsx       ← Настройки, THEME_LIST, галерея тем, транзакции
-  js/menus.jsx                ← ContextMenu (на телефоне — лист с CtxHead), BellPop, CreatePlaylistModal
-  js/onboarding.jsx           ← онбординг (ObWrap/ObDots на верхнем уровне)
-  js/app.jsx                  ← App (состояние и api), cleanSaved/routeOk, PageError/AppCrash, Sidebar, TopBar,
-                                 MobileNav
+  js/pages-social.jsx         ← Профиль (свой и друга), Jam
+  js/pages-support.jsx        ← «Артистам» (виджеты), DonateModal, TopUpModal
+  js/pages-settings.jsx       ← Настройки (раздел — свой компонент), THEME_LIST, галерея тем, транзакции
+  js/menus.jsx                ← ContextMenu (пункты — по видам; на телефоне — лист с CtxHead), BellPop,
+                                 CreatePlaylistModal
+  js/onboarding.jsx           ← онбординг (шаг — свой компонент; ObWrap/ObDots на верхнем уровне)
+  js/storage.jsx              ← localStorage: loadLS/saveLS, usePersist, cleanSaved/routeOk
+  js/state.jsx                ← состояние по разделам: useLocale, useFeedback, useNav, useSettings, useLayout,
+                                 useMoney, useOverlays, usePlayer, useLibrary, useDownloads
+  js/shell.jsx                ← каркас: Shell (страница по маршруту, плеер, окна), Sidebar, TopBar, MobileNav,
+                                 PageError/AppCrash
+  js/app.jsx                  ← App: хуки → один api, сохранение, онбординг или Shell
 docs/screens/                 ← скриншоты для README
 lib/, Стилевые направления.html ← история первых направлений, не трогать
 ```
+
+Имена верхнего уровня у файлов общие (обычные скрипты): одно имя — в одном файле, иначе собранная версия падает. Компоненты из других файлов использовать только при отрисовке, не при загрузке файла (таблица страниц в `shell.jsx` — внутри функции).
 
 ### 7.3. Раскладки и адаптив
 
@@ -268,11 +282,13 @@ lib/, Стилевые направления.html ← история первы
 
 ### 7.4. Состояние
 
-- `localStorage["spotless_proto_v1"]`, внутри `uiVersion: 2` (старые сохранения один раз переводятся на «Точку»). Читается один раз и проходит `cleanSaved`: id, которых нет в мок-базе, и мусор отбрасываются, остальное не трогается. Меняешь id в `data.js` — сохранения тестеров не ломаются. `saveLS` при переполнении квоты сохраняет всё, кроме картинки обоев.
+- **Хуки-разделы** (`state.jsx`): каждый владеет своим куском состояния и возвращает `{ api, keep }` — `api` видят компоненты, `keep` сохраняется между запусками. Связи между разделами — только явные: `App` передаёт `toast`, `hint`, `t`, `go` параметрами. `joinApi` ругается в консоль, если имя в `api` повторилось. Новое состояние — в подходящий раздел (или новый хук), не в `App`.
+- `localStorage["spotless_proto_v1"]`, внутри `uiVersion: 2` (старые сохранения один раз переводятся на «Точку»). Читается один раз и проходит `cleanSaved`: id, которых нет в мок-базе, и мусор отбрасываются, остальное не трогается. Меняешь id в `data.js` — сохранения тестеров не ломаются. Пишет `usePersist(keep)`; `saveLS` при переполнении квоты сохраняет всё, кроме картинки обоев.
 - `settings`: `island` (`pill` | `square` | `panel`), `density` (`c` | `n` | `s`), `accent`, `wallpaper` / `wallpaperImg`, `likeRating`. Допустимые значения — `cleanSettings` (при загрузке и при импорте темы). Картинка обоев пережимается (`shrinkImage`, 1600 px, JPEG).
 - **Прогресс трека** — не в состоянии App, а в хранилище `createProgress` (`app.progress`); читают его только плеерные компоненты через `useProgress()`. Шаг тика — секунда трека; трек доиграл — следующий из очереди, с повтором — тот же сначала.
 - **Очередь** крутится по кругу; «Далее» — `upNext(queue, current)` (после текущего, потом с начала). Трека нет в очереди — «следующий» = начало очереди, «предыдущий» = начало трека; пустая очередь — кнопки ничего не делают.
-- Суммы из полей ввода — `cleanAmount` (запятая или точка) и `parseAmount`, без своих регулярок.
+- **Деньги** — `app.money` (`makeMoney(currency, lang)` в `core.jsx`): `fmt(n, keepZeros)`, `num` (без знака), `int` (крупные), `fee` (комиссии сети, 3 знака), `parts` (целые и копейки для крупных цифр), `sign`, `usd(n)` — пересчёт по курсу. Свои деньги человека (сумма в месяц, баланс, донаты, история, чипы сумм) — в его валюте теми же числами: валюту выбирают один раз. По курсу (`DB.currencies`, заглушка) пересчитываются только долларовые суммы сервиса: доходы артистов и комиссии сети. Значок `$` у кнопки доната — значок действия, а не валюта. Литералов `$` в суммах нет.
+- Суммы из полей ввода — `cleanAmount` (запятая или точка) и `parseAmount`, без своих регулярок; обратно в поле — `amountText`. Доля артиста — `splitNow(monthly)` / `shareOf(artistId, monthly)`.
 - `trackStates[id] = { rating, liked, playlists }`: читать **только** через `trackState(id)`, менять **только** через `setRating` / `toggleLike` / `patchTrack`. Обновления функциональные: `stateFrom(all, id)` считает из снимка, а не из замыкания.
 - Тосты: `toast(msg, action?)`, где `action = { label, run }` — такой тост живёт дольше и показывает кнопку.
 
@@ -281,12 +297,13 @@ lib/, Стилевые направления.html ← история первы
 1. **Поверхность с жестами сама распознаёт тап** (сдвиг < `SLOP` = 10px) и не полагается на всплывающий `click` от детей.
 2. **Элементы управления внутри поверхности исключаются по цели**: `e.target.closest("button, [role=slider], .dotbar.seek")`.
 3. **Долгое нажатие** — `useLongPress`: только палец, сдвиг > `SLOP` — прокрутка; клик при отпускании пальца гасится **где угодно** (`swallowReleaseClick`): меню всплывает листом под пальцем; на сенсорных устройствах нативный `contextmenu` гасится (`isTouchUI()`).
-4. **Окна над прокручиваемым контентом** — портал в `body` + граница событий на корне (`stopPropagation` на pointer- и click-событиях): события портала всплывают по дереву React. Так устроены `RatingPop` и поповер плюсика `PlusPop` (он ещё и открывается вниз, если сверху нет места). Окна-модалки закрываются по Esc (`useEscape`).
+4. **Окна над прокручиваемым контентом** — портал в `body` + граница событий на корне (`stopPropagation` на pointer- и click-событиях): события портала всплывают по дереву React. Так устроены `RatingPop` и поповер плюсика `PlusPop` (он ещё и открывается вниз, если сверху нет места). Модальные окна — общий `Sheet` (`ui.jsx`): тоже портал, затемнение на всё окно, ручка на телефоне, Esc (`useEscape`).
 5. **«Клик мимо»** — слушатель на `window` в фазе перехвата (`addEventListener(..., true)`); исключать сам поповер и якорь.
 6. **Сердечко** — машина состояний `press → armed → scrub` с `setPointerCapture`; шкала — общий `RateScale` (палец, мышь, клавиатура, `onPreview` для живой цифры).
 7. Элементы с жестами — `touch-action: none`; списки внутри — `pan-y`; прокрутка — `overscroll-behavior: contain`.
 8. Перед жестом, двигающим элемент с анимацией появления, снять анимацию: `el.style.animation = "none"`.
 9. Вибрация — `buzz(ms)`, молча ничего, если нельзя.
+10. Подсветка по наведению — классами в `app.css` (раздел «Подсветка по наведению»), не `onMouseEnter`/`onMouseLeave` в компонентах.
 
 ---
 
@@ -302,7 +319,8 @@ lib/, Стилевые направления.html ← история первы
 
 ```sh
 mkdir -p out/js out/css
-for f in ui player pages-home pages-album pages-playlist pages-social pages-support pages-settings menus onboarding app; do
+# список и порядок файлов — из spotless/index.html, чтобы не расходились
+for f in $(grep -o 'src="js/[a-z-]*\.jsx"' spotless/index.html | sed 's/src="js\///; s/\.jsx"//'); do
   npx esbuild --loader=jsx --jsx=transform --target=es2020 < spotless/js/$f.jsx | sed 's/data-theme/data-sp-theme/g' > out/js/$f.js
 done
 cp spotless/js/data.js spotless/js/i18n.js out/js/
@@ -348,6 +366,11 @@ sed 's/data-theme/data-sp-theme/g' spotless/css/app.css > out/css/app.css
 - **Своё правило ввода сумм в каждом поле**: в онбординге запятая выбрасывалась, «2,5» → $25. → одно `cleanAmount` на все поля.
 - **Меню под пальцем после долгого нажатия**: клик при отпускании нажимал пункт листа («В очередь»). Гасить строку мало — гасить клик глобально (`swallowReleaseClick`).
 - **Контейнер тостов с `left: 50%` + `translateX(-50%)`** ограничен половиной ширины экрана — текст переносился. Контейнер во всю ширину, тосты по центру.
+- **Окно, нарисованное внутри страницы**: затемнение галереи тем и транзакций не накрывало правую панель и плеер — `.main` со своим слоем. → окна через общий `Sheet` (портал в `body`).
+- **Поле ввода, которое при наборе меняет место в дереве**: поиск на телефоне после первой буквы перестраивал страницу, поле создавалось заново — фокус пропадал, клавиатура закрывалась. → поле в одном и том же месте дерева в обоих состояниях.
+- **Доля, посчитанная заранее для одной суммы**: «от вас $1,90» бралось из мок-базы для $5, хотя сумма в месяц была другой. → `shareOf(artistId, monthly)`.
+- **`$` прямо в строках и разметке**: при выборе евро или фунтов суммы оставались долларовыми. → суммы — только через `app.money`, знак — `money.sign`.
+- **Состояние всего приложения в одном компоненте** (460 строк в `App`) читалось плохо, а связи между частями были скрытыми. → хуки-разделы в `state.jsx` с явными параметрами.
 
 ---
 

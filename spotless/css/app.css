@@ -514,6 +514,24 @@ input, textarea { font-family: inherit; }
   width: 12px; height: 12px; border-radius: 50%; background: var(--text);
 }
 
+/* Подсветка по наведению — здесь, а не обработчиками mouseenter в компонентах.
+   Свойство, которое меняет :hover, не задавать в style={} у элемента: inline-стиль сильнее */
+.pop-item:hover { background: var(--bg3); }          /* пункты меню и поповеров */
+.qrow:hover { background: var(--bg2); }              /* строка очереди */
+.split-row:hover { background: var(--bg3); }         /* «Артистам»: строка распределения */
+.tu-choice:hover { background: var(--bg2); }         /* пополнение: «С карты» / «С другого кошелька» */
+.gal-card { outline: 1px solid var(--line); }
+.gal-card:hover { outline: 2px solid var(--acc); }   /* галерея тем */
+.friend-now { background: var(--bg1); }
+.friend-now:hover { background: var(--bg2); }        /* профиль друга: «Слушает сейчас» */
+.play-circle { transition: transform 0.1s; }
+.play-circle:hover { transform: scale(1.05); }       /* главная кнопка плеера */
+.ob-choice { border: 1px solid var(--line); }
+.ob-google:hover { border-color: var(--acc); }       /* онбординг: способ входа */
+.ob-seed:hover { border-color: var(--mut); }
+/* Зелёный «в плюс»: пополнения в транзакциях, «online» в «Продвинутом» */
+.ok-text { color: oklch(0.7 0.13 150); }
+
 @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .fade-up { animation: fadeUp 0.25s ease both; }
@@ -870,7 +888,7 @@ button { touch-action: manipulation; }
 
 /* Отклик на нажатие для пальца: кнопки и карточки чуть проседают, строки подсвечиваются */
 @media (hover: none) {
-  .btn:hover, .card:hover .hoverplay { transform: none; }
+  .btn:hover, .card:hover .hoverplay, .play-circle:hover { transform: none; }
   .iconbtn, .btn, .chip, .playbig, .card, .mn-item, .tb-play, .mplayer .mp-row button { transition: transform 0.12s ease, background 0.12s, color 0.12s; }
   .iconbtn:active, .btn:active, .chip:active, .playbig:active, .tb-play:active { transform: scale(0.92); }
   .card:active { transform: scale(0.97); }

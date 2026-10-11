@@ -1,9 +1,18 @@
 // Spotless — страницы плейлиста/микса, «Любимые треки», «Показать все», жанра.
 
-const plTotalMin = (ids) => {
-  let s = 0;
-  ids.forEach(id => { const [m, ss] = DB.trackIndex[id].dur.split(":").map(Number); s += m * 60 + ss; });
-  return Math.round(s / 60);
+// Шапка таблицы треков (с обложками)
+const TrackHead = () => {
+  const t = useApp().t;
+  return (
+    <div className="trow-head">
+      <span className="sec-label" style={{ textAlign: "right" }}>#</span>
+      <span></span>
+      <span className="sec-label">{t.tracks}</span>
+      <span className="sec-label alb">{t.albums}</span>
+      <span></span>
+      <Ic d={ICONS.clock} size={15} style={{ color: "var(--mut)", justifySelf: "end" }} />
+    </div>
+  );
 };
 
 const PagePlaylist = ({ id }) => {
@@ -14,7 +23,7 @@ const PagePlaylist = ({ id }) => {
   const ids = app.playlistTracks(id);
   const isMix = meta.kind === "mix";
   const owner = meta.owner ? DB.friends.find(f => f.id === meta.owner) : null;
-  const name = app.lang === "ru" ? meta.name : (meta.nameEn || meta.name);
+  const name = plName(app.lang, meta);
   const ownerName = isMix ? "spotless" : owner ? owner.name : "Лиза";
   const canEdit = !!meta.byMe;
   return (
@@ -32,7 +41,7 @@ const PagePlaylist = ({ id }) => {
           </div>
           <h1 style={{ fontSize: "clamp(30px, 5cqi, 52px)", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.02, marginBottom: 14, textWrap: "balance" }}>{name}</h1>
           <div style={{ fontSize: 14, color: "var(--mut)" }}>
-            {ids.length} {t.tracksN}{ids.length > 0 ? ` · ${plTotalMin(ids)} ${t.min}` : ""}
+            {ids.length} {t.tracksN}{ids.length > 0 ? ` · ${minutesOf(ids)} ${t.min}` : ""}
           </div>
         </div>
       </header>
@@ -43,11 +52,8 @@ const PagePlaylist = ({ id }) => {
         </button>
         <span style={{ display: "inline-flex" }}><ShuffleBtn size={42} icon={19} /></span>
         {ids.length > 0 && <DLButton size={42} listIds={ids} />}
-        <button className="iconbtn" style={{ width: 42, height: 42 }} title={t.share} aria-label={t.share} onClick={() => app.toast(t.copied)}><Ic d={ICONS.shareIc} size={18} /></button>
-        <button className="iconbtn" style={{ width: 42, height: 42 }} title={t.more} aria-label={t.more}
-          onClick={(e) => app.openCtxAt(e.currentTarget, { kind: "playlist", id })}>
-          <Ic d={ICONS.more} size={20} sw={3.4} />
-        </button>
+        <ShareBtn size={42} className="iconbtn" />
+        <MoreBtn size={42} className="iconbtn" ctx={{ kind: "playlist", id }} />
       </div>
 
       {ids.length === 0 ? (
@@ -57,14 +63,7 @@ const PagePlaylist = ({ id }) => {
         </div>
       ) : (
         <React.Fragment>
-          <div className="trow-head">
-            <span className="sec-label" style={{ textAlign: "right" }}>#</span>
-            <span></span>
-            <span className="sec-label">{t.tracks}</span>
-            <span className="sec-label alb">{t.albums}</span>
-            <span></span>
-            <Ic d={ICONS.clock} size={15} style={{ color: "var(--mut)", justifySelf: "end" }} />
-          </div>
+          <TrackHead />
           <div style={{ marginBottom: 34 }}>
             {ids.map((tid, i) => <TrackRow key={tid + i} trackId={tid} num={i + 1} plId={canEdit ? id : undefined} />)}
           </div>
@@ -93,7 +92,7 @@ const PageLiked = () => {
         <div style={{ minWidth: 0, paddingBottom: 4 }}>
           <div className="sec-label" style={{ marginBottom: 10 }}>{t.plLabel} · Лиза</div>
           <h1 style={{ fontSize: "clamp(30px, 5cqi, 52px)", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.02, marginBottom: 14 }}>{t.likedTracks}</h1>
-          <div style={{ fontSize: 14, color: "var(--mut)" }}>{ids.length} {t.tracksN} · {plTotalMin(ids)} {t.min}</div>
+          <div style={{ fontSize: 14, color: "var(--mut)" }}>{ids.length} {t.tracksN} · {minutesOf(ids)} {t.min}</div>
         </div>
       </header>
 
@@ -103,17 +102,10 @@ const PageLiked = () => {
         </button>
         <span style={{ display: "inline-flex" }}><ShuffleBtn size={42} icon={19} /></span>
         <DLButton size={42} listIds={ids} />
-        <button className="iconbtn" style={{ width: 42, height: 42 }} title={t.share} aria-label={t.share} onClick={() => app.toast(t.copied)}><Ic d={ICONS.shareIc} size={18} /></button>
+        <ShareBtn size={42} className="iconbtn" />
       </div>
 
-      <div className="trow-head">
-        <span className="sec-label" style={{ textAlign: "right" }}>#</span>
-        <span></span>
-        <span className="sec-label">{t.tracks}</span>
-        <span className="sec-label alb">{t.albums}</span>
-        <span></span>
-        <Ic d={ICONS.clock} size={15} style={{ color: "var(--mut)", justifySelf: "end" }} />
-      </div>
+      <TrackHead />
       <div style={{ marginBottom: 34 }}>
         {ids.map((tid, i) => <TrackRow key={tid} trackId={tid} num={i + 1} />)}
       </div>
@@ -122,64 +114,38 @@ const PageLiked = () => {
 };
 
 // ---------- «Показать все» ----------
-const PageShowAll = ({ id }) => {
-  const app = useApp();
+// id — что показать: recent | new | mixes | disc:<артист> | similar:<артист>.
+// Возвращает заголовок и свойства карточек, или null — такого артиста нет (старая ссылка)
+const RECENT_ALL = [
+  { kind: "playlist", id: "quiet" }, { kind: "artist", id: "lowtide" },
+  { kind: "album", id: "grunt" }, { kind: "artist", id: "velvet" },
+  { kind: "playlist", id: "train" }, { kind: "album", id: "seven" },
+  { kind: "album", id: "salt" }, { kind: "artist", id: "bruno" },
+  { kind: "playlist", id: "kitchen" }, { kind: "album", id: "pole" },
+];
+const showAllCards = (app, id) => {
   const t = app.t;
   const [key, arg] = (id || "").split(":");
-  let title = t.showAll;
-  let cards = [];
+  const release = (al) => albumCard(app, al, `${t[al.type]} · ${DB.artists[al.artist].name}`);
+  if (key === "recent") return [t.recent, RECENT_ALL.map(r => {
+    if (r.kind === "playlist") { const pl = DB.findPlaylist(r.id); return playlistCard(app, pl, `${app.playlistTracks(pl.id).length} ${t.tracksN}`); }
+    if (r.kind === "artist") return artistCard(app, DB.artists[r.id], t.artist);
+    return release(DB.albums[r.id]);
+  })];
+  if (key === "new") return [t.newFromArtists, ["glass", "animal", "pole", "hourglass", "cassette", "salt", "seven", "grunt"].map(aid => release(DB.albums[aid]))];
+  if (key === "mixes") return [t.madeForYou, DB.mixes.map(mx => playlistCard(app, mx, "spotless", mx.tracks))];
+  const ar = DB.artists[arg];
+  if (key === "disc" && ar) return [`${t.discography} — ${ar.name}`, artistAlbums(arg).map(al => albumCard(app, al, `${t[al.type]} · ${al.year}`))];
+  if (key === "similar" && ar) return [`${t.similar} — ${ar.name}`, Object.values(DB.artists).filter(a => a.id !== arg).map(a => artistCard(app, a, listenersLine(app, a)))];
+  if (key === "disc" || key === "similar") return null;
+  return [t.showAll, []];
+};
 
-  if (key === "recent") {
-    title = t.recent;
-    const recents = [
-      { kind: "playlist", id: "quiet" }, { kind: "artist", id: "lowtide" },
-      { kind: "album", id: "grunt" }, { kind: "artist", id: "velvet" },
-      { kind: "playlist", id: "train" }, { kind: "album", id: "seven" },
-      { kind: "album", id: "salt" }, { kind: "artist", id: "bruno" },
-      { kind: "playlist", id: "kitchen" }, { kind: "album", id: "pole" },
-    ];
-    cards = recents.map(r => {
-      if (r.kind === "playlist") {
-        const pl = DB.playlists.find(p => p.id === r.id);
-        return { title: app.lang === "ru" ? pl.name : pl.nameEn, sub: `${app.playlistTracks(pl.id).length} ${t.tracksN}`, hue: pl.hue, onClick: () => app.go("playlist", pl.id), onPlay: () => app.playContext(app.playlistTracks(pl.id)), ctx: { kind: "playlist", id: pl.id } };
-      }
-      if (r.kind === "artist") {
-        const ar = DB.artists[r.id];
-        return { title: ar.name, sub: t.artists.slice(0, -1), hue: ar.hue, art: "ar:" + ar.id, round: true, onClick: () => app.go("artist", ar.id), ctx: { kind: "artist", id: ar.id } };
-      }
-      const al = DB.albums[r.id];
-      return { title: al.title, sub: `${t[al.type]} · ${DB.artists[al.artist].name}`, hue: al.hue, art: al.id, onClick: () => app.go("album", al.id), onPlay: () => app.playContext(al.tracks.map(x => x.id)), ctx: { kind: "album", id: al.id } };
-    });
-  } else if (key === "new") {
-    title = t.newFromArtists;
-    cards = ["glass", "animal", "pole", "hourglass", "cassette", "salt", "seven", "grunt"].map(aid => {
-      const al = DB.albums[aid];
-      return { title: al.title, sub: `${t[al.type]} · ${DB.artists[al.artist].name}`, hue: al.hue, art: al.id, onClick: () => app.go("album", al.id), onPlay: () => app.playContext(al.tracks.map(x => x.id)), ctx: { kind: "album", id: al.id } };
-    });
-  } else if (key === "mixes") {
-    title = t.madeForYou;
-    cards = DB.mixes.map(m => ({
-      title: app.lang === "ru" ? m.name : m.nameEn, sub: "spotless", hue: m.hue,
-      onClick: () => app.go("playlist", m.id), onPlay: () => app.playContext(m.tracks), ctx: { kind: "playlist", id: m.id },
-    }));
-  } else if (key === "disc") {
-    const ar = DB.artists[arg];
-    if (!ar) return <PageHome />;
-    title = `${t.discography} — ${ar.name}`;
-    cards = Object.values(DB.albums).filter(a => a.artist === arg).map(al => ({
-      title: al.title, sub: `${t[al.type]} · ${al.year}`, hue: al.hue, art: al.id,
-      onClick: () => app.go("album", al.id), onPlay: () => app.playContext(al.tracks.map(x => x.id)), ctx: { kind: "album", id: al.id },
-    }));
-  } else if (key === "similar") {
-    const ar = DB.artists[arg];
-    if (!ar) return <PageHome />;
-    title = `${t.similar} — ${ar.name}`;
-    cards = Object.values(DB.artists).filter(a => a.id !== arg).map(a => ({
-      title: a.name, sub: `${a.listeners.toLocaleString(app.lang === "ru" ? "ru" : "en")} ${t.monthlyListeners}`, hue: a.hue, art: "ar:" + a.id, round: true,
-      onClick: () => app.go("artist", a.id), ctx: { kind: "artist", id: a.id },
-    }));
-  }
-
+const PageShowAll = ({ id }) => {
+  const app = useApp();
+  const found = showAllCards(app, id);
+  if (!found) return <PageHome />;
+  const [title, cards] = found;
   return (
     <div className="fade-in" data-screen-label={"Показать все: " + title}>
       <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em", margin: "30px 0 20px" }}>{title}</h1>
@@ -194,16 +160,13 @@ const PageShowAll = ({ id }) => {
 const PageGenre = ({ id }) => {
   const app = useApp();
   const t = app.t;
-  const list = app.lang === "ru" ? GENRES_RU : GENRES_EN;
-  const entry = list.find(g => g[0] === id);
+  const entry = (app.lang === "ru" ? GENRES_RU : GENRES_EN).find(g => g[0] === id);
   const label = entry ? entry[1] : id;
   const hue = entry ? entry[2] : 60;
   const g = DB.genres[id] || { artists: [] };
   const artists = g.artists.map(aid => DB.artists[aid]);
   const albums = Object.values(DB.albums).filter(a => g.artists.includes(a.artist));
-  const topTracks = Object.values(DB.trackIndex).filter(tr => g.artists.includes(tr.artist))
-    .sort((a, b) => parseInt(b.plays.replace(/\D/g, "")) - parseInt(a.plays.replace(/\D/g, ""))).slice(0, 5);
-  const fallback = Object.values(DB.albums).slice(0, 6);
+  const release = (al) => <MediaCard key={al.id} {...albumCard(app, al, `${t[al.type]} · ${DB.artists[al.artist].name}`)} />;
 
   return (
     <div className="fade-in" data-screen-label={"Жанр: " + label}>
@@ -217,38 +180,23 @@ const PageGenre = ({ id }) => {
       {artists.length === 0 ? (
         <React.Fragment>
           <p style={{ fontSize: 14.5, color: "var(--mut)", marginBottom: 20, lineHeight: 1.6 }}>{t.genreGrow}</p>
-          <div className="cardrow">
-            {fallback.map(al => (
-              <MediaCard key={al.id} title={al.title} sub={`${t[al.type]} · ${DB.artists[al.artist].name}`} hue={al.hue} art={al.id}
-                onClick={() => app.go("album", al.id)} onPlay={() => app.playContext(al.tracks.map(x => x.id))}
-                ctx={{ kind: "album", id: al.id }} />
-            ))}
-          </div>
+          <div className="cardrow">{Object.values(DB.albums).slice(0, 6).map(release)}</div>
         </React.Fragment>
       ) : (
         <React.Fragment>
           <section style={{ marginBottom: 30 }}>
             <div className="h-row"><h2>{t.artists}</h2></div>
             <div className="cardrow">
-              {artists.map(a => (
-                <MediaCard key={a.id} title={a.name} sub={`${a.listeners.toLocaleString(app.lang === "ru" ? "ru" : "en")} ${t.monthlyListeners}`}
-                  hue={a.hue} art={"ar:" + a.id} round={true} onClick={() => app.go("artist", a.id)} ctx={{ kind: "artist", id: a.id }} />
-              ))}
+              {artists.map(a => <MediaCard key={a.id} {...artistCard(app, a, listenersLine(app, a))} />)}
             </div>
           </section>
           <section style={{ marginBottom: 30 }}>
             <div className="h-row"><h2>{t.albums}</h2></div>
-            <div className="cardrow">
-              {albums.map(al => (
-                <MediaCard key={al.id} title={al.title} sub={`${t[al.type]} · ${DB.artists[al.artist].name}`} hue={al.hue} art={al.id}
-                  onClick={() => app.go("album", al.id)} onPlay={() => app.playContext(al.tracks.map(x => x.id))}
-                  ctx={{ kind: "album", id: al.id }} />
-              ))}
-            </div>
+            <div className="cardrow">{albums.map(release)}</div>
           </section>
           <section>
             <div className="h-row"><h2>{t.tracks}</h2></div>
-            {topTracks.map((tr, i) => <TrackRow key={tr.id} trackId={tr.id} num={i + 1} showPlays={true} />)}
+            {topTracks(g.artists).slice(0, 5).map((tr, i) => <TrackRow key={tr.id} trackId={tr.id} num={i + 1} showPlays={true} />)}
           </section>
         </React.Fragment>
       )}
@@ -256,4 +204,4 @@ const PageGenre = ({ id }) => {
   );
 };
 
-Object.assign(window, { PagePlaylist, PageLiked, PageShowAll, PageGenre });
+Object.assign(window, { PagePlaylist, PageLiked, PageShowAll, PageGenre, TrackHead });
