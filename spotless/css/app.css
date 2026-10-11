@@ -406,6 +406,8 @@ input, textarea { font-family: inherit; }
 .trow:hover .acts .iconbtn { opacity: 1; }
 /* README 3.2: по наведению; всегда видно только сердечко (и метка «скачано» — это статус) */
 .trow .acts .iconbtn.hot, .trow .acts .iconbtn.neg, .trow .acts .dlb.lit { opacity: 1; }
+/* Поповер плюсика живёт в body: мышь уходит со строки в него — кнопка не должна гаснуть */
+.trow .acts .iconbtn[aria-expanded="true"] { opacity: 1; }
 .trow:not(:hover) .acts .dlb.lit circle { fill: var(--mut2); }
 .trow .acts .rate-n { opacity: 1; }
 .trow.playing .tt { color: var(--acc); }
@@ -432,6 +434,9 @@ input, textarea { font-family: inherit; }
 .isl-who { min-width: 72px; overflow: hidden; }
 @container (max-width: 1080px) { .island .isl-vol { display: none !important; } }
 @container (max-width: 980px) { .island .isl-extra { display: none !important; } }
+/* Значок «FLAC» уходит раньше остальных ступени 545: на островке 584–664 px (окно 700–780)
+   правая часть не помещалась в свою колонку и наезжала на «Повтор» до 32 px (замерено перебором ширин) */
+@container (max-width: 680px) { .island .isl-meta { display: none !important; } }
 @container (max-width: 790px) { .island .isl-b2 { display: none !important; } }
 @container (max-width: 545px) {
   .island .isl-sr, .island .isl-meta, .island .isl-q { display: none !important; }
@@ -451,9 +456,13 @@ input, textarea { font-family: inherit; }
   grid-column: 1 / -1; grid-row: 2; display: flex; flex-direction: column;
   background: var(--bg0); min-width: 0; z-index: 40; container-type: inline-size;
 }
+/* Первый отсек — ровно под сайдбаром. В рейле сайдбар узкий (76px), а отсеку нужно место под
+   название трека — там он 248px. Через переменную, иначе ступени ниже с !important возвращали 76px */
+.dock { --dk-first: var(--sbw); }
+.shell.rail .dock { --dk-first: 248px; }
 .dock-cells {
   flex: 1; display: grid; min-width: 0;
-  grid-template-columns: var(--sbw) 236px minmax(220px, 1fr) 176px 156px 196px;
+  grid-template-columns: var(--dk-first) 236px minmax(220px, 1fr) 176px 156px 196px;
 }
 .dock-cell {
   padding: 0 18px; display: flex; flex-direction: column; justify-content: center; gap: 9px;
@@ -461,9 +470,8 @@ input, textarea { font-family: inherit; }
 }
 .dock-cell:last-child { border-right: none; }
 .dock-cell .row { height: 36px; display: flex; align-items: center; gap: 10px; min-width: 0; }
-.shell.rail .dock-cells { grid-template-columns: 248px 236px minmax(220px, 1fr) 176px 156px 196px; }
-@container (max-width: 1240px) { .dock .dk-vol { display: none !important; } .dock-cells { grid-template-columns: var(--sbw) 236px minmax(220px, 1fr) 176px 196px !important; } }
-@container (max-width: 1040px) { .dock .dk-rate { display: none !important; } .dock-cells { grid-template-columns: var(--sbw) minmax(220px, 1fr) 176px 196px !important; } }
+@container (max-width: 1240px) { .dock .dk-vol { display: none !important; } .dock-cells { grid-template-columns: var(--dk-first) 236px minmax(220px, 1fr) 176px 196px !important; } }
+@container (max-width: 1040px) { .dock .dk-rate { display: none !important; } .dock-cells { grid-template-columns: var(--dk-first) minmax(220px, 1fr) 176px 196px !important; } }
 @container (max-width: 820px) { .dock .dk-time { display: none !important; } .dock-cells { grid-template-columns: minmax(160px, 248px) minmax(200px, 1fr) 160px !important; } }
 
 /* ---------- Поповеры и модалки ---------- */
@@ -505,6 +513,24 @@ input, textarea { font-family: inherit; }
   content: ""; position: absolute; right: -6px; top: 50%; transform: translateY(-50%);
   width: 12px; height: 12px; border-radius: 50%; background: var(--text);
 }
+
+/* Подсветка по наведению — здесь, а не обработчиками mouseenter в компонентах.
+   Свойство, которое меняет :hover, не задавать в style={} у элемента: inline-стиль сильнее */
+.pop-item:hover { background: var(--bg3); }          /* пункты меню и поповеров */
+.qrow:hover { background: var(--bg2); }              /* строка очереди */
+.split-row:hover { background: var(--bg3); }         /* «Артистам»: строка распределения */
+.tu-choice:hover { background: var(--bg2); }         /* пополнение: «С карты» / «С другого кошелька» */
+.gal-card { outline: 1px solid var(--line); }
+.gal-card:hover { outline: 2px solid var(--acc); }   /* галерея тем */
+.friend-now { background: var(--bg1); }
+.friend-now:hover { background: var(--bg2); }        /* профиль друга: «Слушает сейчас» */
+.play-circle { transition: transform 0.1s; }
+.play-circle:hover { transform: scale(1.05); }       /* главная кнопка плеера */
+.ob-choice { border: 1px solid var(--line); }
+.ob-google:hover { border-color: var(--acc); }       /* онбординг: способ входа */
+.ob-seed:hover { border-color: var(--mut); }
+/* Зелёный «в плюс»: пополнения в транзакциях, «online» в «Продвинутом» */
+.ok-text { color: oklch(0.7 0.13 150); }
 
 @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -862,7 +888,7 @@ button { touch-action: manipulation; }
 
 /* Отклик на нажатие для пальца: кнопки и карточки чуть проседают, строки подсвечиваются */
 @media (hover: none) {
-  .btn:hover, .card:hover .hoverplay { transform: none; }
+  .btn:hover, .card:hover .hoverplay, .play-circle:hover { transform: none; }
   .iconbtn, .btn, .chip, .playbig, .card, .mn-item, .tb-play, .mplayer .mp-row button { transition: transform 0.12s ease, background 0.12s, color 0.12s; }
   .iconbtn:active, .btn:active, .chip:active, .playbig:active, .tb-play:active { transform: scale(0.92); }
   .card:active { transform: scale(0.97); }

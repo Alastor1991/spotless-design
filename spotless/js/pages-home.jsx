@@ -8,10 +8,6 @@ const greetKey = () => {
   return "gevening";
 };
 
-// Распределение текущей суммы по артистам: доли из истории прослушиваний,
-// сумма — та, что выбрал пользователь (меняется в разделе «Артистам»)
-const splitNow = (monthly) => DB.supportSplit.map(s => ({ ...s, amount: Math.round(monthly * s.pct) / 100 }));
-
 // Виджет «Вы остановились здесь»: обложка точечной матрицей + прогресс
 const ContinueWidget = () => {
   const app = useApp();
@@ -20,8 +16,7 @@ const ContinueWidget = () => {
   const ar = DB.artists[al.artist];
   const idx = 2;
   const tr = al.tracks[idx];
-  const ids = al.tracks.map(x => x.id);
-  const resume = () => { app.playContext(ids.slice(idx)); setTimeout(() => app.seekTo(0.62), 0); };
+  const resume = () => { app.playContext(albumIds(al).slice(idx)); setTimeout(() => app.seekTo(0.62), 0); };
   return (
     <section className="widget b-wide cont-w" style={{ display: "flex", gap: 26, alignItems: "center" }}>
       <button onClick={() => app.go("album", al.id)} aria-label={al.title} style={{ flexShrink: 0 }}>
@@ -47,31 +42,31 @@ const ContinueWidget = () => {
   );
 };
 
-// Виджет поддержки: сумма точечным шрифтом и точки по артистам
+// Виджет «Кому идут ваши деньги»: сумма точечным шрифтом и точки по артистам
 const SupportWidget = () => {
   const app = useApp();
   const t = app.t;
+  const m = app.money;
   const split = splitNow(app.monthly);
   const top = split.slice(0, 4);
   const rest = split.slice(4);
   const max = split[0].amount || 1;
   const restSum = rest.reduce((a, s) => a + s.amount, 0);
-  const whole = Math.floor(app.monthly);
-  const cents = Math.round((app.monthly - whole) * 100);
+  const { whole, cents, sep } = m.parts(app.monthly);
   const row = (key, name, amount, dim, onClick) => (
     <button key={key} onClick={onClick} style={{ display: "grid", gridTemplateColumns: "minmax(0, 96px) 1fr 40px", alignItems: "center", gap: 8, fontSize: 12, textAlign: "left", color: dim ? "var(--mut)" : "var(--text)" }}>
       <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</span>
       <DotBar pct={amount / max} pitch={7} r={2.1} on={dim ? "var(--mut2)" : undefined} />
-      <span className="mono" style={{ fontSize: 11, textAlign: "right", color: "var(--mut)" }}>{fmtMoney(amount, app.lang, true).slice(1)}</span>
+      <span className="mono" style={{ fontSize: 11, textAlign: "right", color: "var(--mut)" }}>{m.num(amount, true)}</span>
     </button>
   );
   return (
     <section className="widget sup-w" style={{ display: "flex", flexDirection: "column", gap: 7, padding: "24px 22px 22px" }}>
       <button className="mlabel" style={{ textAlign: "left" }} onClick={() => app.go("support")}>{t.supWidget}</button>
-      <button onClick={() => app.go("support")} aria-label={fmtMoney(app.monthly, app.lang)} style={{ display: "flex", alignItems: "baseline", gap: 3, margin: "6px 0 10px" }}>
-        <span style={{ fontWeight: 300, fontSize: 38, color: "var(--mut)" }}>$</span>
+      <button onClick={() => app.go("support")} aria-label={m.fmt(app.monthly)} style={{ display: "flex", alignItems: "baseline", gap: 3, margin: "6px 0 10px" }}>
+        <span style={{ fontWeight: 300, fontSize: 38, color: "var(--mut)" }}>{m.sign}</span>
         <span className="dots" style={{ fontSize: 78 }}>{whole}</span>
-        <span className="dots" style={{ fontSize: 34, color: "var(--dot-off)" }}>{app.lang === "ru" ? "," : "."}{String(cents).padStart(2, "0")}</span>
+        <span className="dots" style={{ fontSize: 34, color: "var(--dot-off)" }}>{sep}{cents}</span>
       </button>
       {top.map(s => row(s.artist, DB.artists[s.artist].name, s.amount, false, () => app.go("artist", s.artist)))}
       {rest.length > 0 && row("rest", t.andMoreArtists(rest.length), restSum, true, () => app.go("support"))}
@@ -103,30 +98,43 @@ const FriendsWidget = () => {
   );
 };
 
+// Ряд карточек с заголовком и «Показать все»
+const CardShelf = ({ title, more, last, children }) => {
+  const app = useApp();
+  return (
+    <section style={last ? undefined : { marginBottom: 34 }}>
+      <div className="h-row">
+        <h2>{title}</h2>
+        <button className="more" onClick={() => app.go("showall", more)}>{app.t.showAll}</button>
+      </div>
+      <div className="cardrow hscroll">{children}</div>
+    </section>
+  );
+};
+
+// Недавно слушали (мок)
+const HOME_RECENT = [
+  { kind: "album", id: "salt" }, { kind: "playlist", id: "quiet" },
+  { kind: "album", id: "hourglass" }, { kind: "artist", id: "lowtide" },
+  { kind: "album", id: "seven" }, { kind: "playlist", id: "train" },
+];
+const HOME_NEW = ["glass", "animal", "pole", "hourglass", "cassette", "salt"];
+
 const PageHome = () => {
   const app = useApp();
   const t = app.t;
   const [chip, setChip] = React.useState("all");
-  const recents = [
-    { kind: "album", id: "salt" }, { kind: "playlist", id: "quiet" },
-    { kind: "album", id: "hourglass" }, { kind: "artist", id: "lowtide" },
-    { kind: "album", id: "seven" }, { kind: "playlist", id: "train" },
-  ];
-  const newRel = ["glass", "animal", "pole", "hourglass", "cassette", "salt"];
-  const card = (r, i) => {
+  const card = (r, key) => {
     if (r.kind === "playlist") {
       const pl = DB.playlists.find(p => p.id === r.id);
-      return <MediaCard key={i} title={app.lang === "ru" ? pl.name : pl.nameEn} sub={`${t.plLabel} · ${app.playlistTracks(pl.id).length} ${t.tracksN}`} hue={pl.hue}
-        onClick={() => app.go("playlist", pl.id)} onPlay={() => app.playContext(app.playlistTracks(pl.id))} ctx={{ kind: "playlist", id: pl.id }} />;
+      return <MediaCard key={key} {...playlistCard(app, pl, `${t.plLabel} · ${app.playlistTracks(pl.id).length} ${t.tracksN}`)} />;
     }
     if (r.kind === "artist") {
       const ar = DB.artists[r.id];
-      return <MediaCard key={i} title={ar.name} sub={t.artists.slice(0, -1)} hue={ar.hue} art={"ar:" + ar.id} round={true} onClick={() => app.go("artist", ar.id)}
-        onPlay={() => app.playContext(Object.values(DB.albums).find(a => a.artist === r.id).tracks.map(x => x.id))} ctx={{ kind: "artist", id: ar.id }} />;
+      return <MediaCard key={key} {...artistCard(app, ar, t.artist, () => app.playContext(albumIds(artistAlbums(ar.id)[0])))} />;
     }
     const al = DB.albums[r.id];
-    return <MediaCard key={i} title={al.title} sub={DB.artists[al.artist].name} hue={al.hue} art={al.id}
-      onClick={() => app.go("album", al.id)} onPlay={() => app.playContext(al.tracks.map(x => x.id))} ctx={{ kind: "album", id: al.id }} />;
+    return <MediaCard key={key} {...albumCard(app, al, DB.artists[al.artist].name)} />;
   };
   return (
     <div className="fade-in" data-screen-label="Главная">
@@ -151,35 +159,11 @@ const PageHome = () => {
             <SupportWidget />
             <FriendsWidget />
           </div>
-
-          <section style={{ marginBottom: 34 }}>
-            <div className="h-row">
-              <h2>{t.recent}</h2>
-              <button className="more" onClick={() => app.go("showall", "recent")}>{t.showAll}</button>
-            </div>
-            <div className="cardrow hscroll">{recents.map(card)}</div>
-          </section>
-
-          <section style={{ marginBottom: 34 }}>
-            <div className="h-row">
-              <h2>{t.newFromArtists}</h2>
-              <button className="more" onClick={() => app.go("showall", "new")}>{t.showAll}</button>
-            </div>
-            <div className="cardrow hscroll">{newRel.map((id, i) => card({ kind: "album", id }, "n" + i))}</div>
-          </section>
-
-          <section>
-            <div className="h-row">
-              <h2>{t.madeForYou}</h2>
-              <button className="more" onClick={() => app.go("showall", "mixes")}>{t.showAll}</button>
-            </div>
-            <div className="cardrow hscroll">
-              {DB.mixes.map(m => (
-                <MediaCard key={m.id} title={app.lang === "ru" ? m.name : m.nameEn} sub="spotless" hue={m.hue}
-                  onClick={() => app.go("playlist", m.id)} onPlay={() => app.playContext(m.tracks)} ctx={{ kind: "playlist", id: m.id }} />
-              ))}
-            </div>
-          </section>
+          <CardShelf title={t.recent} more="recent">{HOME_RECENT.map((r, i) => card(r, i))}</CardShelf>
+          <CardShelf title={t.newFromArtists} more="new">{HOME_NEW.map((id, i) => card({ kind: "album", id }, "n" + i))}</CardShelf>
+          <CardShelf title={t.madeForYou} more="mixes" last={true}>
+            {DB.mixes.map(mx => <MediaCard key={mx.id} {...playlistCard(app, mx, "spotless", mx.tracks)} />)}
+          </CardShelf>
         </React.Fragment>
       )}
     </div>
@@ -191,55 +175,63 @@ const PageHome = () => {
 const GENRES_RU = [["indie", "Инди", 25], ["electronic", "Электроника", 250], ["hiphop", "Хип-хоп", 320], ["rock", "Рок", 10], ["jazz", "Джаз", 60], ["classical", "Классика", 95], ["ambient", "Эмбиент", 180], ["pop", "Поп", 340], ["metal", "Метал", 270], ["folk", "Фолк", 130]];
 const GENRES_EN = [["indie", "Indie", 25], ["electronic", "Electronic", 250], ["hiphop", "Hip-Hop", 320], ["rock", "Rock", 10], ["jazz", "Jazz", 60], ["classical", "Classical", 95], ["ambient", "Ambient", 180], ["pop", "Pop", 340], ["metal", "Metal", 270], ["folk", "Folk", 130]];
 
-const PageSearch = () => {
+// На телефоне поле поиска живёт на самой странице, а не в верхней панели
+const SearchField = () => {
   const app = useApp();
   const t = app.t;
-  const q = app.query.trim().toLowerCase();
-  // На телефоне поле поиска живёт на самой странице, а не в верхней панели
-  const field = app.phone && (
+  return (
     <label className="psearch">
       <Ic d={ICONS.search} size={18} style={{ color: "var(--mut2)" }} />
       <input value={app.query} placeholder={t.searchPh} aria-label={t.search} onChange={(e) => app.setQuery(e.target.value)} />
-      {app.query && <button className="iconbtn" style={{ width: 36, height: 36 }} aria-label={app.lang === "ru" ? "Очистить" : "Clear"} onClick={() => app.setQuery("")}><Ic d={ICONS.x} size={16} /></button>}
+      {app.query && <button className="iconbtn" style={{ width: 36, height: 36 }} aria-label={t.clear} onClick={() => app.setQuery("")}><Ic d={ICONS.x} size={16} /></button>}
     </label>
   );
+};
 
-  if (!q) {
-    return (
-      <div className="fade-in" data-screen-label="Поиск — пусто">
-        <h1 style={{ fontSize: 34, fontWeight: 800, margin: "18px 0 18px" }}>{t.search}</h1>
-        {field}
-        <div className="mlabel" style={{ marginBottom: 12 }}>{t.recentSearches}</div>
-        <div style={{ display: "flex", gap: 8, marginBottom: 34, flexWrap: "wrap" }}>
-          {["Молоко и мёд", "Salt & Signal", "Velvet Antenna"].map(s => (
-            <button key={s} className="chip" onClick={() => app.setQuery(s)}>{s}</button>
-          ))}
-        </div>
-        <div className="mlabel" style={{ marginBottom: 14 }}>{t.browseAll}</div>
-        <div className="genre-grid">
-          {(app.lang === "ru" ? GENRES_RU : GENRES_EN).map(([key, g, hue]) => (
-            <button key={key} onClick={() => app.go("genre", key)} style={{
-              height: 110, borderRadius: 22, padding: "16px 18px", position: "relative", overflow: "hidden",
-              background: `radial-gradient(circle, oklch(var(--dot-l) 0.13 ${hue}) 0 1.6px, transparent 2px) 0 0 / 9px 9px, var(--bg2)`,
-              display: "flex", alignItems: "flex-end", textAlign: "left",
-            }}>
-              <span style={{ fontSize: 18, fontWeight: 400, letterSpacing: "-0.02em", color: "var(--text)", background: "var(--bg2)", padding: "4px 10px 4px 0", borderRadius: 6 }}>{g}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  const trks = Object.values(DB.trackIndex).filter(tr => tr.t.toLowerCase().includes(q) || DB.artists[tr.artist].name.toLowerCase().includes(q)).slice(0, 4);
-  const arts = Object.values(DB.artists).filter(a => a.name.toLowerCase().includes(q));
-  const albs = Object.values(DB.albums).filter(a => a.title.toLowerCase().includes(q) || DB.artists[a.artist].name.toLowerCase().includes(q));
-  const top = arts[0] || (trks[0] && DB.artists[trks[0].artist]);
-
+// Пустой запрос: недавние поиски и жанры
+const SearchStart = () => {
+  const app = useApp();
+  const t = app.t;
   return (
-    <div className="fade-in" data-screen-label="Поиск — результаты">
-      {field && <div style={{ paddingTop: 12 }}>{field}</div>}
-      <div className="search-grid">
+    <React.Fragment>
+      <div className="mlabel" style={{ marginBottom: 12 }}>{t.recentSearches}</div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 34, flexWrap: "wrap" }}>
+        {["Молоко и мёд", "Salt & Signal", "Velvet Antenna"].map(s => (
+          <button key={s} className="chip" onClick={() => app.setQuery(s)}>{s}</button>
+        ))}
+      </div>
+      <div className="mlabel" style={{ marginBottom: 14 }}>{t.browseAll}</div>
+      <div className="genre-grid">
+        {(app.lang === "ru" ? GENRES_RU : GENRES_EN).map(([key, g, hue]) => (
+          <button key={key} onClick={() => app.go("genre", key)} style={{
+            height: 110, borderRadius: 22, padding: "16px 18px", position: "relative", overflow: "hidden",
+            background: `radial-gradient(circle, oklch(var(--dot-l) 0.13 ${hue}) 0 1.6px, transparent 2px) 0 0 / 9px 9px, var(--bg2)`,
+            display: "flex", alignItems: "flex-end", textAlign: "left",
+          }}>
+            <span style={{ fontSize: 18, fontWeight: 400, letterSpacing: "-0.02em", color: "var(--text)", background: "var(--bg2)", padding: "4px 10px 4px 0", borderRadius: 6 }}>{g}</span>
+          </button>
+        ))}
+      </div>
+    </React.Fragment>
+  );
+};
+
+// Результаты: лучший результат, треки, артисты, альбомы. q — запрос в нижнем регистре
+const SearchResults = ({ q }) => {
+  const app = useApp();
+  const t = app.t;
+  const has = (s) => s.toLowerCase().includes(q);
+  const trks = Object.values(DB.trackIndex).filter(tr => has(tr.t) || has(DB.artists[tr.artist].name)).slice(0, 4);
+  const arts = Object.values(DB.artists).filter(a => has(a.name));
+  const albs = Object.values(DB.albums).filter(a => has(a.title) || has(DB.artists[a.artist].name));
+  const top = arts[0] || (trks[0] && DB.artists[trks[0].artist]);
+  // Пустые разделы не показываем (раньше висел заголовок «Треки» без строк), а если не нашлось
+  // ничего — так и говорим, вместо пустой страницы
+  const nothing = !top && !trks.length && !arts.length && !albs.length;
+  return (
+    <React.Fragment>
+      {nothing && <p style={{ padding: "56px 0", textAlign: "center", fontSize: 15, color: "var(--mut)", overflowWrap: "anywhere" }}>{t.searchNothing(app.query.trim())}</p>}
+      {(top || trks.length > 0) && <div className="search-grid">
         {top && (
           <section>
             <div className="h-row"><h2>{t.topResult}</h2></div>
@@ -248,22 +240,24 @@ const PageSearch = () => {
             }}>
               <Cover art={"ar:" + top.id} hue={top.hue} size={96} round={true} />
               <div style={{ fontSize: 30, fontWeight: 400, letterSpacing: "-0.04em", margin: "18px 0 8px" }}>{top.name}</div>
-              <span className="mlabel">{t.artists.slice(0, -1)} · {top.listeners.toLocaleString(app.lang === "ru" ? "ru" : "en")} {t.listenersShort}</span>
+              <span className="mlabel">{t.artist} · {top.listeners.toLocaleString(app.lang)} {t.listenersShort}</span>
             </button>
           </section>
         )}
-        <section style={{ minWidth: 0 }}>
-          <div className="h-row"><h2>{t.tracks}</h2></div>
-          <div>
-            {trks.map((tr, i) => <TrackRow key={tr.id} trackId={tr.id} num={i + 1} />)}
-          </div>
-        </section>
-      </div>
+        {trks.length > 0 && (
+          <section style={{ minWidth: 0 }}>
+            <div className="h-row"><h2>{t.tracks}</h2></div>
+            <div>
+              {trks.map((tr, i) => <TrackRow key={tr.id} trackId={tr.id} num={i + 1} />)}
+            </div>
+          </section>
+        )}
+      </div>}
       {arts.length > 0 && (
         <section style={{ marginBottom: 30 }}>
           <div className="h-row"><h2>{t.artists}</h2></div>
           <div className="cardrow">
-            {arts.map(a => <MediaCard key={a.id} title={a.name} sub={`${a.listeners.toLocaleString(app.lang === "ru" ? "ru" : "en")} ${t.monthlyListeners}`} hue={a.hue} art={"ar:" + a.id} round={true} onClick={() => app.go("artist", a.id)} ctx={{ kind: "artist", id: a.id }} />)}
+            {arts.map(a => <MediaCard key={a.id} {...artistCard(app, a, listenersLine(app, a))} />)}
           </div>
         </section>
       )}
@@ -271,55 +265,65 @@ const PageSearch = () => {
         <section>
           <div className="h-row"><h2>{t.albums}</h2></div>
           <div className="cardrow">
-            {albs.map(a => <MediaCard key={a.id} title={a.title} sub={`${a.year} · ${DB.artists[a.artist].name}`} hue={a.hue} art={a.id} onClick={() => app.go("album", a.id)} onPlay={() => app.playContext(a.tracks.map(x => x.id))} ctx={{ kind: "album", id: a.id }} />)}
+            {albs.map(a => <MediaCard key={a.id} {...albumCard(app, a, `${a.year} · ${DB.artists[a.artist].name}`)} />)}
           </div>
         </section>
       )}
+    </React.Fragment>
+  );
+};
+
+// Поле поиска на телефоне стоит в одном и том же месте страницы и без запроса, и с ним. Раньше
+// после первой буквы страница перестраивалась, поле создавалось заново — фокус пропадал,
+// клавиатура закрывалась, и дальше буквы не набирались
+const PageSearch = () => {
+  const app = useApp();
+  const q = app.query.trim().toLowerCase();
+  return (
+    <div className="fade-in" data-screen-label={q ? "Поиск — результаты" : "Поиск — пусто"}>
+      {!q && <h1 style={{ fontSize: 34, fontWeight: 800, margin: "18px 0 18px" }}>{app.t.search}</h1>}
+      {app.phone && <div style={q ? { paddingTop: 12 } : undefined}><SearchField /></div>}
+      {q ? <SearchResults q={q} /> : <SearchStart />}
     </div>
   );
 };
 
 // ---------- Медиатека ----------
+// Всё сохранённое одним списком: любимые, плейлисты, подписки, альбомы (мок).
+// «Скачано» — по настоящим загрузкам: раньше у «Любимых», «Тихих часов» и «Для поезда» галочка
+// стояла всегда, хотя на странице плейлиста кнопка предлагала «Скачать»
+const libraryItems = (app) => {
+  const t = app.t;
+  const allDl = (ids) => ids.length > 0 && ids.every(id => app.downloads[id] === "done");
+  const liked = app.likedIds();
+  const items = [{ kind: "pl", id: "__liked", name: t.likedTracks, hue: 95, sub: `${t.plLabel} · ${liked.length} ${t.tracksN}`, pinned: true, dl: allDl(liked), tracks: liked }];
+  app.allPlaylists.forEach(pl => {
+    const tracks = app.playlistTracks(pl.id);
+    items.push({
+      kind: "pl", id: pl.id, name: plName(app.lang, pl), hue: pl.hue,
+      sub: `${tracks.length} ${t.tracksN}` + (pl.collab ? ` · ${t.collab}` : ""), dl: allDl(tracks), tracks,
+    });
+  });
+  app.followed.forEach(id => {
+    const a = DB.artists[id];
+    items.push({ kind: "ar", id, name: a.name, hue: a.hue, art: "ar:" + id, round: true, sub: t.artist, tracks: albumIds(artistAlbums(id)[0]) });
+  });
+  ["grunt", "salt", "hourglass"].forEach(id => {
+    const a = DB.albums[id];
+    items.push({ kind: "al", id, name: a.title, hue: a.hue, art: id, sub: `${t[a.type]} · ${DB.artists[a.artist].name}`, dl: allDl(albumIds(a)), tracks: albumIds(a) });
+  });
+  return items;
+};
+const LIB_PAGE = { pl: "playlist", ar: "artist", al: "album" };
+
 const PageLibrary = () => {
   const app = useApp();
   const t = app.t;
   const [filter, setFilter] = React.useState("all");
   const [sort, setSort] = React.useState("recent");
-  const items = [];
-  const likedN = app.likedIds().length;
-  items.push({ kind: "pl", id: "__liked", name: t.likedTracks, hue: 95, sub: `${t.filterPl.slice(0, -1)} · ${likedN} ${t.tracksN}`, pinned: true, dl: true });
-  app.allPlaylists.forEach(pl => items.push({
-    kind: "pl", id: pl.id, name: app.lang === "ru" ? pl.name : pl.nameEn, hue: pl.hue,
-    sub: `${app.playlistTracks(pl.id).length} ${t.tracksN}` + (pl.collab ? ` · ${t.collab}` : ""),
-    dl: pl.id === "quiet" || pl.id === "train",
-  }));
-  app.followed.forEach(id => {
-    const a = DB.artists[id];
-    items.push({ kind: "ar", id, name: a.name, hue: a.hue, art: "ar:" + id, round: true, sub: t.artists.slice(0, -1) });
-  });
-  ["grunt", "salt", "hourglass"].forEach(id => {
-    const a = DB.albums[id];
-    const dl = a.tracks.every(tr => app.downloads[tr.id] === "done");
-    items.push({ kind: "al", id, name: a.title, hue: a.hue, art: id, sub: `${t[a.type]} · ${DB.artists[a.artist].name}`, dl });
-  });
-  let visible = items.filter(it => filter === "all" ? true : filter === "dl" ? it.dl : it.kind === filter);
-  if (sort === "az") visible = [...visible].sort((a, b) => a.name.localeCompare(b.name, app.lang === "ru" ? "ru" : "en"));
-  const open = (it) => {
-    if (it.id === "__liked") return app.go("liked");
-    if (it.kind === "ar") return app.go("artist", it.id);
-    if (it.kind === "al") return app.go("album", it.id);
-    return app.go("playlist", it.id);
-  };
-  const playIt = (it) => {
-    if (it.id === "__liked") return app.playContext(app.likedIds());
-    if (it.kind === "ar") return app.playContext(Object.values(DB.albums).find(a => a.artist === it.id).tracks.map(x => x.id));
-    if (it.kind === "al") return app.playContext(DB.albums[it.id].tracks.map(x => x.id));
-    return app.playContext(app.playlistTracks(it.id));
-  };
-  const ctxFor = (it) => {
-    if (it.id === "__liked") return undefined;
-    return { kind: it.kind === "ar" ? "artist" : it.kind === "al" ? "album" : "playlist", id: it.id };
-  };
+  let visible = libraryItems(app).filter(it => filter === "all" ? true : filter === "dl" ? it.dl : it.kind === filter);
+  if (sort === "az") visible = [...visible].sort((a, b) => a.name.localeCompare(b.name, app.lang));
+  const open = (it) => (it.id === "__liked" ? app.go("liked") : app.go(LIB_PAGE[it.kind], it.id));
   return (
     <div className="fade-in" data-screen-label="Медиатека">
       <h1 style={{ fontSize: 34, fontWeight: 800, margin: "18px 0 18px" }}>{t.library}</h1>
@@ -340,8 +344,8 @@ const PageLibrary = () => {
         </button>
       </div>
       <div className="cardrow" style={{ rowGap: 8 }}>
-        {visible.map((it, i) => (
-          <div key={it.id || i} style={{ position: "relative" }}>
+        {visible.map((it) => (
+          <div key={it.kind + ":" + it.id} style={{ position: "relative" }}>
             {it.pinned && <Ic d={ICONS.pin} size={13} style={{ position: "absolute", top: 18, right: 18, color: "var(--text)", zIndex: 2 }} />}
             {it.dl && <span title={t.downloaded} style={{ position: "absolute", top: 17, left: 17, zIndex: 2, width: 18, height: 18, borderRadius: "50%", background: "var(--acc)", color: "var(--acc-ink)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Ic d={ICONS.check} size={11} sw={3} />
@@ -355,7 +359,7 @@ const PageLibrary = () => {
               </button>
             ) : (
               <MediaCard title={it.name} sub={it.sub} hue={it.hue} art={it.art} round={it.round}
-                onClick={() => open(it)} onPlay={() => playIt(it)} ctx={ctxFor(it)} />
+                onClick={() => open(it)} onPlay={() => app.playContext(it.tracks)} ctx={{ kind: LIB_PAGE[it.kind], id: it.id }} />
             )}
           </div>
         ))}
@@ -364,4 +368,4 @@ const PageLibrary = () => {
   );
 };
 
-Object.assign(window, { PageHome, PageSearch, PageLibrary, GENRES_RU, GENRES_EN, splitNow });
+Object.assign(window, { PageHome, PageSearch, PageLibrary, GENRES_RU, GENRES_EN, CardShelf });

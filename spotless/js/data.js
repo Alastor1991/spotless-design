@@ -154,14 +154,30 @@ window.DB = (() => {
     folk: { artists: ["milk", "gruntovka"] },
   };
 
-  // Распределение моей поддержки за месяц (июнь)
+  // Кому идут деньги в июне: доля каждого артиста — по времени прослушивания (сумму считает splitNow)
   const supportSplit = [
-    { artist: "milk", pct: 38, amount: 1.90, minutes: 412 },
-    { artist: "lowtide", pct: 24, amount: 1.20, minutes: 261 },
-    { artist: "velvet", pct: 16, amount: 0.80, minutes: 174 },
-    { artist: "paper", pct: 12, amount: 0.60, minutes: 130 },
-    { artist: "bruno", pct: 7, amount: 0.35, minutes: 76 },
-    { artist: "gruntovka", pct: 3, amount: 0.15, minutes: 33 },
+    { artist: "milk", pct: 38, minutes: 412 },
+    { artist: "lowtide", pct: 24, minutes: 261 },
+    { artist: "velvet", pct: 16, minutes: 174 },
+    { artist: "paper", pct: 12, minutes: 130 },
+    { artist: "bruno", pct: 7, minutes: 76 },
+    { artist: "gruntovka", pct: 3, minutes: 33 },
+  ];
+
+  // Валюты: знак и курс-заглушка — сколько единиц валюты дают за один доллар
+  const currencies = {
+    usd: { sign: "$", perUsd: 1 },
+    eur: { sign: "€", perUsd: 0.92 },
+    gbp: { sign: "£", perUsd: 0.79 },
+  };
+
+  // Баланс кошелька и транзакции за июнь — в валюте человека; комиссии сети — в долларах
+  const balance = 7.35;
+  const transactions = [
+    { d: "12 июня", dEn: "Jun 12", title: "Ежемесячный платёж артистам", titleEn: "Monthly support", amount: -5.0, fee: 0.012 },
+    { d: "9 июня", dEn: "Jun 9", title: "Донат · Молоко и мёд", titleEn: "Tip · Молоко и мёд", amount: -1.0, fee: 0.011 },
+    { d: "3 июня", dEn: "Jun 3", title: "Донат · Грунт", titleEn: "Tip · Грунт", amount: -1.0, fee: 0.012 },
+    { d: "1 июня", dEn: "Jun 1", title: "Пополнение с карты", titleEn: "Top up from card", amount: 10.0, fee: 0.24 },
   ];
 
   const supportHistory = [
@@ -235,5 +251,5 @@ window.DB = (() => {
     extraPlaylists.find(p => p.id === id) ||
     mixes.find(p => p.id === id) || null;
 
-  return { artists, albums, playlists, extraPlaylists, mixes, friends, genres, supportSplit, supportHistory, lyrics, lyricsFor, trackIndex, findPlaylist };
+  return { artists, albums, playlists, extraPlaylists, mixes, friends, genres, supportSplit, currencies, balance, transactions, supportHistory, lyrics, lyricsFor, trackIndex, findPlaylist };
 })();

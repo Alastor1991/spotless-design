@@ -1,7 +1,5 @@
-// Spotless — UI-примитивы: иконки, обложки, точечные полосы, кнопки действий, строка трека, тосты.
-
-const AppCtx = React.createContext(null);
-const useApp = () => React.useContext(AppCtx);
+// Spotless — UI-примитивы: иконки, обложки, точечные полосы и время, окна и ручка листа,
+// бегущая строка, карточки, тосты.
 
 const Ic = ({ d, size = 20, sw = 1.7, style = {}, fill = "none", className }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} className={className}
@@ -122,19 +120,6 @@ const Cover = ({ hue = 60, art, size = 150, radius, round = false, glyph = false
 
 // ---------- Точечная полоса ----------
 // Внешний блок тянется, внутренний — ровно целое число точек: на краю нет половинок.
-const useWidth = (ref) => {
-  const [w, setW] = React.useState(0);
-  React.useLayoutEffect(() => {
-    if (!ref.current) return;
-    setW(ref.current.getBoundingClientRect().width);
-    if (typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(([e]) => setW(e.contentRect.width));
-    ro.observe(ref.current);
-    return () => ro.disconnect();
-  }, []);
-  return w;
-};
-
 const DotBar = ({ pct = 0, pitch = 8, r, onSeek, on, off, width, label, style = {} }) => {
   const ref = React.useRef(null);
   const w = useWidth(ref);
@@ -179,197 +164,6 @@ const RateDots = ({ value, size = 6, gap = 4, on = "var(--text)" }) => (
     ))}
   </span>
 );
-
-// Короткий тактильный отклик (Android); где вибрация недоступна — молча ничего
-const buzz = (ms = 10) => { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {} };
-const isTouchUI = () => { try { return window.matchMedia("(hover: none)").matches; } catch (e) { return false; } };
-
-// Долгое нажатие пальцем (мышь не трогаем — у неё есть ПКМ). Сдвиг больше 10px — это прокрутка, отмена.
-// После срабатывания гасим следующий клик, чтобы трек не включился сам.
-const useLongPress = (onLong, ms = 450) => {
-  const timer = React.useRef(null);
-  const start = React.useRef(null);
-  const fired = React.useRef(false);
-  const clear = () => { clearTimeout(timer.current); timer.current = null; };
-  return {
-    onPointerDown: (e) => {
-      if (e.pointerType === "mouse") return;
-      fired.current = false;
-      const x = e.clientX, y = e.clientY;
-      start.current = [x, y];
-      clear();
-      timer.current = setTimeout(() => { fired.current = true; buzz(12); onLong(x, y); }, ms);
-    },
-    onPointerMove: (e) => {
-      if (timer.current && start.current && Math.hypot(e.clientX - start.current[0], e.clientY - start.current[1]) > 10) clear();
-    },
-    onPointerUp: clear, onPointerCancel: clear,
-    onClickCapture: (e) => { if (fired.current) { e.stopPropagation(); e.preventDefault(); fired.current = false; } },
-  };
-};
-
-// ---------- Лайк и оценка ----------
-// Модель — в app: toggleLike (тап) и setRating (1–10 или null). Здесь только взаимодействие:
-//  • RateScale — сама шкала 1–10: палец (тап и ведение), мышь (наведение и клик), клавиатура.
-//    Ничего не знает о том, где живёт: в окне оценки, в «пилюле» полного экрана, в панели плеера.
-//  • LikeButton — тап = лайк/снять; удержание = окно оценки. Не отпуская палец, можно вести
-//    по шкале: кнопка держит захват указателя и сама считает значение по прямоугольнику шкалы.
-//  • RatingPop — окно со шкалой. Рендерится в body (портал) и гасит свои события, чтобы родители
-//    (мини-плеер, строки, жесты полного экрана) их не видели. Само не закрывается:
-//    только тап мимо, чёрточка сверху или Esc — оценку можно спокойно поправлять.
-const HOLD_MS = 350;        // удержание до окна оценки
-const SLOP = 10;            // px: меньше — дрожание пальца, а не движение
-
-const rateAt = (el, x) => {
-  const r = el.getBoundingClientRect();
-  return Math.max(1, Math.min(10, Math.floor((x - r.left) / (r.width / 10)) + 1));
-};
-
-// onPreview — значение «на ходу» (палец/мышь над шкалой, null — превью кончилось): по нему родитель
-// обновляет свою крупную цифру, чтобы она двигалась вместе с точками.
-const RateScale = React.forwardRef(({ value, external = null, onCommit, onPreview, variant = "pop", showValue = false, label }, ref) => {
-  const app = useApp();
-  const el = React.useRef(null);
-  React.useImperativeHandle(ref, () => el.current);
-  const [local, setLocalState] = React.useState(null);
-  const localRef = React.useRef(null);
-  const pressing = React.useRef(false);
-  const shown = external != null ? external : local != null ? local : value;
-  const setLocal = (n, tick) => {
-    if (localRef.current === n) return;
-    localRef.current = n;
-    setLocalState(n);
-    if (onPreview) onPreview(n);
-    if (tick && n != null) buzz(6);
-  };
-  const preview = setLocal;
-  const stop = (e) => e.stopPropagation();
-  return (
-    <span ref={el} className={"rate-scale rate-" + variant} role="slider" tabIndex={0}
-      aria-label={label || app.t.yourRating} aria-valuemin={1} aria-valuemax={10} aria-valuenow={shown || 0}
-      aria-valuetext={shown ? `${shown} / 10` : app.t.removeRating}
-      onPointerDown={(e) => { stop(e); if (e.button !== 0) return; e.currentTarget.setPointerCapture(e.pointerId); pressing.current = true; preview(rateAt(el.current, e.clientX), true); }}
-      onPointerMove={(e) => { stop(e); if (pressing.current) preview(rateAt(el.current, e.clientX), true); else if (e.pointerType === "mouse") preview(rateAt(el.current, e.clientX), false); }}
-      onPointerUp={(e) => { stop(e); if (!pressing.current) return; pressing.current = false; const n = rateAt(el.current, e.clientX); setLocal(null); onCommit(n); }}
-      onPointerCancel={() => { pressing.current = false; setLocal(null); }}
-      onPointerLeave={(e) => { if (!pressing.current && e.pointerType === "mouse") setLocal(null); }}
-      onClick={stop}
-      onKeyDown={(e) => {
-        const cur = shown || 0;
-        const k = { ArrowRight: Math.min(10, cur + 1), ArrowUp: Math.min(10, cur + 1), ArrowLeft: Math.max(1, cur - 1), ArrowDown: Math.max(1, cur - 1), Home: 1, End: 10 }[e.key];
-        if (k != null) { e.preventDefault(); setLocal(k); }
-        if (e.key === "Enter" && local != null) { e.preventDefault(); setLocal(null); onCommit(local); }
-      }}>
-      <span className="rate-cells">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => {
-          const on = shown && n <= shown;
-          return (
-            <span key={n} className="rate-cell">
-              <i className={on ? (shown < 5 ? "is-bad" : "is-on") : ""} style={{ transform: n === shown && (local != null || external != null) ? "scale(1.3)" : "none" }}></i>
-            </span>
-          );
-        })}
-      </span>
-      {showValue && <span className="rate-val mono" aria-hidden="true">{shown || "–"}</span>}
-    </span>
-  );
-});
-
-const LikeButton = ({ trackId, size = 30, always = false }) => {
-  const app = useApp();
-  const st = app.trackState(trackId);
-  const btnRef = React.useRef(null);
-  const scaleRef = React.useRef(null);
-  const [open, setOpen] = React.useState(false);
-  const [draft, setDraft] = React.useState(null);
-  const [justLiked, setJustLiked] = React.useState(false);
-  // Жест: press → (отпустил быстро) тап | (держит HOLD_MS) armed → (сдвинул > SLOP) scrub → отпустил = оценка
-  const g = React.useRef(null);
-
-  React.useEffect(() => () => { if (g.current) clearTimeout(g.current.timer); }, []);
-
-  // Оценка ставится, окно остаётся открытым — закрывает его только сам человек
-  const commit = (n) => { app.setRating(trackId, n); buzz(14); setDraft(null); };
-  const tap = () => {
-    const willLike = st.rating == null;
-    setOpen(false);
-    app.toggleLike(trackId);
-    if (willLike) { buzz(10); setJustLiked(true); }
-  };
-
-  const onDown = (e) => {
-    e.stopPropagation();
-    if (e.button !== 0 || g.current) return;
-    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
-    const s = { id: e.pointerId, x: e.clientX, y: e.clientY, phase: "press" };
-    s.timer = setTimeout(() => {
-      s.phase = "armed"; s.x = s.lastX != null ? s.lastX : s.x; s.y = s.lastY != null ? s.lastY : s.y;
-      setDraft(null); setOpen(true); buzz(14);
-    }, HOLD_MS);
-    g.current = s;
-  };
-  const onMove = (e) => {
-    const s = g.current;
-    if (!s || e.pointerId !== s.id) return;
-    e.stopPropagation();
-    s.lastX = e.clientX; s.lastY = e.clientY;
-    const d = Math.hypot(e.clientX - s.x, e.clientY - s.y);
-    if (s.phase === "press" && d > SLOP) { clearTimeout(s.timer); g.current = null; return; } // это не нажатие, а движение
-    if (s.phase === "armed" && d > SLOP) s.phase = "scrub";
-    if (s.phase === "scrub" && scaleRef.current) {
-      const n = rateAt(scaleRef.current, e.clientX);
-      setDraft(prev => { if (prev !== n) buzz(6); return n; });
-    }
-  };
-  const onUp = (e) => {
-    const s = g.current;
-    if (!s || e.pointerId !== s.id) return;
-    e.stopPropagation();
-    clearTimeout(s.timer);
-    g.current = null;
-    if (s.phase === "press") tap();
-    else if (s.phase === "scrub" && scaleRef.current) commit(rateAt(scaleRef.current, e.clientX));
-    // armed без движения: окно остаётся открытым — дальше можно тапать и водить по шкале
-  };
-  const onCancel = () => { const s = g.current; if (s) clearTimeout(s.timer); g.current = null; setDraft(null); };
-
-  const lit = st.rating != null;
-  const neg = lit && st.rating < 5;
-  // Цифра у сердечка — только для осознанной оценки: быстрый лайк и так читается по сердечку
-  const showNum = lit && st.rating !== app.likeRating;
-  const label = st.rating != null ? `${app.t.yourRating}: ${st.rating}` : app.t.like; // состояние — в aria-pressed
-  return (
-    <span style={{ position: "relative", display: "inline-flex" }}>
-      <button ref={btnRef}
-        className={"iconbtn likebtn" + (neg ? " neg" : lit ? " hot" : "") + (justLiked ? " just-liked" : "")}
-        style={{ width: size, height: size, opacity: (always || lit) ? 1 : undefined }}
-        title={app.t.holdHint} aria-label={label} aria-pressed={lit} aria-haspopup="dialog" aria-expanded={open}
-        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
-        onContextMenu={(e) => e.preventDefault()}
-        onClick={(e) => e.stopPropagation()}
-        onAnimationEnd={() => setJustLiked(false)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tap(); }
-          if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); setOpen(true); }
-        }}
-      >
-        <Ic d={neg ? ICONS.heartOff : ICONS.heart} size={size * 0.56} fill={!neg && lit ? "currentColor" : "none"} sw={1.8} />
-      </button>
-      {showNum && (
-        <span className="rate-n mono" style={{
-          position: "absolute", top: -2, right: -4, fontSize: 10, fontWeight: 500,
-          color: neg ? "var(--bad)" : "var(--text)", pointerEvents: "none",
-        }}>{st.rating}</span>
-      )}
-      {open && (
-        <RatingPop trackId={trackId} anchor={btnRef} scaleRef={scaleRef} draft={draft}
-          onCommit={commit}
-          onClear={() => { app.setRating(trackId, null); setOpen(false); }}
-          close={() => { setDraft(null); setOpen(false); }} />
-      )}
-    </span>
-  );
-};
 
 // Ручка нижнего листа (телефон): лист едет за пальцем вниз; дальше 90px или быстрым рывком — закрывается.
 // Анимацию появления снимаем на время жеста, иначе её финальный кадр перебивает transform.
@@ -423,246 +217,32 @@ const Marquee = ({ children, style }) => {
   );
 };
 
-// Поповер не должен вылезать за край окна: замеряем и сдвигаем
-const usePopClamp = () => {
-  const ref = React.useRef(null);
-  const [dx, setDx] = React.useState(0);
-  React.useLayoutEffect(() => {
-    if (!ref.current) return;
-    const r = ref.current.getBoundingClientRect();
-    let d = 0;
-    if (r.right > window.innerWidth - 10) d = window.innerWidth - 10 - r.right;
-    if (r.left + d < 10) d = 10 - r.left;
-    if (Math.abs(d) > 1) setDx(prev => prev + d);
-  }, []);
-  return [ref, dx];
-};
-
-// Окно оценки. Позиционируется от кнопки, рендерится в body. Закрывается тапом мимо,
-// чёрточкой сверху (тап или смахнуть) и Esc. Крупная цифра показывает значение на ходу:
-// при ведении от сердечка (draft) и при ведении/наведении по самой шкале (preview).
-const RatingPop = ({ trackId, anchor, scaleRef, draft, onCommit, onClear, close }) => {
-  const app = useApp();
-  const st = app.trackState(trackId);
-  const [pos, setPos] = React.useState(null);
-  const [preview, setPreview] = React.useState(null);
-  const popRef = React.useRef(null);
-  const shown = draft != null ? draft : preview != null ? preview : st.rating;
-
-  React.useLayoutEffect(() => {
-    if (!popRef.current || !anchor.current) return;
-    const a = anchor.current.getBoundingClientRect();
-    const p = popRef.current.getBoundingClientRect();
-    const left = Math.max(10, Math.min(window.innerWidth - 10 - p.width, a.left + a.width / 2 - p.width / 2));
-    let top = a.top - p.height - 12;
-    if (top < 10) top = a.bottom + 12;
-    setPos({ left, top });
-  }, []);
-  React.useEffect(() => {
-    const outside = (e) => {
-      if (popRef.current && popRef.current.contains(e.target)) return;
-      if (anchor.current && anchor.current.contains(e.target)) return; // сердечко решает само
-      close();
-    };
-    const key = (e) => { if (e.key === "Escape") close(); };
-    window.addEventListener("pointerdown", outside, true); // перехват: многие элементы гасят всплытие
-    window.addEventListener("keydown", key);
-    return () => { window.removeEventListener("pointerdown", outside, true); window.removeEventListener("keydown", key); };
-  }, []);
-
-  // Граница событий: портал всплывает по дереву React к родителям сердечка — не пускаем
-  const wall = (e) => e.stopPropagation();
+// Окно поверх всего: затемнение, на телефоне — лист снизу с ручкой. Закрывается тапом мимо,
+// ручкой и Esc. Рендерится в body: внутри страницы затемнение не накрывало плеер и правую панель
+// (галерея тем, транзакции), а лист на телефоне уходил под нижнюю навигацию.
+// События портала всплывают по дереву React — до того, кто окно открыл, доходит только то,
+// что не погасило само окно (клик — гасит).
+const Sheet = ({ close, label, screen, width, children }) => {
+  useEscape(close);
   return ReactDOM.createPortal(
-    <div ref={popRef} className="pop fade-up ratepop" role="dialog" aria-label={app.t.yourRating}
-      onPointerDown={wall} onPointerMove={wall} onPointerUp={wall} onClick={wall} onContextMenu={(e) => e.preventDefault()}
-      style={{ position: "fixed", left: pos ? pos.left : -9999, top: pos ? pos.top : -9999, zIndex: 300 }}>
-      <button className="ratepop-grip" aria-label={app.t.close}
-        onPointerDown={(e) => { try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {} }}
-        onClick={close}><span></span></button>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <span className="mlabel">{app.t.yourRating}</span>
-        <span className="dots" style={{ fontSize: 30, minWidth: 40, textAlign: "right", color: shown && shown < 5 ? "var(--bad)" : "var(--text)" }}>{shown || "–"}</span>
-      </div>
-      <RateScale ref={scaleRef} value={st.rating} external={draft} onPreview={setPreview} onCommit={onCommit} />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginTop: 10 }}>
-        <span style={{ fontSize: 12, color: "var(--mut)", lineHeight: 1.45 }}>{app.t.ratingHint}</span>
-        {st.rating != null && (
-          <button className="more" style={{ fontSize: 12, flexShrink: 0 }} onClick={onClear}>{app.t.removeRating}</button>
-        )}
+    <div className="scrim fade-in" onClick={close}>
+      <div className="modal fade-up" role="dialog" aria-label={label} data-screen-label={screen}
+        style={width ? { width } : undefined} onClick={(e) => e.stopPropagation()}>
+        <SheetGrip onClose={close} />
+        {children}
       </div>
     </div>,
     document.body
   );
 };
 
-// Плюсик: поповер со списком плейлистов.
-// Сам поповер — отдельный компонент: он монтируется только при открытии,
-// поэтому usePopClamp замеряет его в правильный момент (фикс обрезания у края).
-const PlusPop = ({ trackId, inPls }) => {
-  const app = useApp();
-  const [ref, dx] = usePopClamp();
-  return (
-    <div ref={ref} className="pop fade-up" onMouseDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}
-      style={{ bottom: "calc(100% + 10px)", left: `calc(50% + ${dx}px)`, marginLeft: -120, width: 240, padding: 6 }}>
-      <div className="mlabel" style={{ padding: "8px 10px 8px" }}>{app.t.addToPlaylist}</div>
-      <div style={{ maxHeight: 235, overflowY: "auto" }}>
-        {app.allPlaylists.filter(p => p.byMe).map(pl => {
-          const on = inPls.includes(pl.id);
-          return (
-            <button key={pl.id} onClick={() => app.togglePlaylist(trackId, pl.id)}
-              style={{
-                display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left",
-                padding: "7px 10px", borderRadius: 10, fontSize: 13.5, color: "var(--text)",
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg3)"}
-              onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
-              <Cover hue={pl.hue} size={24} radius={6} />
-              <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{app.lang === "ru" ? pl.name : pl.nameEn}</span>
-              {on && <Ic d={ICONS.check} size={14} sw={2.2} style={{ color: "var(--acc)" }} />}
-            </button>
-          );
-        })}
-      </div>
-      <div className="divider" style={{ margin: "6px 0" }}></div>
-      <button onClick={() => app.openCreatePl({ thenAdd: trackId })}
-        style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "7px 10px", borderRadius: 10, fontSize: 13.5, color: "var(--mut)" }}
-        onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg3)"}
-        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
-        <Ic d={ICONS.plus} size={16} /><span>{app.t.newPlaylist}</span>
-      </button>
-    </div>
-  );
-};
-
-const PlusButton = ({ trackId, size = 30, className = "" }) => {
-  const app = useApp();
-  const [open, setOpen] = React.useState(false);
-  React.useEffect(() => {
-    if (!open) return;
-    const h = () => setOpen(false);
-    window.addEventListener("mousedown", h);
-    window.addEventListener("touchstart", h);
-    return () => { window.removeEventListener("mousedown", h); window.removeEventListener("touchstart", h); };
-  }, [open]);
-  const inPls = app.trackPlaylists(trackId);
-  return (
-    <span style={{ position: "relative", display: "inline-flex" }}>
-      <button className={"iconbtn " + className + (inPls.length ? " lit" : "")} style={{ width: size, height: size }}
-        title={app.t.addToPlaylist} aria-label={app.t.addToPlaylist} aria-expanded={open}
-        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
-        onMouseDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}>
-        <Ic d={inPls.length ? ICONS.check : ICONS.plus} size={size * 0.53} sw={2} />
-      </button>
-      {open && <PlusPop trackId={trackId} inPls={inPls} />}
-    </span>
-  );
-};
-
-// Значок $ — открывает донат
-const DonateButton = ({ target, size = 30, className = "" }) => {
-  const app = useApp();
-  return (
-    <button className={"iconbtn " + className} style={{ width: size, height: size }} title={app.t.donate} aria-label={app.t.donate}
-      onMouseDown={(e) => e.stopPropagation()}
-      onClick={(e) => { e.stopPropagation(); app.openDonate(target); }}>
-      <Ic d={ICONS.dollar} size={size * 0.5} sw={1.9} />
-    </button>
-  );
-};
-
-// Кнопка загрузки: общее состояние в app.downloads — релиз и его треки связаны.
-// trackId — один трек; albumId — весь релиз; listIds — произвольный список (плейлист).
-const DLButton = ({ trackId, albumId, listIds, size = 42, className = "" }) => {
-  const app = useApp();
-  let state = "idle", dur = 2400;
-  if (trackId) {
-    state = app.downloads[trackId] || "idle";
-  } else if (albumId) {
-    const ids = DB.albums[albumId].tracks.map(t => t.id);
-    if (ids.every(id => app.downloads[id] === "done")) state = "done";
-    else if (ids.some(id => app.downloads[id])) state = "loading";
-    dur = ids.length * 450 + 1500;
-  } else if (listIds) {
-    if (listIds.length && listIds.every(id => app.downloads[id] === "done")) state = "done";
-    else if (listIds.some(id => app.downloads[id])) state = "loading";
-    dur = listIds.length * 450 + 1500;
-  }
-  const click = (e) => {
-    e.stopPropagation();
-    if (trackId) app.toggleDl(trackId);
-    else if (albumId) app.toggleDlAlbum(albumId);
-    else if (listIds) app.toggleDlList(listIds);
-  };
-  const R = 9.2, C = (2 * Math.PI * R).toFixed(1);
-  const s = Math.round(size * 0.52);
-  return (
-    <button className={"iconbtn " + className + (state === "done" ? " lit" : "")} style={{ width: size, height: size }}
-      title={state === "done" ? app.t.downloaded : app.t.download} aria-label={state === "done" ? app.t.downloaded : app.t.download} onClick={click}>
-      {state === "idle" && <Ic d={ICONS.downloadCircle} size={s} />}
-      {state === "loading" && (
-        <svg width={s} height={s} viewBox="0 0 24 24" style={{ display: "block" }}>
-          <circle cx="12" cy="12" r={R} fill="none" stroke="var(--bg3)" strokeWidth="1.8"></circle>
-          <circle cx="12" cy="12" r={R} fill="none" stroke="var(--acc)" strokeWidth="1.8" strokeLinecap="round"
-            strokeDasharray={C} strokeDashoffset={C} transform="rotate(-90 12 12)"
-            style={{ animation: `dlfill ${dur}ms linear forwards` }}></circle>
-          <path d="M12 8.2v5.6 M9.8 11.6L12 13.8l2.2-2.2" stroke="var(--mut)" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"></path>
-        </svg>
-      )}
-      {state === "done" && (
-        <svg width={s} height={s} viewBox="0 0 24 24" style={{ display: "block" }}>
-          <circle cx="12" cy="12" r="9.5" fill="var(--acc)"></circle>
-          <path d="M8 12.5l2.8 2.8L16 9.5" stroke="var(--acc-ink)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"></path>
-        </svg>
-      )}
-    </button>
-  );
-};
-
-// Строка трека. plId — контекст плейлиста (для «убрать из плейлиста» в меню),
-// qIndex — позиция в очереди (для «убрать из очереди»). noCover — внутри страницы релиза.
-const TrackRow = ({ trackId, num, showAlbum = true, showPlays = false, plId, qIndex, noCover = false }) => {
-  const app = useApp();
-  const tr = DB.trackIndex[trackId];
-  const al = DB.albums[tr.album];
-  const ar = DB.artists[tr.artist];
-  const playing = app.player.trackId === trackId;
-  const payload = { kind: "track", id: trackId, plId, qIndex };
-  const lp = useLongPress((x, y) => app.openCtxPoint(x, y, payload));
-  return (
-    <div className={"trow" + (playing ? " playing" : "") + (noCover ? " nocover" : "")} onDoubleClick={() => app.playTrack(trackId)}
-      {...lp} onContextMenu={(e) => isTouchUI() ? e.preventDefault() : app.openCtx(e, payload)}>
-      <span className="num">{playing
-        ? <span className="hot-dot" style={{ width: 7, height: 7, marginLeft: 2, display: "block" }} title={app.t.nowPlaying}></span>
-        : String(num).padStart(2, "0")}</span>
-      {!noCover && (
-        <button onClick={() => app.playTrack(trackId)} aria-label={`${app.t.play || "▶"} ${tr.t}`} style={{ display: "block", position: "relative" }}>
-          <Cover art={al.id} hue={al.hue} size={40} radius={8} />
-        </button>
-      )}
-      {/* На телефоне двойного клика нет: строка играет по тапу (кроме ссылки на артиста) */}
-      <div style={{ minWidth: 0 }} onClick={app.phone ? (e) => { if (!e.target.closest(".ta")) app.playTrack(trackId); } : undefined}>
-        {noCover
-          ? <button className="tt" style={{ display: "block", textAlign: "left", maxWidth: "100%" }} onClick={() => app.playTrack(trackId)}>{tr.t}</button>
-          : <div className="tt">{tr.t}</div>}
-        {!noCover && <button className="ta" style={{ display: "block", textAlign: "left" }} onClick={() => app.go("artist", ar.id)}>{ar.name}</button>}
-      </div>
-      {showPlays
-        ? <span className="alb" style={{ fontVariantNumeric: "tabular-nums", textAlign: noCover ? "right" : "left" }}>{tr.plays}</span>
-        : <button className="alb" style={{ textAlign: "left" }} onClick={() => app.go("album", al.id)}>{al.title}</button>}
-      <div className="acts">
-        <LikeButton trackId={trackId} />
-        <PlusButton trackId={trackId} className="no-phone" />
-        <DLButton size={30} className="dlb" trackId={trackId} />
-        <DonateButton target={{ kind: "track", id: trackId }} className="no-phone" />
-        <button className="iconbtn only-phone" style={{ width: 36, height: 36 }} aria-label={app.t.more}
-          onClick={(e) => { e.stopPropagation(); app.openCtxAt(e.currentTarget, { kind: "track", id: trackId, plId, qIndex }); }}>
-          <Ic d={ICONS.more} size={18} sw={3.4} />
-        </button>
-      </div>
-      <span className="dur">{tr.dur.padStart(5, "0")}</span>
-    </div>
-  );
-};
+// Шапка окна: заголовок и крестик
+const SheetHead = ({ title, close, style }) => (
+  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18, ...style }}>
+    <div style={{ fontSize: 18, fontWeight: 800 }}>{title}</div>
+    <button className="iconbtn" aria-label={useApp().t.close} onClick={close}><Ic d={ICONS.x} size={16} /></button>
+  </div>
+);
 
 // Карточка (альбом/артист/плейлист). ctx — payload для контекстного меню по ПКМ.
 const MediaCard = ({ title, sub, hue, art, round, onClick, onPlay, ctx }) => {
@@ -686,6 +266,25 @@ const MediaCard = ({ title, sub, hue, art, round, onClick, onPlay, ctx }) => {
     </button>
   );
 };
+
+// Свойства карточек — одинаковые на всех страницах; sub — подпись, она везде своя.
+// Ключ (key) ставит сам список.
+const albumCard = (app, al, sub) => ({
+  title: al.title, sub, hue: al.hue, art: al.id,
+  onClick: () => app.go("album", al.id), onPlay: () => app.playContext(albumIds(al)), ctx: { kind: "album", id: al.id },
+});
+// onPlay у артиста не везде: где его нет, у карточки нет и кнопки «Слушать»
+const artistCard = (app, a, sub, onPlay) => ({
+  title: a.name, sub, hue: a.hue, art: "ar:" + a.id, round: true,
+  onClick: () => app.go("artist", a.id), onPlay, ctx: { kind: "artist", id: a.id },
+});
+// tracks — что играть (по умолчанию — текущий состав плейлиста)
+const playlistCard = (app, pl, sub, tracks) => ({
+  title: plName(app.lang, pl), sub, hue: pl.hue,
+  onClick: () => app.go("playlist", pl.id), onPlay: () => app.playContext(tracks || app.playlistTracks(pl.id)), ctx: { kind: "playlist", id: pl.id },
+});
+// «48 213 слушателей в месяц»
+const listenersLine = (app, a) => `${a.listeners.toLocaleString(app.lang)} ${app.t.monthlyListeners}`;
 
 // Тосты
 const Toasts = () => {
@@ -711,28 +310,7 @@ const Toasts = () => {
   );
 };
 
-Object.assign(window, { buzz, isTouchUI, useLongPress, SheetGrip, Marquee, RateScale, AppCtx, useApp, Ic, ICONS, Cover, coverBg, ALBUM_ART, ARTIST_ART, DotBar, DotTime, RateDots, useWidth, LikeButton, RatingPop, PlusButton, DonateButton, DLButton, TrackRow, MediaCard, Toasts, usePopClamp });
-
-// Деньги: в русском интерфейсе — десятичная запятая ($1,90), в английском — точка
-const fmtMoney = (n, lang, keepZeros) => {
-  let s = Number(n).toFixed(2);
-  if (!keepZeros) s = s.replace(/\.00$/, "");
-  return "$" + (lang === "ru" ? s.replace(".", ",") : s);
-};
-// Вклад слушателя в текущем месяце для артиста (строка «в июне вы слушали…»)
-const supportFor = (artistId) => DB.supportSplit.find(s => s.artist === artistId) || null;
-Object.assign(window, { fmtMoney, supportFor });
-
-// Телефонная раскладка (Android): ниже 640px — нижняя навигация и свой плеер
-const PHONE_Q = "(max-width: 640px)";
-const useMedia = (q) => {
-  const [m, setM] = React.useState(() => window.matchMedia(q).matches);
-  React.useEffect(() => {
-    const mq = window.matchMedia(q);
-    const h = () => setM(mq.matches);
-    mq.addEventListener ? mq.addEventListener("change", h) : mq.addListener(h);
-    return () => { mq.removeEventListener ? mq.removeEventListener("change", h) : mq.removeListener(h); };
-  }, [q]);
-  return m;
-};
-Object.assign(window, { PHONE_Q, useMedia });
+Object.assign(window, {
+  Ic, ICONS, ALBUM_ART, ARTIST_ART, coverBg, Cover, DotBar, DotTime, RateDots, SheetGrip, Marquee, Sheet, SheetHead,
+  MediaCard, albumCard, artistCard, playlistCard, listenersLine, Toasts,
+});
