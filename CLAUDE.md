@@ -353,22 +353,32 @@ lib/, Стилевые направления.html ← история первы
 
 ## 8. Живая сборка для артефакта
 
-Владелец удобнее всего тестирует на телефоне через артефакт Claude. Просмотрщик артефактов ставит свой `data-theme` на корень и требует скриптов с разрешённых CDN, поэтому:
+Владелец удобнее всего тестирует на телефоне через артефакт Claude. Просмотрщик артефактов ставит свой `data-theme` на корень, пускает скрипты только с разрешённых CDN, а свои CSS и JS страница должна нести в себе, поэтому:
 
-1. JSX компилируется заранее esbuild-ом (`--loader=jsx --jsx=transform --target=es2020`, вход через stdin) в обычные `.js`, порядок файлов как в `index.html`.
+1. JSX компилируется заранее esbuild-ом (`--loader=jsx --jsx=transform --target=es2020`, вход через stdin) в обычный JS, порядок файлов как в `index.html`.
 2. `data-theme` в CSS и JS переименовывается в `data-sp-theme`.
-3. Страница артефакта — без `<!doctype>/<html>/<head>/<body>` (их добавит публикация): `<title>`, ссылка на Google Fonts (как в `index.html`), `css/app.css`, `<div id="root">`, React и ReactDOM 18.3.1 production с cdnjs, затем скрипты.
-4. Публикация — многофайловым артефактом (`files`: `css/app.css`, `js/*.js`), повторная публикация — тот же путь файла, ссылка сохраняется.
-5. После сборки — те же проверки (раздел 9) на собранной версии.
+3. Страница — **одним файлом**, без `<!doctype>/<html>/<head>/<body>` (их добавит публикация): `<title>`, ссылка на Google Fonts (как в `index.html`), `app.css` внутри `<style>`, `<div id="root">`, React и ReactDOM 18.3.1 production с cdnjs, затем каждый файл — своим `<script>` (ошибка в одном не роняет разбор остальных). Отдельными файлами (`files`) не публиковать: так сборка не работала в Claude Code на телефоне, а без соседних файлов страница — пустой белый экран.
+4. Повторная публикация — тот же путь файла, ссылка сохраняется.
+5. После сборки — те же проверки (раздел 9) на собранной версии и ещё одна: страница, открытая без адреса (`page.setContent`), запускается — ей не нужны соседние файлы.
 
 ```sh
-mkdir -p out/js out/css
+mkdir -p out
 # список и порядок файлов — из index.html, чтобы не расходились
-for f in $(grep -o 'src="js/[a-z-]*\.jsx"' index.html | sed 's/src="js\///; s/\.jsx"//'); do
-  npx esbuild --loader=jsx --jsx=transform --target=es2020 < js/$f.jsx | sed 's/data-theme/data-sp-theme/g' > out/js/$f.js
-done
-cp js/data.js js/i18n.js out/js/
-sed 's/data-theme/data-sp-theme/g' css/app.css > out/css/app.css
+{
+  echo '<title>Spotless в движении</title>'
+  echo '<link rel="preconnect" href="https://fonts.googleapis.com">'
+  echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+  echo '<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&family=Doto:ROND,wght@0..100,100..900&display=swap" rel="stylesheet">'
+  echo '<style>'; sed 's/data-theme/data-sp-theme/g' css/app.css; echo '</style>'
+  echo '<div id="root"></div>'
+  echo '<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>'
+  echo '<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>'
+  for f in data i18n; do echo "<script>/* $f */"; cat js/$f.js; echo '</script>'; done
+  for f in $(grep -o 'src="js/[a-z-]*\.jsx"' index.html | sed 's/src="js\///; s/\.jsx"//'); do
+    echo "<script>/* $f */"; npx esbuild --loader=jsx --jsx=transform --target=es2020 < js/$f.jsx | sed 's/data-theme/data-sp-theme/g'; echo '</script>'
+  done
+} > out/spotless-live.html
+grep -c '</script>' out/spotless-live.html   # 24 = 2 с CDN + 22 своих; больше — в коде есть «</script>», его надо разбить
 ```
 
 ---
