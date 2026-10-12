@@ -214,9 +214,14 @@ input, textarea { font-family: inherit; }
 /* Фокус с клавиатуры — одна заметная обводка цвета текста; мышью и пальцем её нет (:focus-visible) */
 :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 button:disabled { cursor: default; pointer-events: none; }
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 99px; border: 2px solid var(--bg0); }
-::-webkit-scrollbar-track { background: transparent; }
+/* Свои полосы прокрутки — только при мыши. На телефоне любая стилизация ::-webkit-scrollbar превращает
+   тонкую исчезающую полосу в обычную: она отъедала 10px справа, шапка не доходила до края экрана,
+   и в щели были видны обои */
+@media (hover: hover) and (pointer: fine) {
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 99px; border: 2px solid var(--bg0); }
+  ::-webkit-scrollbar-track { background: transparent; }
+}
 
 /* Заголовки «Точки»: тонкие и крупные — взрослость отсюда. Инлайн-веса страниц
    рассчитаны на старые темы, поэтому здесь !important (см. README 5.4). */
