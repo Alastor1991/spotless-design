@@ -9,15 +9,17 @@
   --mono: 'Geist Mono', monospace;
   --font-dot: 'Doto', 'Geist Mono', monospace;
   --r: 28px; --r-sm: 14px;
-  /* Движение — кривые Material 3, как на Android: их же возьмут Compose и Slint.
-     Появление быстро стартует и мягко садится, уход разгоняется и исчезает, смена состояния — ровная.
+  /* Движение — «Упругий»: появление и возврат на место — с лёгким перелётом, как у пружины;
+     уход разгоняется и исчезает; смена состояния — ровная. Их же возьмут Compose и Slint.
      --t-2 — и длительность ухода окон: её ждёт EXIT_MS в core.jsx */
   --ease: cubic-bezier(.2, 0, 0, 1);
-  --ease-enter: cubic-bezier(.05, .7, .1, 1);
-  --ease-exit: cubic-bezier(.3, 0, .8, .15);
-  --t-1: 120ms;   /* нажатие, наведение */
-  --t-2: 220ms;   /* смена состояния, уход */
-  --t-3: 420ms;   /* появление окна, листа, полного экрана; лента треков */
+  --ease-enter: cubic-bezier(.3, 1.32, .5, 1);    /* перелёт ~3% пути */
+  --ease-exit: cubic-bezier(.4, 0, 1, 1);
+  --ease-settle: cubic-bezier(.3, 1.25, .5, 1);   /* перелёт ~2% пути */
+  --t-1: 120ms;      /* нажатие, наведение */
+  --t-2: 240ms;      /* смена состояния, уход */
+  --t-3: 560ms;      /* появление окна, листа, полного экрана */
+  --t-settle: 520ms; /* возврат на место после жеста, лента треков */
 }
 
 /* ---------- Палитры ----------
@@ -549,7 +551,6 @@ button:disabled { cursor: default; pointer-events: none; }
    считали бы позицию от этого элемента (docs/pitfalls.md) */
 @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } }
 @keyframes fadeIn { from { opacity: 0; } }
-@keyframes fadeOut { to { opacity: 0; } }
 .fade-up { animation: fadeUp var(--t-3) var(--ease-enter) backwards; }
 .fade-in { animation: fadeIn var(--t-2) var(--ease) backwards; }
 
@@ -561,12 +562,16 @@ button:disabled { cursor: default; pointer-events: none; }
 @keyframes modalOut { to { opacity: 0; transform: scale(.98); } }
 @keyframes sheetIn { from { transform: translateY(100%); } }
 @keyframes sheetOut { to { transform: translateY(100%); } }
+/* Затемнение проявляет только свой цвет, не opacity: иначе вместе с ним проявлялся бы и лист внутри —
+   полупрозрачный, со страницей насквозь. Окно на компьютере проявляется само (modalIn) */
+@keyframes scrimIn { from { background-color: transparent; } }
+@keyframes scrimOut { to { background-color: transparent; } }
 .pop { animation: popIn var(--t-2) var(--ease-enter) backwards; }
-.scrim { animation: fadeIn var(--t-2) var(--ease) backwards; }
+.scrim { animation: scrimIn var(--t-2) var(--ease) backwards; }
 .modal { animation: modalIn var(--t-3) var(--ease-enter) backwards; }
 .is-out { pointer-events: none; }
 .pop.is-out { animation: popOut var(--t-1) var(--ease-exit) forwards; }
-.scrim.is-out { animation: fadeOut var(--t-2) var(--ease-exit) forwards; }
+.scrim.is-out { animation: scrimOut var(--t-2) var(--ease-exit) forwards; }
 .scrim.is-out .modal { animation: modalOut var(--t-2) var(--ease-exit) forwards; }
 .toast { animation: popIn var(--t-3) var(--ease-enter) backwards; }
 .toast.is-out, .mini.is-out { animation: popOut var(--t-2) var(--ease-exit) forwards; }
@@ -769,6 +774,9 @@ button:disabled { cursor: default; pointer-events: none; }
   display: flex; flex-direction: column; gap: 16px;
   padding: 14px 18px calc(16px + env(safe-area-inset-bottom));
   background: radial-gradient(circle, var(--bg2) 0 1.1px, transparent 1.5px) 0 0 / 16px 16px, var(--bg0);
+  /* Выезжает с перелётом (--ease-enter) и чуть приподнимается над низом экрана: под ним «юбка» того же
+     цвета — иначе в этот миг снизу мелькала бы щель. Тень, а не ::after: overflow её не обрезает */
+  box-shadow: 0 48px 0 var(--bg0);
 }
 
 .fsp-stage {
@@ -852,6 +860,7 @@ button:disabled { cursor: default; pointer-events: none; }
     width: 100% !important; max-width: none; max-height: 90dvh; border-radius: 28px 28px 0 0;
     border-bottom: none; padding: 22px 18px calc(22px + env(safe-area-inset-bottom));
     animation-name: sheetIn;
+    box-shadow: 0 48px 0 var(--island), var(--shadow); /* «юбка» под листом на время перелёта, как у .fsp */
   }
   .scrim.is-out .modal { animation-name: sheetOut; }
   .bellpop { position: fixed !important; top: 64px !important; left: 12px !important; right: 12px !important; width: auto !important; }
@@ -925,9 +934,25 @@ button { touch-action: manipulation; }
 .rate-val { font-size: 12px; min-width: 14px; text-align: right; color: var(--text); }
 .likebtn { touch-action: none; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
 
-/* Лайк: сердце коротко подпрыгивает (класс is-*, а не .pop — тот занят поповерами) */
+/* Лайк: сердце коротко подпрыгивает (класс is-*, а не .pop — тот занят поповерами)… */
 .likebtn.just-liked svg { animation: likepop 0.38s cubic-bezier(.3,1.6,.5,1); }
 @keyframes likepop { 0% { transform: scale(0.6); } 60% { transform: scale(1.22); } 100% { transform: scale(1); } }
+/* …и восемь точек разлетаются кругом, как на Glyph-экране. Только у лайка. Размеры — от сердца:
+   font-size у .like-burst — размер значка, всё остальное в em */
+.like-burst { position: absolute; left: 50%; top: 50%; pointer-events: none; }
+.like-burst i { position: absolute; width: .17em; height: .17em; margin: -.085em; border-radius: 50%; background: var(--hot);
+  animation: likeBurst var(--t-3) var(--ease) forwards; }
+@keyframes likeBurst {
+  from { transform: rotate(var(--a)) translateY(-.4em); }
+  to { opacity: 0; transform: rotate(var(--a)) translateY(-1.13em) scale(.4); }
+}
+
+/* Play и пауза (PlayBtn): в значке оба, первый — play, второй — пауза. Старый уходит с поворотом
+   и уменьшением, новый выходит навстречу */
+.pp-ic path { transform-origin: 12px 12px; transition: transform var(--t-2) var(--ease), opacity var(--t-1) var(--ease); }
+.pp-ic path:last-child { opacity: 0; transform: rotate(90deg) scale(.4); }
+.pp-ic.is-playing path:first-child { opacity: 0; transform: rotate(-90deg) scale(.4); }
+.pp-ic.is-playing path:last-child { opacity: 1; transform: none; }
 
 /* Нижние листы: ручка видна только на телефоне */
 .sheet-grip { display: none; }
@@ -1008,6 +1033,6 @@ button { touch-action: manipulation; }
 
 /* Меньше движения (настройка системы): окна и ленты — без анимации, украшения — выключены */
 @media (prefers-reduced-motion: reduce) {
-  :root { --t-1: 1ms; --t-2: 1ms; --t-3: 1ms; }
+  :root { --t-1: 1ms; --t-2: 1ms; --t-3: 1ms; --t-settle: 1ms; }
   .mq, .likebtn.just-liked svg, .tb-play, .mn-item.active .hot-dot { animation: none !important; }
 }

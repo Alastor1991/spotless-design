@@ -54,7 +54,7 @@ const PlusPop = ({ ids, inPls, anchor, out, close }) => {
               }}>
               <Cover hue={pl.hue} size={24} radius={6} />
               <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{plName(app.lang, pl)}</span>
-              {on && <Ic d={ICONS.check} size={14} sw={2.2} style={{ color: "var(--acc)" }} />}
+              {on && <Ic d={ICONS.check} size={14} style={{ color: "var(--acc)" }} />}
             </button>
           );
         })}
@@ -82,7 +82,7 @@ const PlusButton = ({ trackId, trackIds, size = 30, className = "" }) => {
       <button ref={btnRef} className={"iconbtn " + className + (inPls.length ? " lit" : "")} style={{ width: size, height: size }}
         title={app.t.addToPlaylist} aria-label={app.t.addToPlaylist} aria-expanded={open}
         onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}>
-        <Ic d={inPls.length ? ICONS.check : ICONS.plus} size={size * 0.53} sw={2} />
+        <Ic d={inPls.length ? ICONS.check : ICONS.plus} size={size * 0.53} />
       </button>
       {pop && <PlusPop ids={ids} inPls={inPls} anchor={btnRef} out={popOut} close={() => setOpen(false)} />}
     </span>
@@ -96,7 +96,7 @@ const DonateButton = ({ target, size = 30, className = "" }) => {
     <button className={"iconbtn " + className} style={{ width: size, height: size }} title={app.t.donate} aria-label={app.t.donate}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => { e.stopPropagation(); app.openDonate(target); }}>
-      <Ic d={ICONS.dollar} size={size * 0.5} sw={1.9} />
+      <Ic d={ICONS.dollar} size={size * 0.5} />
     </button>
   );
 };
@@ -123,18 +123,20 @@ const DLButton = ({ trackId, albumId, listIds, size = 42, className = "" }) => {
     else if (listIds) app.toggleDlList(listIds);
   };
   const R = 9.2, C = (2 * Math.PI * R).toFixed(1);
-  const s = Math.round(size * 0.52);
+  // Линия — 1,25 px, как у значков (Ic). Не через non-scaling-stroke: тогда и штрих прогресса
+  // (dasharray) считался бы в px экрана, а не в единицах кольца
+  const s = Math.round(size * 0.52), lw = 30 / s;
   return (
     <button className={"iconbtn " + className + (state === "done" ? " lit" : "")} style={{ width: size, height: size }}
       title={state === "done" ? app.t.downloaded : app.t.download} aria-label={state === "done" ? app.t.downloaded : app.t.download} onClick={click}>
       {state === "idle" && <Ic d={ICONS.downloadCircle} size={s} />}
       {state === "loading" && (
         <svg width={s} height={s} viewBox="0 0 24 24" style={{ display: "block" }}>
-          <circle cx="12" cy="12" r={R} fill="none" stroke="var(--bg3)" strokeWidth="1.8"></circle>
-          <circle cx="12" cy="12" r={R} fill="none" stroke="var(--acc)" strokeWidth="1.8" strokeLinecap="round"
+          <circle cx="12" cy="12" r={R} fill="none" stroke="var(--bg3)" strokeWidth={lw}></circle>
+          <circle cx="12" cy="12" r={R} fill="none" stroke="var(--acc)" strokeWidth={lw} strokeLinecap="round"
             strokeDasharray={C} strokeDashoffset={C} transform="rotate(-90 12 12)"
             style={{ animation: `dlfill ${dur}ms linear forwards` }}></circle>
-          <path d="M12 8.2v5.6 M9.8 11.6L12 13.8l2.2-2.2" stroke="var(--mut)" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"></path>
+          <path d="M12 8.2v5.6 M9.8 11.6L12 13.8l2.2-2.2" stroke="var(--mut)" strokeWidth={lw} fill="none" strokeLinecap="round" strokeLinejoin="round"></path>
         </svg>
       )}
       {state === "done" && (

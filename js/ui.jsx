@@ -1,11 +1,12 @@
 // Spotless — UI-примитивы: иконки, обложки, точечные полосы и время, окна и ручка листа,
 // бегущая строка, карточки, тосты.
 
-const Ic = ({ d, size = 20, sw = 1.7, style = {}, fill = "none", className }) => (
+// Линия у всех значков — ровно 1,25 px при любом размере (non-scaling-stroke); sw — толщина в px
+const Ic = ({ d, size = 20, sw = 1.25, style = {}, fill = "none", className }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} className={className}
     stroke={fill === "none" ? "currentColor" : "none"} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"
     style={{ flexShrink: 0, display: "block", ...style }}>
-    {Array.isArray(d) ? d.map((p, i) => <path key={i} d={p} />) : <path d={d} />}
+    {(Array.isArray(d) ? d : [d]).map((p, i) => <path key={i} d={p} vectorEffect="non-scaling-stroke" />)}
   </svg>
 );
 

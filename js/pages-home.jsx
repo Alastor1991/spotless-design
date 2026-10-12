@@ -359,7 +359,7 @@ const PageLibrary = () => {
           <div key={it.kind + ":" + it.id} style={{ position: "relative" }}>
             {it.pinned && <Ic d={ICONS.pin} size={13} style={{ position: "absolute", top: 18, right: 18, color: "var(--text)", zIndex: 2 }} />}
             {it.dl && <span title={t.downloaded} style={{ position: "absolute", top: 17, left: 17, zIndex: 2, width: 18, height: 18, borderRadius: "50%", background: "var(--acc)", color: "var(--acc-ink)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Ic d={ICONS.downloadCircle.slice(1)} size={13} sw={2.6} />
+              <Ic d={ICONS.downloadCircle.slice(1)} size={13} sw={1.4} />
             </span>}
             {it.id === "__liked" ? (
               <button className="card" onClick={() => open(it)}>

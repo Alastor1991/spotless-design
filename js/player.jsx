@@ -31,16 +31,18 @@ const RepeatBtn = ({ size = 30, icon = 16, className = "" }) => {
   );
 };
 
-// Главная кнопка: белый круг, чёрный значок; по наведению чуть растёт (.play-circle в app.css)
+// Главная кнопка: белый круг, чёрный значок; по наведению чуть растёт (.play-circle в app.css).
+// Play и пауза — в одном значке: старый уходит с поворотом, новый выходит навстречу (.pp-ic)
 const PlayBtn = ({ size = 48 }) => {
   const app = useApp();
+  const playing = app.player.playing;
   return (
-    <button className="play-circle" onClick={app.togglePlay} aria-label={app.player.playing ? app.t.pause : app.t.playNow}
+    <button className="play-circle" onClick={app.togglePlay} aria-label={playing ? app.t.pause : app.t.playNow}
       style={{
         width: size, height: size, borderRadius: "50%", background: "var(--acc)", color: "var(--acc-ink)",
         display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
       }}>
-      <Ic d={app.player.playing ? ICONS.pauseFill : ICONS.play} size={Math.round(size * 0.38)} fill="currentColor" />
+      <Ic d={[ICONS.play, ICONS.pauseFill]} size={Math.round(size * 0.38)} fill="currentColor" className={"pp-ic" + (playing ? " is-playing" : "")} />
     </button>
   );
 };

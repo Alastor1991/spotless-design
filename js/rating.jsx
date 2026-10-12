@@ -136,14 +136,20 @@ const LikeButton = ({ trackId, size = 30, always = false }) => {
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
         onContextMenu={(e) => e.preventDefault()}
         onClick={(e) => e.stopPropagation()}
-        onAnimationEnd={() => setJustLiked(false)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tap(); }
           if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); setOpen(true); }
         }}
       >
-        <Ic d={neg ? ICONS.heartOff : ICONS.heart} size={size * 0.56} fill={!neg && lit ? "currentColor" : "none"} sw={1.8} />
+        <Ic d={neg ? ICONS.heartOff : ICONS.heart} size={size * 0.56} fill={!neg && lit ? "currentColor" : "none"} />
       </button>
+      {/* Разлёт точек (app.css). just-liked снимается по его концу: он дольше подпрыгивания сердца,
+          а подпрыгивание в «Уменьшить движение» выключено совсем — его конца не дождаться */}
+      {justLiked && (
+        <span className="like-burst" aria-hidden="true" style={{ fontSize: size * 0.56 }} onAnimationEnd={() => setJustLiked(false)}>
+          {[0, 1, 2, 3, 4, 5, 6, 7].map(k => <i key={k} style={{ "--a": k * 45 + "deg" }}></i>)}
+        </span>
+      )}
       {showNum && (
         <span className="rate-n mono" style={{
           position: "absolute", top: -2, right: -4, fontSize: 10, fontWeight: 500,

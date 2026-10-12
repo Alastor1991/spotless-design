@@ -12,7 +12,7 @@ const MenuRow = ({ icon, label, danger, chev, check, onClick }) => (
     {icon && <Ic d={ICONS[icon]} size={16} style={{ color: danger ? "var(--bad)" : "var(--mut)", flexShrink: 0 }} />}
     <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
     {chev && <Ic d={ICONS.chevR} size={14} style={{ color: "var(--mut)" }} />}
-    {check && <Ic d={ICONS.check} size={14} sw={2.2} style={{ color: "var(--acc)" }} />}
+    {check && <Ic d={ICONS.check} size={14} style={{ color: "var(--acc)" }} />}
   </button>
 );
 

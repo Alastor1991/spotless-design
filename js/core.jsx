@@ -78,7 +78,7 @@ const useEscape = (close, active = true) => {
 // Окно уходит не мгновенно: после закрытия (value стало пустым) оно ещё EXIT_MS на экране —
 // с классом is-out, на анимацию ухода (app.css). Возвращает [что показывать, уходит ли].
 // Держим последнее непустое значение: содержимое окна во время ухода не должно пропасть
-const EXIT_MS = 220; // = --t-2 в app.css
+const EXIT_MS = 240; // = --t-2 в app.css
 const useExit = (value, ms = EXIT_MS) => {
   const [kept, setKept] = React.useState(value);
   React.useEffect(() => {
@@ -206,10 +206,11 @@ const useLongPress = (onLong, ms = 450) => {
 const finishAnims = (el) => { if (el && el.getAnimations) el.getAnimations().forEach(a => a.finish()); };
 const shiftX = (el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).m41;
 // Палец отпустил элемент, и тот доезжает оставшиеся rest px: кривая стартует со скоростью пальца
-// v (px/мс) и мягко садится — без рывка в момент отпускания. Возвращает [мс, transition]
+// v (px/мс) и садится с лёгким перелётом (y2 = 1.1, «Упругий») — без рывка в момент отпускания.
+// 200–480 мс. Возвращает [мс, transition]
 const fling = (rest, v) => {
-  const sp = Math.abs(v), ms = Math.round(Math.min(420, Math.max(220, (2.2 * rest) / Math.max(sp, 0.5))));
-  return [ms, `transform ${ms}ms cubic-bezier(.3, ${Math.min(1, (0.3 * sp * ms) / Math.max(rest, 1)).toFixed(3)}, .3, 1)`];
+  const sp = Math.abs(v), ms = Math.round(Math.min(480, Math.max(200, (2.2 * rest) / Math.max(sp, 0.5))));
+  return [ms, `transform ${ms}ms cubic-bezier(.3, ${Math.min(1, (0.3 * sp * ms) / Math.max(rest, 1)).toFixed(3)}, .3, 1.1)`];
 };
 
 // ---------- Лента треков ----------
@@ -221,7 +222,7 @@ const stripDrag = (el, x, near) => {
   el.style.transition = "none";
   el.style.transform = `translateX(${(x < 0 ? near.next : near.prev) ? x : x / 3}px)`;
 };
-const stripBack = (el) => { el.style.transition = "transform var(--t-3) var(--ease)"; el.style.transform = ""; };
+const stripBack = (el) => { el.style.transition = "transform var(--t-settle) var(--ease-settle)"; el.style.transform = ""; };
 // v — скорость пальца в конце жеста (px/мс); onStep(1) — следующий, onStep(-1) — предыдущий
 const stripRelease = (el, x, v, step, near, onStep) => {
   const dir = x < 0 ? 1 : -1;
@@ -250,7 +251,7 @@ const useStripSync = (ref, id, near, step) => {
     el.style.transform = from ? `translateX(${from * step()}px)` : "";
     el.classList.remove("fade-in");
     el.getBoundingClientRect(); // применить начальное положение, иначе переход не сыграет
-    if (from) { el.style.transition = "transform var(--t-3) var(--ease)"; el.style.transform = ""; }
+    if (from) { el.style.transition = "transform var(--t-settle) var(--ease-settle)"; el.style.transform = ""; }
     else if (!swiped) el.classList.add("fade-in");
   });
 };

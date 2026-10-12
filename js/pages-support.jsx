@@ -103,7 +103,7 @@ const BalanceWidget = () => {
           <span style={{ fontSize: 32 * k, color: "var(--mut2)" }}>{sep}{cents}</span>
         </span>
       </span>
-      <button className="btn" onClick={() => app.openTopUp()}><Ic d={ICONS.plus} size={15} sw={2} />{t.supTopUp}</button>
+      <button className="btn" onClick={() => app.openTopUp()}><Ic d={ICONS.plus} size={15} />{t.supTopUp}</button>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
         {[[t.tuCard, "Apple Pay, Google Pay"], [t.tuWallet, t.tuNetwork]].map(([a, b], i) => (
           <button key={i} onClick={() => app.openTopUp()} style={{ padding: "10px 12px", borderRadius: 14, boxShadow: "inset 0 0 0 1px var(--line)", textAlign: "left", display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "var(--mut)" }}>
@@ -531,7 +531,7 @@ const TopUpSheet = ({ need, out }) => {
             width: 72, height: 72, borderRadius: "50%", background: "var(--acc)", color: "var(--acc-ink)",
             display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px",
           }}>
-            <Ic d={ICONS.check} size={30} sw={2.6} />
+            <Ic d={ICONS.check} size={30} sw={3.25} />
           </div>
           <p style={{ fontSize: 18, fontWeight: 400, letterSpacing: "-0.02em" }}>{t.tuDone}</p>
           <p className="mono" style={{ fontSize: 12, color: "var(--mut)", marginTop: 8 }}>+{app.money.fmt(landed, true)} · {t.tuDoneNote}</p>

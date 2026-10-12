@@ -215,7 +215,7 @@ const useFullScreenGestures = ({ rootRef, stripRef, near, step, coverShown, onCl
         el.style.transform = "translateY(100%)";
         buzz(8); setTimeout(onClose, ms);
       } else {
-        el.style.transition = "transform var(--t-3) var(--ease), border-radius var(--t-3) var(--ease)";
+        el.style.transition = "transform var(--t-settle) var(--ease-settle), border-radius var(--t-settle) var(--ease)";
         el.style.transform = ""; el.style.borderRadius = "";
       }
     }
@@ -224,7 +224,7 @@ const useFullScreenGestures = ({ rootRef, stripRef, near, step, coverShown, onCl
   // Жест отняла система — экран и лента возвращаются на место
   const onCancel = () => {
     const s = g.current; g.current = null; if (!s) return;
-    if (s.axis === "v") { const el = rootRef.current; el.style.transition = "transform var(--t-3) var(--ease)"; el.style.transform = ""; el.style.borderRadius = ""; }
+    if (s.axis === "v") { const el = rootRef.current; el.style.transition = "transform var(--t-settle) var(--ease-settle)"; el.style.transform = ""; el.style.borderRadius = ""; }
     if (s.axis === "h") stripBack(stripRef.current);
   };
   return { onPointerDown: onDown, onPointerMove: onMove, onPointerUp: onUp, onPointerCancel: onCancel };

@@ -221,7 +221,7 @@ const ObTour = ({ card, setCard }) => {
           width: 64, height: 64, borderRadius: "50%", background: "var(--bg2)", color: heart ? "var(--hot)" : "var(--acc)",
           display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px",
         }}>
-          <Ic d={ICONS[c.icon]} size={28} fill={heart ? "currentColor" : "none"} sw={heart ? 0 : 2} />
+          <Ic d={ICONS[c.icon]} size={28} fill={heart ? "currentColor" : "none"} />
         </div>
         <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 10 }}>{c.title}</h2>
         <p style={{ fontSize: 14, color: "var(--mut)", lineHeight: 1.6, textWrap: "pretty" }}>{c.sub}</p>
