@@ -173,6 +173,8 @@ window.I18N = {
     // Ошибки
     errTitle: "Что-то пошло не так", errNote: "Этот экран не открылся из-за ошибки в прототипе. Ваши настройки, оценки и плейлисты на месте.",
     errHome: "На главную", wallpaperBad: "Не получилось открыть картинку",
+    // Экран из index.html: файл прототипа так и не загрузился
+    loadNote: "Прототип загрузился не целиком — возможно, прервалась связь. Ваши настройки, оценки и плейлисты на месте.", reloadPage: "Обновить страницу",
     searchNothing: (q) => `По запросу «${q}» ничего не нашлось`,
     // Подписи кнопок и полос (в основном для экранных чтецов)
     seek: "Перемотка", trackProgress: "Прогресс трека", coverStyle: "Вид обложки", lyricsBy: "текст",
@@ -353,6 +355,7 @@ window.I18N = {
     addedTo: "Added to", removedFrom: "Removed from",
     errTitle: "Something went wrong", errNote: "This screen failed to open because of a bug in the prototype. Your settings, ratings and playlists are safe.",
     errHome: "Go home", wallpaperBad: "Couldn't open that image",
+    loadNote: "The prototype didn't load completely — the connection may have dropped. Your settings, ratings and playlists are safe.", reloadPage: "Reload page",
     searchNothing: (q) => `Nothing found for “${q}”`,
     seek: "Seek", trackProgress: "Track progress", coverStyle: "Cover style", lyricsBy: "lyrics",
     prevTrack: "Previous", nextTrack: "Next", repeat: "Repeat", pause: "Pause", playNow: "Play",

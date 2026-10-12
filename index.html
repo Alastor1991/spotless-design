@@ -48,23 +48,72 @@
 <script type="text/babel" src="js/shell.jsx"></script>
 <script type="text/babel" src="js/app.jsx"></script>
 <script>
-  // Файлы выше Babel скачивает сам (XMLHttpRequest) после разбора страницы и успехом считает только
-  // ответ 200: файл с ответом 304 (Firefox так отвечает при перепроверке кэша) он молча пропускал,
-  // запускал остальные — и приложение падало на «… is not defined». Поэтому адрес у них новый при
-  // каждом открытии: перепроверять нечего, 304 не бывает. Стили и данные грузит браузер — им хватает версии
-  document.querySelectorAll('script[type="text/babel"][src]').forEach(function (s) { s.src = s.getAttribute("src") + "?v=" + SPOTLESS_V + "-" + Date.now(); });
-  // Если файл всё же не пришёл (сбой сети), Babel запускает остальные без него: в консоли «Could not load …»
-  // или «… is not defined». Пока приложение не открылось, лечим одной перезагрузкой — не чаще раза
-  // в 30 секунд, чтобы не уйти в круг. Ошибки в уже открытом приложении сюда не относятся
+  // Файлы выше скачиваем сами и отдаём Babel готовым текстом. Его собственный загрузчик ненадёжен:
+  // ответ 304 (Firefox при перепроверке кэша) он пропускал, а запрос, который не дошёл (оборвалась
+  // связь или его заблокировали: статус 0), считал успешным — пустой файл молча «выполнялся»,
+  // приложение открывалось без него и падало, когда файл понадобился (полный экран на телефоне:
+  // «FullScreenPhone is not defined»). Здесь у каждого файла проверяются ответ и текст, до трёх попыток;
+  // адрес — с версией выкладки, так что между выкладками файлы берутся из кэша
+  Babel.disableScriptTags();
+
+  // Одна перезагрузка, не чаще раза в 30 секунд — чтобы не уйти в круг. true — уже перезагружаемся
+  var reloadOnce = function () {
+    try {
+      if (Date.now() - (+sessionStorage.getItem("spotless_retry") || 0) < 30000) return false;
+      sessionStorage.setItem("spotless_retry", String(Date.now()));
+    } catch (e) { return false; }
+    location.reload();
+    return true;
+  };
+
+  // Файл так и не пришёл и перезагрузка не помогла: говорим об этом сразу, с именем файла, —
+  // а не открываем приложение, которое сломается позже. Вид — как у экрана ошибки (AppCrash)
+  var notLoaded = function (file) {
+    if (reloadOnce()) return;
+    var saved = {};
+    try { saved = JSON.parse(localStorage.getItem("spotless_proto_v1")) || {}; } catch (e) {}
+    if (saved.theme) document.documentElement.setAttribute("data-theme", saved.theme);
+    var t = (window.I18N || {})[saved.lang === "en" ? "en" : "ru"] || {};
+    var root = document.getElementById("root");
+    root.innerHTML = '<div class="ob" role="alert" style="align-items: center; justify-content: center; gap: 14px; text-align: center">'
+      + '<h1 style="font-size: 34px"></h1><p style="font-size: 14.5px; color: var(--mut); max-width: 420px; line-height: 1.6; text-wrap: pretty"></p>'
+      + '<code class="mono" style="font-size: 11px; line-height: 1.5; color: var(--mut2); user-select: all"></code>'
+      + '<button class="btn" style="margin-top: 8px"></button></div>';
+    root.querySelector("h1").textContent = t.errTitle || "Что-то пошло не так";
+    root.querySelector("p").textContent = t.loadNote || "";
+    root.querySelector("code").textContent = file;
+    root.querySelector("button").textContent = t.reloadPage || "↻";
+    root.querySelector("button").onclick = function () { location.reload(); };
+  };
+
+  (function () {
+    var get = function (url, n) {
+      return fetch(url, n ? { cache: "reload" } : undefined)
+        .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
+        // пустой ответ или страница вместо файла (её отдаёт, например, сеть с авторизацией)
+        .then(function (text) { if (!text.trim() || /^\s*</.test(text)) throw new Error("bad body"); return text; })
+        .catch(function (e) {
+          if (n >= 2) throw e;
+          return new Promise(function (ok) { setTimeout(ok, 700 * (n + 1)); }).then(function () { return get(url, n + 1); });
+        });
+    };
+    var tags = [].slice.call(document.querySelectorAll('script[type="text/babel"][src]'));
+    Promise.all(tags.map(function (s) {
+      var src = s.getAttribute("src");
+      return get(src + "?v=" + SPOTLESS_V, 0).then(function (text) {
+        s.removeAttribute("src");
+        s.setAttribute("data-module", src); // имя файла — в ошибках и в отладчике
+        s.textContent = text;
+      }, function () { throw src; });
+    })).then(function () { Babel.transformScriptTags(); }, notLoaded);
+  })();
+
+  // Не пришли данные или строки (data.js, i18n.js — их грузит браузер): приложение при запуске падает
+  // на «… is not defined». Пока оно не открылось — та же одна перезагрузка. Ошибки в уже открытом
+  // приложении сюда не относятся
   window.addEventListener("error", function (e) {
     if (document.querySelector(".shell, .ob:not([role=alert])")) return;
-    if (!/Could not load|is not defined|Can't find variable/.test(e.message || "")) return;
-    try {
-      var last = +(sessionStorage.getItem("spotless_retry") || 0);
-      if (Date.now() - last < 30000) return;
-      sessionStorage.setItem("spotless_retry", String(Date.now()));
-    } catch (err) { return; }
-    location.reload();
+    if (/is not defined|Can't find variable/.test(e.message || "")) reloadOnce();
   });
 </script>
 </body>
