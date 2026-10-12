@@ -50,11 +50,17 @@ const SupportWidget = () => {
   const split = splitNow(app.monthly);
   const top = split.slice(0, 4);
   const rest = split.slice(4);
-  const max = split[0].amount || 1;
+  // Полосы — от самой крупной доли или от всей суммы (настройка «Полосы распределения денег»)
+  const max = (app.settings.dotScale === "total" ? app.monthly : split[0].amount) || 1;
   const restSum = rest.reduce((a, s) => a + s.amount, 0);
   const { whole, cents, sep } = m.parts(app.monthly);
+  // Крупная сумма вписывается в ширину виджета: раньше большая своя сумма уходила за край
+  const sumRef = React.useRef(null);
+  const k = useFitScale(sumRef, [app.monthly, m]);
+  // Столбец сумм — по самой длинной из них (11px моноширинного ≈ 6,7px на знак), не уже 40px
+  const numW = Math.max(40, Math.ceil(Math.max(...[...top.map(s => s.amount), restSum].map(a => m.num(a, true).length)) * 6.7));
   const row = (key, name, amount, dim, onClick) => (
-    <button key={key} onClick={onClick} style={{ display: "grid", gridTemplateColumns: "minmax(0, 96px) 1fr 40px", alignItems: "center", gap: 8, fontSize: 12, textAlign: "left", color: dim ? "var(--mut)" : "var(--text)" }}>
+    <button key={key} onClick={onClick} style={{ display: "grid", gridTemplateColumns: `minmax(0, 96px) 1fr ${numW}px`, alignItems: "center", gap: 8, fontSize: 12, textAlign: "left", color: dim ? "var(--mut)" : "var(--text)" }}>
       <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</span>
       <DotBar pct={amount / max} pitch={7} r={2.1} on={dim ? "var(--mut2)" : undefined} />
       <span className="mono" style={{ fontSize: 11, textAlign: "right", color: "var(--mut)" }}>{m.num(amount, true)}</span>
@@ -63,10 +69,12 @@ const SupportWidget = () => {
   return (
     <section className="widget sup-w" style={{ display: "flex", flexDirection: "column", gap: 7, padding: "24px 22px 22px" }}>
       <button className="mlabel" style={{ textAlign: "left" }} onClick={() => app.go("support")}>{t.supWidget}</button>
-      <button onClick={() => app.go("support")} aria-label={m.fmt(app.monthly)} style={{ display: "flex", alignItems: "baseline", gap: 3, margin: "6px 0 10px" }}>
-        <span style={{ fontWeight: 300, fontSize: 38, color: "var(--mut)" }}>{m.sign}</span>
-        <span className="dots" style={{ fontSize: 78 }}>{whole}</span>
-        <span className="dots" style={{ fontSize: 34, color: "var(--dot-off)" }}>{sep}{cents}</span>
+      <button onClick={() => app.go("support")} aria-label={m.fmt(app.monthly)} style={{ display: "flex", alignItems: "baseline", margin: "6px 0 10px" }}>
+        <span ref={sumRef} style={{ display: "inline-flex", alignItems: "baseline", gap: 3 }}>
+          <span style={{ fontWeight: 300, fontSize: 38 * k, color: "var(--mut)" }}>{m.sign}</span>
+          <span className="dots" style={{ fontSize: 78 * k }}>{whole}</span>
+          <span className="dots" style={{ fontSize: 34 * k, color: "var(--dot-off)" }}>{sep}{cents}</span>
+        </span>
       </button>
       {top.map(s => row(s.artist, DB.artists[s.artist].name, s.amount, false, () => app.go("artist", s.artist)))}
       {rest.length > 0 && row("rest", t.andMoreArtists(rest.length), restSum, true, () => app.go("support"))}

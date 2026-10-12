@@ -2,13 +2,54 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Spotless</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="refresh" content="0; url=spotless/">
-<link rel="canonical" href="spotless/">
+<title>Spotless</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&family=Doto:ROND,wght@0..100,100..900&display=swap" rel="stylesheet">
+<script>
+  // Версия файлов прототипа — время выкладки этой страницы (Last-Modified от GitHub Pages).
+  // Pages разрешает браузеру 10 минут брать файлы из кэша, а обычное обновление страницы
+  // перепроверяет только сам HTML: сразу после выкладки новая страница собиралась из старых
+  // скриптов и стилей — исправленное казалось неисправленным, смесь версий роняла приложение.
+  // С версией в адресе новая выкладка — новые адреса файлов; между выкладками кэш работает как обычно
+  var SPOTLESS_V = document.lastModified.replace(/\D/g, "");
+  // ?r= приходит из 404.html (обход кэша при переходе со старого адреса) — в строке адреса он не нужен
+  if (/[?&]r=/.test(location.search)) history.replaceState(null, "", location.pathname + location.hash);
+  document.write('<link rel="stylesheet" href="css/app.css?v=' + SPOTLESS_V + '">');
+</script>
 </head>
 <body>
-<p>Открываю Spotless… Если ничего не произошло, <a href="spotless/">нажмите сюда</a>.</p>
-<script>location.replace("spotless/" + location.hash);</script>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script>
+  document.write('<script src="js/data.js?v=' + SPOTLESS_V + '"><\/script><script src="js/i18n.js?v=' + SPOTLESS_V + '"><\/script>');
+</script>
+<script type="text/babel" src="js/core.jsx"></script>
+<script type="text/babel" src="js/ui.jsx"></script>
+<script type="text/babel" src="js/rating.jsx"></script>
+<script type="text/babel" src="js/track.jsx"></script>
+<script type="text/babel" src="js/player.jsx"></script>
+<script type="text/babel" src="js/queue.jsx"></script>
+<script type="text/babel" src="js/fullscreen.jsx"></script>
+<script type="text/babel" src="js/miniplayer.jsx"></script>
+<script type="text/babel" src="js/pages-home.jsx"></script>
+<script type="text/babel" src="js/pages-album.jsx"></script>
+<script type="text/babel" src="js/pages-playlist.jsx"></script>
+<script type="text/babel" src="js/pages-social.jsx"></script>
+<script type="text/babel" src="js/pages-support.jsx"></script>
+<script type="text/babel" src="js/pages-settings.jsx"></script>
+<script type="text/babel" src="js/menus.jsx"></script>
+<script type="text/babel" src="js/onboarding.jsx"></script>
+<script type="text/babel" src="js/storage.jsx"></script>
+<script type="text/babel" src="js/state.jsx"></script>
+<script type="text/babel" src="js/shell.jsx"></script>
+<script type="text/babel" src="js/app.jsx"></script>
+<script>
+  // Файлы выше Babel скачает только после разбора страницы — успеваем дописать к адресам версию
+  document.querySelectorAll('script[type="text/babel"][src]').forEach(function (s) { s.src = s.getAttribute("src") + "?v=" + SPOTLESS_V; });
+</script>
 </body>
 </html>

@@ -68,6 +68,9 @@ window.I18N = {
     supCustom: "Своя сумма", supChange: "Изменить сумму", supMonth: "мес",
     supNoFees: (fee) => `Без скрытых комиссий: сетевые издержки ~${fee} показываются до подтверждения.`,
     // Пополнение
+    offerTitle: "Пополнить счёт сейчас?",
+    offerNote: (mo, bal, need) => `Вы выбрали ${mo} в месяц, а на балансе ${bal}. Если пополнить счёт на ${need}, денег хватит на этот месяц.`,
+    offerGo: (need) => `Пополнить на ${need}`, offerLater: "Не сейчас",
     tuTitle: "Пополнить счёт", tuChoose: "Как вам удобнее?",
     tuCard: "С карты", tuCardNote: "Apple Pay, Google Pay или карта. Один раз подтвердить личность — дальше в два касания.",
     tuWallet: "С другого кошелька", tuWalletNote: "Прямой перевод на ваш адрес. Подтверждение личности не понадобится.",
@@ -117,7 +120,10 @@ window.I18N = {
     dnNote: "Комиссия сервиса 0%",
     // Настройки
     stTitle: "Настройки", stAppearance: "Внешний вид", stThemes: "Темы", stAccent: "Акцентный цвет",
-    stWallpaper: "Обои", stDensity: "Плотность", stCorners: "Скругления", stIsland: "Форма плеера", stIslandNote: "Плавающий островок или панель во всю ширину окна — выберите, как вам удобнее",
+    stWallpaper: "Обои", stDensity: "Плотность", stCorners: "Скругления", stDots: "Полосы распределения денег", stDotsNote: "От крупной доли — самая длинная полоса во всю ширину. От всей суммы — вся ширина равна сумме в месяц.",
+    stDotsShare: "От крупной доли", stDotsTotal: "От всей суммы",
+    txTopUp: "Пополнение с карты", txTip: (name) => `Донат · ${name}`,
+    stIsland: "Форма плеера", stIslandNote: "Плавающий островок или панель во всю ширину окна — выберите, как вам удобнее",
     stFont: "Шрифт", stLang: "Язык и регион", stLangUI: "Язык интерфейса", stCurrency: "Валюта",
     stCurrencyNote: "Определена по региону. Поменяйте один раз — запомним насовсем.",
     stHelp: "Подсказки и обучение", stReplayTour: "Пройти знакомство заново", stCards: "Подробные карточки-инструкции",
@@ -185,7 +191,7 @@ window.I18N = {
     // Уведомления (мок)
     notifSingle: "Новый сингл «Кассета 04»", notifSingleSub: "Танец Бруно · вчера",
     notifAdded: "Аня К. добавила 2 трека", notifAddedSub: "в «Кухня по выходным»",
-    notifTopUp: "Пора пополнить счёт", notifTopUpSub: (m) => `на балансе ${m.fmt(3.4)} — пополнить можно в два касания`,
+    notifTopUp: "Пора пополнить счёт", notifTopUpSub: (bal) => `на балансе ${bal} — пополнить можно в два касания`,
     notifThanks: "«Молоко и мёд» говорят спасибо", notifThanksSub: (m) => `за донат ${m.fmt(1)}`,
   },
   en: {
@@ -246,6 +252,9 @@ window.I18N = {
     supCustom: "Custom amount", supChange: "Change amount", supMonth: "mo",
     supNoFees: (fee) => `No hidden fees: network costs (~${fee}) are shown before you confirm.`,
     // Top up
+    offerTitle: "Top up now?",
+    offerNote: (mo, bal, need) => `You chose ${mo} a month, but your balance is ${bal}. Top up ${need} and this month is covered.`,
+    offerGo: (need) => `Top up ${need}`, offerLater: "Not now",
     tuTitle: "Top up your balance", tuChoose: "What works best for you?",
     tuCard: "From a card", tuCardNote: "Apple Pay, Google Pay or a card. Verify your identity once — two taps from then on.",
     tuWallet: "From another wallet", tuWalletNote: "A direct transfer to your own address. No identity verification needed.",
@@ -293,7 +302,10 @@ window.I18N = {
     dnFrom: "From your support balance", dnSend: "Send", dnThanks: "Thank you! It's already with the artist.",
     dnNote: "Service fee 0%",
     stTitle: "Settings", stAppearance: "Appearance", stThemes: "Themes", stAccent: "Accent color",
-    stWallpaper: "Wallpaper", stDensity: "Density", stCorners: "Corners", stIsland: "Player shape", stIslandNote: "A floating island or a full-width panel — whichever you like",
+    stWallpaper: "Wallpaper", stDensity: "Density", stCorners: "Corners", stDots: "Money split bars", stDotsNote: "Largest share — the longest bar spans the full width. Total — the full width equals your monthly amount.",
+    stDotsShare: "Largest share", stDotsTotal: "Total",
+    txTopUp: "Top up from card", txTip: (name) => `Tip · ${name}`,
+    stIsland: "Player shape", stIslandNote: "A floating island or a full-width panel — whichever you like",
     stFont: "Font", stLang: "Language & region", stLangUI: "Interface language", stCurrency: "Currency",
     stCurrencyNote: "Detected from your region. Change it once — we'll remember forever.",
     stHelp: "Tips & learning", stReplayTour: "Replay the welcome tour", stCards: "Detailed how-to cards",
@@ -354,7 +366,7 @@ window.I18N = {
     txFee: "network fee",
     notifSingle: "New single “Кассета 04”", notifSingleSub: "Танец Бруно · yesterday",
     notifAdded: "Anya K. added 2 tracks", notifAddedSub: "to “Weekend Kitchen”",
-    notifTopUp: "Time to top up", notifTopUpSub: (m) => `balance ${m.fmt(3.4)} — two taps`,
+    notifTopUp: "Time to top up", notifTopUpSub: (bal) => `balance ${bal} — two taps`,
     notifThanks: "Молоко и мёд says thanks", notifThanksSub: (m) => `for your ${m.fmt(1, true)} tip`,
   },
 };

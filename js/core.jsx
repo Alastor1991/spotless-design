@@ -27,13 +27,25 @@ const useProgress = () => {
 };
 
 // Граница ошибок: если экран упал при отрисовке, вместо чёрного окна — объяснение и выход.
-// fallback(reset) — что показать; при смене resetKey (например, другая страница) пробуем снова.
+// fallback(reset, detail) — что показать; detail — текст ошибки и компонент, где она случилась:
+// он виден на экране ошибки, чтобы для отчёта хватило скриншота без консоли разработчика.
+// При смене resetKey (например, другая страница) пробуем снова.
 class ErrorBoundary extends React.Component {
-  constructor(props) { super(props); this.state = { error: null }; this.reset = () => this.setState({ error: null }); }
+  constructor(props) { super(props); this.state = { error: null, where: "" }; this.reset = () => this.setState({ error: null, where: "" }); }
   static getDerivedStateFromError(error) { return { error }; }
-  componentDidCatch(error, info) { console.error("Spotless:", error, info && info.componentStack); }
+  componentDidCatch(error, info) {
+    console.error("Spotless:", error, info && info.componentStack);
+    // Первый компонент из стека: «at FullScreen (…)» в Chrome, «FullScreen@…» в Firefox
+    const names = String((info && info.componentStack) || "").split("\n")
+      .map(l => (l.trim().match(/^(?:at\s+)?([A-Z][\w$]*)/) || [])[1]).filter(n => n && n !== "ErrorBoundary");
+    if (names[0]) this.setState({ where: names[0] });
+  }
   componentDidUpdate(prev) { if (this.state.error && prev.resetKey !== this.props.resetKey) this.reset(); }
-  render() { return this.state.error ? this.props.fallback(this.reset) : this.props.children; }
+  render() {
+    const e = this.state.error;
+    if (!e) return this.props.children;
+    return this.props.fallback(this.reset, String((e && e.name) || "Error") + ": " + String((e && e.message) || e) + (this.state.where ? " · " + this.state.where : ""));
+  }
 }
 
 // Телефонная раскладка (Android): ниже 640px — нижняя навигация и свой плеер
@@ -76,6 +88,32 @@ const usePopClamp = () => {
     if (Math.abs(d) > 1) setDx(prev => prev + d);
   }, []);
   return [ref, dx];
+};
+
+// Во сколько раз уменьшить крупное число, чтобы оно влезло в ширину своего виджета (1 — влезает).
+// ref — само число (inline-элемент), deps — от чего зависит его ширина. Следит за шириной виджета.
+// Без этого на телефоне четырёхзначные суммы вылезали за край и давали горизонтальную прокрутку
+const useFitScale = (ref, deps) => {
+  const kRef = React.useRef(1);
+  const [k, setK] = React.useState(1);
+  React.useLayoutEffect(() => {
+    const el = ref.current;
+    const box = el && el.closest(".widget");
+    if (!box) return;
+    const fit = () => {
+      const cs = getComputedStyle(box);
+      const avail = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      const natural = el.getBoundingClientRect().width / kRef.current; // ширина при полном размере
+      const next = Math.min(1, Math.floor((avail / natural) * 100) / 100);
+      if (next !== kRef.current) { kRef.current = next; setK(next); }
+    };
+    fit();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(fit);
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, deps);
+  return k;
 };
 
 // Ширина элемента, следит за изменениями (точечные полосы считают по ней число точек)
@@ -191,11 +229,15 @@ const makeMoney = (currency, lang) => {
 const amountText = (n, lang) => String(n).replace(".", lang === "ru" ? "," : ".");
 // Своя сумма в поле ввода: цифры и один десятичный разделитель — запятая или точка, как набрал
 // человек, и не больше двух знаков после него. Одно правило на все поля: раньше в онбординге
-// запятая выбрасывалась, и «2,5» превращалось в $25.
+// запятая выбрасывалась, и «2,5» превращалось в $25. Сумма может быть любой; граница только
+// техническая — 13 цифр до разделителя: дальше число в JavaScript не хранит копейки точно,
+// и на экране оказывалось бы другое число (99…9,99 → 100…0,00, а с 22 цифр — «1e+22»).
+const AMOUNT_MAX = 9999999999999.99;
 const cleanAmount = (s) => {
   const v = String(s).replace(/[^\d.,]/g, "");
   const i = v.search(/[.,]/);
-  return i < 0 ? v : v.slice(0, i + 1) + v.slice(i + 1).replace(/[.,]/g, "").slice(0, 2);
+  const whole = (i < 0 ? v : v.slice(0, i)).replace(/^0+(?=\d)/, "").slice(0, 13);
+  return i < 0 ? whole : whole + v[i] + v.slice(i + 1).replace(/[.,]/g, "").slice(0, 2);
 };
 const parseAmount = (s) => parseFloat(String(s).replace(",", "."));
 // Как сумма в месяц делится между артистами: доли — из истории прослушиваний (мок), сумма — своя
@@ -213,7 +255,8 @@ const copyText = (s) => {
 // Значения по умолчанию и проверка. Нужна дважды — при загрузке сохранённого и при импорте темы
 // из JSON: раньше туда попадало что угодно («island»: "zzz").
 // base — что оставить, если значение не годится (при импорте — текущие настройки).
-const DEFAULT_SETTINGS = { island: "pill", density: "n", accent: null, wallpaper: null, wallpaperImg: null, likeRating: 10 };
+// dotScale — от чего считать полосы распределения денег: от самой крупной доли (share) или от всей суммы (total)
+const DEFAULT_SETTINGS = { island: "pill", density: "n", accent: null, wallpaper: null, wallpaperImg: null, likeRating: 10, dotScale: "share" };
 const isHue = (v) => typeof v === "number" && isFinite(v) && v >= 0 && v <= 360;
 const cleanSettings = (s, base = DEFAULT_SETTINGS) => {
   const o = s && typeof s === "object" ? s : {};
@@ -225,12 +268,13 @@ const cleanSettings = (s, base = DEFAULT_SETTINGS) => {
     wallpaper: pick("wallpaper", v => v === null || isHue(v)),
     wallpaperImg: pick("wallpaperImg", v => v === null || (typeof v === "string" && v.startsWith("data:image/"))),
     likeRating: pick("likeRating", v => Number.isInteger(v) && v >= 5 && v <= 10),
+    dotScale: pick("dotScale", v => v === "share" || v === "total"),
   };
 };
 
 Object.assign(window, {
   AppCtx, useApp, createProgress, useProgress, ErrorBoundary, PHONE_Q, useMedia,
-  useEscape, usePopClamp, useWidth, HOLD_MS, SLOP, buzz, isTouchUI, useLongPress,
+  useEscape, usePopClamp, useWidth, useFitScale, HOLD_MS, SLOP, buzz, isTouchUI, useLongPress,
   trackInfo, trackSec, minutesOf, albumIds, artistAlbums, topTracks, plName,
-  makeMoney, amountText, cleanAmount, parseAmount, splitNow, shareOf, copyText, DEFAULT_SETTINGS, cleanSettings,
+  makeMoney, amountText, AMOUNT_MAX, cleanAmount, parseAmount, splitNow, shareOf, copyText, DEFAULT_SETTINGS, cleanSettings,
 });

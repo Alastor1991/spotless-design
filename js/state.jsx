@@ -135,13 +135,32 @@ const useMoney = (saved, { lang }) => {
   const [monthly, setMonthly] = React.useState(saved.monthly != null ? saved.monthly : 5);
   const [customAmt, setCustomAmt] = React.useState(saved.customAmt || "");
   const [auto, setAuto] = React.useState(saved.auto !== false);
+  // Баланс кошелька: пополнение с карты прибавляет, донат вычитает, каждое движение — в истории операций.
+  // Раньше баланс стоял на месте (7,35 из мок-базы): после пополнения окно «Пополнить счёт сейчас?»
+  // появлялось снова, а уведомление писало «на балансе 3,40»
+  const [balance, setBalance] = React.useState(saved.balance != null ? saved.balance : DB.balance);
+  const [txs, setTxs] = React.useState(saved.txs || DB.transactions);
+  const toCents = (n) => Math.round(n * 100) / 100;
+  const logTx = (tx) => setTxs(list => [{ ...tx, at: new Date().toISOString(), fee: 0.011 }, ...list].slice(0, 50));
+  const topUpBalance = (n) => {
+    if (!(n > 0)) return;
+    setBalance(b => Math.min(AMOUNT_MAX, toCents(b + n)));
+    logTx({ kind: "topup", amount: toCents(n) });
+  };
+  const payFromBalance = (n, name) => {
+    if (!(n > 0)) return;
+    setBalance(b => Math.max(0, toCents(b - n)));
+    logTx({ kind: "tip", name, amount: -toCents(n) });
+  };
   // Своя сумма: фиксируется по клику вне поля (или Enter), значение остаётся в капсуле.
   // Непонятное («0», «,») не принимаем: в поле возвращается действующая сумма, если она своя,
   // иначе оно очищается и горит чип — раньше в капсуле висел «0», а сумма оставалась прежней
+  // Возвращает принятую сумму (или null) — по ней экран решает, предложить ли пополнить счёт
   const commitCustom = () => {
     const v = parseAmount(customAmt);
-    if (v > 0) setMonthly(v);
-    else setCustomAmt([2, 5, 10].includes(monthly) ? "" : amountText(monthly, lang));
+    if (v > 0) { setMonthly(v); return v; }
+    setCustomAmt([2, 5, 10].includes(monthly) ? "" : amountText(monthly, lang));
+    return null;
   };
   // Суммы на экране — в выбранной валюте (makeMoney, core.jsx)
   const money = React.useMemo(() => makeMoney(currency, lang), [currency, lang]);
@@ -150,15 +169,19 @@ const useMoney = (saved, { lang }) => {
       currency, setCurrency, money,
       monthly, setMonthly: (v) => { setMonthly(v); setCustomAmt(""); },
       customAmt, setCustomAmt, commitCustom, auto, setAuto,
+      balance, txs, topUpBalance, payFromBalance,
     },
-    keep: { currency, monthly, customAmt, auto },
+    keep: { currency, monthly, customAmt, auto, balance, txs },
   };
 };
 
 // ---------- Окна поверх страницы и уведомления ----------
 const useOverlays = (saved) => {
   const [donateTarget, setDonateTarget] = React.useState(null);
-  const [topUp, setTopUp] = React.useState(false);
+  // Пополнение: null — закрыто; { amount } — сколько должно дойти до баланса (null — выберет сам)
+  const [topUp, setTopUp] = React.useState(null);
+  // Предложение пополнить: выбранная сумма в месяц, на которую не хватает баланса
+  const [topUpOffer, setTopUpOffer] = React.useState(null);
   // Создание плейлиста; thenAdd — трек (или несколько), которые сразу добавятся
   const [createPl, setCreatePl] = React.useState(null);
   // Контекстное меню (ПКМ, «⋯», долгое нажатие): где открыть и про что оно
@@ -167,7 +190,8 @@ const useOverlays = (saved) => {
   return {
     api: {
       donateTarget, openDonate: (target) => setDonateTarget(target), closeDonate: () => setDonateTarget(null),
-      topUp, openTopUp: () => setTopUp(true), closeTopUp: () => setTopUp(false),
+      topUp, openTopUp: (amount) => setTopUp({ amount: typeof amount === "number" && amount > 0 ? amount : null }), closeTopUp: () => setTopUp(null),
+      topUpOffer, offerTopUp: (monthly) => setTopUpOffer(monthly), closeTopUpOffer: () => setTopUpOffer(null),
       createPl, openCreatePl: (opts) => setCreatePl(opts || {}), closeCreatePl: () => setCreatePl(null),
       ctx,
       openCtx: (e, payload) => { e.preventDefault(); e.stopPropagation(); setCtx({ x: e.clientX, y: e.clientY, ...payload }); },

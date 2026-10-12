@@ -253,6 +253,7 @@ input, textarea { font-family: inherit; }
 /* ---------- Навигация ---------- */
 .navitem {
   display: flex; align-items: center; gap: 13px; width: 100%;
+  flex-wrap: wrap; row-gap: 4px; /* длинная сумма в бейдже «Артистам» уходит на следующую строку */
   padding: 10px 12px; border-radius: var(--r-sm);
   color: var(--mut); font-weight: 500; font-size: 15px; text-align: left;
   transition: background 0.12s, color 0.12s;
@@ -771,6 +772,8 @@ input, textarea { font-family: inherit; }
   .cardrow.hscroll > * { flex: 0 0 140px; scroll-snap-align: start; padding: 0 !important; }
   .split-row { grid-template-columns: 28px minmax(72px, 116px) minmax(0, 1fr) auto !important; gap: 10px !important; padding: 7px 2px !important; }
   .split-row .sr-min { display: none !important; }
+  .split-row.is-long { grid-template-columns: 28px minmax(72px, 116px) minmax(0, 1fr) !important; row-gap: 2px !important; }
+  .split-row.is-long > :last-child { grid-column: 2 / -1; text-align: right; }
   .genre-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .search-grid { margin-top: 8px; }
   .theme-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
