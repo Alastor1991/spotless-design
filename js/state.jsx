@@ -21,13 +21,17 @@ const useFeedback = (saved) => {
   const [hints, setHints] = React.useState(saved.hints || {});
   const hintsRef = React.useRef(hints);
   React.useEffect(() => { hintsRef.current = hints; }, [hints]);
+  // Тост уходит с анимацией: сначала помечаем out, через EXIT_MS убираем совсем
+  const dismissToast = (id) => {
+    setToasts(ts => ts.map(x => (x.id === id ? { ...x, out: true } : x)));
+    setTimeout(() => setToasts(ts => ts.filter(x => x.id !== id)), EXIT_MS);
+  };
   // Тост; action — { label, run } для «Вернуть» и подобного: такой живёт дольше
   const toast = (msg, action) => {
     const id = Date.now() + Math.random();
     setToasts(ts => [...ts, { id, msg, action }]);
-    setTimeout(() => setToasts(ts => ts.filter(x => x.id !== id)), action ? 4500 : 2400);
+    setTimeout(() => dismissToast(id), action ? 4500 : 2400);
   };
-  const dismissToast = (id) => setToasts(ts => ts.filter(x => x.id !== id));
   // Подсказка показывается один раз за всё время (key — что именно объясняем)
   const hint = (key, msg) => {
     if (hintsRef.current[key]) return;
@@ -195,7 +199,7 @@ const useOverlays = (saved) => {
       createPl, openCreatePl: (opts) => setCreatePl(opts || {}), closeCreatePl: () => setCreatePl(null),
       ctx,
       openCtx: (e, payload) => { e.preventDefault(); e.stopPropagation(); setCtx({ x: e.clientX, y: e.clientY, ...payload }); },
-      openCtxAt: (el, payload) => { const r = el.getBoundingClientRect(); setCtx({ x: r.left, y: r.bottom + 8, ...payload }); },
+      openCtxAt: (el, payload) => { const r = boxOf(el); setCtx({ x: r.left, y: r.bottom + 8, ...payload }); },
       openCtxPoint: (x, y, payload) => setCtx({ x, y, ...payload }), // долгое нажатие: меню у пальца
       closeCtx: () => setCtx(null),
       notifRead, setNotifRead,

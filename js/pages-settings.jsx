@@ -51,7 +51,7 @@ const Seg = ({ options, value, onChange }) => (
   <div style={{ display: "flex", background: "var(--bg2)", borderRadius: 99, padding: 3 }}>
     {options.map(([k, label]) => (
       <button key={k} onClick={() => onChange(k)} style={{
-        padding: "6px 14px", borderRadius: 99, fontSize: 12.5, fontWeight: 700,
+        padding: "6px 14px", borderRadius: 99, fontSize: 12.5, fontWeight: 700, transition: "background var(--t-2) var(--ease), color var(--t-2) var(--ease)",
         background: value === k ? "var(--acc)" : "transparent",
         color: value === k ? "var(--acc-ink)" : "var(--mut)",
       }}>{label}</button>
@@ -73,7 +73,7 @@ const COMMUNITY_THEMES = [
 ];
 
 // Галерея тем сообщества
-const GalleryModal = ({ close }) => {
+const GalleryModal = ({ close, out }) => {
   const app = useApp();
   const t = app.t;
   const apply = (th) => {
@@ -82,7 +82,7 @@ const GalleryModal = ({ close }) => {
     close();
   };
   return (
-    <Sheet close={close} width={560} label={t.stThemeGallery} screen="Галерея тем">
+    <Sheet close={close} out={out} width={560} label={t.stThemeGallery} screen="Галерея тем">
       <SheetHead title={t.stThemeGallery} close={close} />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
         {COMMUNITY_THEMES.map(th => (
@@ -109,13 +109,13 @@ const GalleryModal = ({ close }) => {
 const txDate = (iso, ru) => new Date(iso).toLocaleDateString(ru ? "ru-RU" : "en-US", ru ? { day: "numeric", month: "long" } : { month: "short", day: "numeric" });
 
 // История операций: записи мок-базы и свои (пополнения, донаты); суммы — свои, комиссии сети — в долларах, по курсу
-const TxModal = ({ close }) => {
+const TxModal = ({ close, out }) => {
   const app = useApp();
   const t = app.t;
   const m = app.money;
   const ru = app.lang === "ru";
   return (
-    <Sheet close={close} width={480} label={t.stTx} screen="Транзакции">
+    <Sheet close={close} out={out} width={480} label={t.stTx} screen="Транзакции">
       <SheetHead title={t.stTx} close={close} style={{ marginBottom: 6 }} />
       <p style={{ fontSize: 12.5, color: "var(--mut)", marginBottom: 14, lineHeight: 1.5 }}>{t.txNote}</p>
       <div>
@@ -450,6 +450,7 @@ const PageSettings = () => {
   const [pb, setPb] = React.useState({ stream: "auto", dlq: "high", metered: false, cache: "5", normalize: true, cross: "0", gapless: true });
   const [folder, setFolder] = React.useState("music");
   const closeModal = () => setModal(null);
+  const [shown, out] = useExit(modal);
 
   return (
     <div className="fade-in settings-grid" data-screen-label="Настройки">
@@ -471,8 +472,8 @@ const PageSettings = () => {
         {section === "account" && <SetAccount />}
         {section === "advanced" && <SetAdvanced openModal={setModal} />}
       </div>
-      {modal === "gallery" && <GalleryModal close={closeModal} />}
-      {modal === "tx" && <TxModal close={closeModal} />}
+      {shown === "gallery" && <GalleryModal close={closeModal} out={out} />}
+      {shown === "tx" && <TxModal close={closeModal} out={out} />}
     </div>
   );
 };

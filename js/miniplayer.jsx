@@ -3,7 +3,7 @@
 // Мини-плеер: компактное плавающее окно (как у Spotify). Обложка во всю ширину,
 // при наведении — скрим с контролами; перетаскивается за верхнюю кромку.
 const MINI_W = 248, MINI_H = 292;
-const MiniPlayer = () => {
+const MiniPlayer = ({ out }) => {
   const app = useApp();
   const pct = useProgress();
   const t = app.t;
@@ -30,7 +30,7 @@ const MiniPlayer = () => {
     window.addEventListener("mouseup", up);
   };
   return (
-    <div className="mini fade-up" data-screen-label="Мини-плеер"
+    <div className={"mini fade-up" + (out ? " is-out" : "")} data-screen-label="Мини-плеер"
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       onContextMenu={(e) => app.openCtx(e, { kind: "track", id: tr.id })}
       style={{
@@ -92,58 +92,80 @@ const MiniPlayer = () => {
 };
 
 // ---------- Телефон (Android) ----------
-// Жесты капсулы: вбок — следующий/предыдущий трек, вверх — развернуть, тап — тоже развернуть.
+// Жесты капсулы: вбок — лента треков (stripDrag, core.jsx), вверх — развернуть, тап — тоже развернуть.
 // Капсула сама распознаёт тап и свайпы; кнопки внутри (лайк, play) и полоса перемотки — не её зона.
 // На клик не опираемся: он всплывает от детей и может прийти не туда.
-const useCapsuleGestures = ({ rowRef, onOpen, onNext, onPrev }) => {
+const useCapsuleGestures = ({ stripRef, near, step, onOpen, onStep }) => {
   const g = React.useRef(null);
   const onDown = (e) => {
-    if (e.target.closest("button, [role=slider], .dotbar.seek")) return;
-    g.current = { x: e.clientX, y: e.clientY, dx: 0, dy: 0 };
+    const el = stripRef.current;
+    if (!el || el.dataset.swiped || e.target.closest("button, [role=slider], .dotbar.seek")) return;
+    g.current = { x: e.clientX, y: e.clientY, t: e.timeStamp, dx: 0, dy: 0, v: 0, axis: null, base: shiftX(el) };
   };
   const onMove = (e) => {
     const s = g.current; if (!s) return;
-    s.dx = e.clientX - s.x; s.dy = e.clientY - s.y;
-    const r = rowRef.current;
-    if (r && Math.abs(s.dx) > Math.abs(s.dy)) {
-      r.style.transition = "none";
-      r.style.transform = `translateX(${s.dx * 0.45}px)`;
-      r.style.opacity = String(1 - Math.min(0.6, Math.abs(s.dx) / 320));
+    const dx = e.clientX - s.x, dy = e.clientY - s.y;
+    if (!s.axis && Math.hypot(dx, dy) > SLOP) s.axis = Math.abs(dx) > Math.abs(dy) ? "h" : "v";
+    if (s.axis === "h") {
+      s.v = 0.8 * (dx - s.dx) / Math.max(1, e.timeStamp - s.t) + 0.2 * s.v;
+      stripDrag(stripRef.current, s.base + dx, near);
     }
+    s.dx = dx; s.dy = dy; s.t = e.timeStamp;
   };
   const onUp = () => {
     const s = g.current; g.current = null; if (!s) return;
-    const r = rowRef.current;
-    if (r) { r.style.transition = "transform .22s cubic-bezier(.2,.8,.2,1), opacity .22s"; r.style.transform = ""; r.style.opacity = ""; }
-    if (Math.abs(s.dx) > 64 && Math.abs(s.dx) > Math.abs(s.dy) * 1.2) { buzz(8); s.dx < 0 ? onNext() : onPrev(); }
-    else if (s.dy < -36 && Math.abs(s.dy) > Math.abs(s.dx)) onOpen();
-    else if (Math.hypot(s.dx, s.dy) < SLOP) onOpen(); // тап
+    if (s.axis === "h") stripRelease(stripRef.current, s.base + s.dx, s.v, step(), near, onStep);
+    else if (!s.axis || s.dy < -36) onOpen(); // тап или вверх
   };
-  return { onPointerDown: onDown, onPointerMove: onMove, onPointerUp: onUp, onPointerCancel: () => { g.current = null; } };
+  // Жест отняла система — лента просто возвращается
+  const onCancel = () => { const s = g.current; g.current = null; if (s && s.axis === "h") stripBack(stripRef.current); };
+  return { onPointerDown: onDown, onPointerMove: onMove, onPointerUp: onUp, onPointerCancel: onCancel };
 };
 
-// Мини-плеер над нижней навигацией: островок-капсула или панель во всю ширину (та же настройка)
+// Трек в капсуле: обложка и название. Соседи по краям ленты — такие же, с прогрессом с нуля
+const MpTrack = ({ id, pct, docked }) => {
+  const app = useApp();
+  const { tr, al, ar } = trackInfo(id);
+  return (
+    <React.Fragment>
+      <Cover art={al.id} hue={al.hue} size={42} round={true} />
+      <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: docked ? 3 : 6 }}>
+        <span style={{ fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tr.t}{!docked && <span style={{ color: "var(--mut2)" }}> · {ar.name}</span>}</span>
+        {docked
+          ? <span className="mlabel" style={{ fontSize: 10, letterSpacing: "0.08em" }}>{ar.name} · {app.fmtTime(pct).padStart(5, "0")}</span>
+          : <DotBar pct={pct} pitch={5} r={1.4} label={app.t.trackProgress} />}
+      </div>
+    </React.Fragment>
+  );
+};
+
+// Мини-плеер над нижней навигацией: островок-капсула или панель во всю ширину (та же настройка).
+// Листается только лента с обложкой и названием, кнопки стоят на месте
 const MobilePlayer = () => {
   const app = useApp();
   const pct = useProgress();
-  const { tr, al, ar } = trackInfo(app.player.trackId);
+  const id = app.player.trackId;
   const docked = app.settings.island === "panel";
-  const rowRef = React.useRef(null);
-  const gestures = useCapsuleGestures({ rowRef, onOpen: () => app.setFull(true), onNext: app.nextTrack, onPrev: app.prevTrack });
+  const near = nearTracks(app.queue, id);
+  const stripRef = React.useRef(null);
+  const step = () => stripRef.current.offsetWidth;
+  useStripSync(stripRef, id, near, step);
+  const gestures = useCapsuleGestures({ stripRef, near, step, onOpen: () => app.setFull(true), onStep: (d) => (d > 0 ? app.nextTrack() : app.prevTrack()) });
+  const slot = (key, tid, i) => tid && (
+    <div key={key} className={"mp-slot" + (i ? " is-side" : "")} style={i ? { "--i": i } : undefined}>
+      <MpTrack id={tid} pct={i ? 0 : pct} docked={docked} />
+    </div>
+  );
   return (
     <div className={"mplayer" + (docked ? " docked" : app.settings.island === "square" ? " square" : "")} data-screen-label="Мини-плеер (телефон)" {...gestures}
-      role="button" tabIndex={0} aria-label={app.t.openFull + ": " + tr.t}
+      role="button" tabIndex={0} aria-label={app.t.openFull + ": " + DB.trackIndex[id].t}
       onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); app.setFull(true); } }}>
       {docked && <div style={{ display: "flex" }}><DotBar pct={pct} pitch={6} onSeek={app.seek} label={app.t.seek} /></div>}
-      <div className="mp-row" ref={rowRef}>
-        <span key={"c" + tr.id} className="mp-swap" style={{ display: "inline-flex", flexShrink: 0 }}><Cover art={al.id} hue={al.hue} size={42} round={true} /></span>
-        <div key={"t" + tr.id} className="mp-swap" style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: docked ? 3 : 6 }}>
-          <span style={{ fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tr.t}{!docked && <span style={{ color: "var(--mut2)" }}> · {ar.name}</span>}</span>
-          {docked
-            ? <span className="mlabel" style={{ fontSize: 10, letterSpacing: "0.08em" }}>{ar.name} · {app.fmtTime(pct).padStart(5, "0")}</span>
-            : <DotBar pct={pct} pitch={5} r={1.4} label={app.t.trackProgress} />}
+      <div className="mp-row">
+        <div className="mp-pager">
+          <div className="mp-strip" ref={stripRef}>{slot("prev", near.prev, -1)}{slot("cur", id, 0)}{slot("next", near.next, 1)}</div>
         </div>
-        <LikeButton trackId={tr.id} always={true} size={44} />
+        <LikeButton trackId={id} always={true} size={44} />
         <PlayBtn size={44} />
       </div>
     </div>

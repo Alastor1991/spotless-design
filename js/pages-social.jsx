@@ -23,7 +23,7 @@ const MyProfile = () => {
           <div className="sec-label" style={{ marginBottom: 8 }}>{t.profile}</div>
           <h1 style={{ fontSize: "clamp(30px, 5cqi, 48px)", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.05, marginBottom: 10 }}>Лиза</h1>
           <div style={{ fontSize: 14, color: "var(--mut)" }}>
-            @liza · {t.memberSince} · {myPls.length} {t.playlists.toLowerCase()} · {app.followed.length} {t.followsLabel.toLowerCase()}
+            @liza · {t.memberSince} · {myPls.length} {t.playlistsN(myPls.length)} · {app.followed.length} {t.followsN(app.followed.length)}
           </div>
         </div>
       </header>
@@ -32,7 +32,7 @@ const MyProfile = () => {
         <div className="h-row"><h2>{t.publicPls}</h2></div>
         <div className="cardrow">
           {myPls.map(pl => (
-            <MediaCard key={pl.id} {...playlistCard(app, pl, `${app.playlistTracks(pl.id).length} ${t.tracksN}` + (pl.collab ? ` · ${t.collab}` : ""))} />
+            <MediaCard key={pl.id} {...playlistCard(app, pl, t.nTracks(app.playlistTracks(pl.id).length) + (pl.collab ? ` · ${t.collab}` : ""))} />
           ))}
         </div>
       </section>
@@ -109,7 +109,7 @@ const FriendProfile = ({ f }) => {
       <section style={{ marginBottom: 30 }}>
         <div className="h-row"><h2>{t.publicPls}</h2></div>
         <div className="cardrow">
-          {fPls.map(pl => <MediaCard key={pl.id} {...playlistCard(app, pl, `${pl.tracks.length} ${t.tracksN} · ${f.name}`, pl.tracks)} />)}
+          {fPls.map(pl => <MediaCard key={pl.id} {...playlistCard(app, pl, `${t.nTracks(pl.tracks.length)} · ${f.name}`, pl.tracks)} />)}
         </div>
       </section>
 

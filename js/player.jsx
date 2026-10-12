@@ -52,13 +52,13 @@ const PrevNext = ({ dir, size = 36, icon = 19 }) => {
     <button className="iconbtn" style={{ width: size, height: size, color: "var(--text)" }}
       aria-label={prev ? app.t.prevTrack : app.t.nextTrack}
       onClick={prev ? app.prevTrack : app.nextTrack}>
-      <Ic d={prev ? ICONS.prev : ICONS.next} size={icon} fill="currentColor" sw={0.5} />
+      <Ic d={prev ? ICONS.prev : ICONS.next} size={icon} fill="currentColor" />
     </button>
   );
 };
 
 // Поповер выбора устройства (монтируется только при открытии: позицию замеряет usePopClamp)
-const DevicesPop = ({ close, up = true }) => {
+const DevicesPop = ({ close, out, up = true }) => {
   const app = useApp();
   const t = app.t;
   const [ref, dx] = usePopClamp();
@@ -74,7 +74,7 @@ const DevicesPop = ({ close, up = true }) => {
     { id: "speaker", icon: "speaker", name: t.devSpeaker, sub: "AirPlay" },
   ];
   return (
-    <div ref={ref} className="pop fade-up" onMouseDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}
+    <div ref={ref} className={"pop" + (out ? " is-out" : "")} onMouseDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}
       style={{ [up ? "bottom" : "top"]: "calc(100% + 12px)", left: `calc(50% + ${dx}px)`, marginLeft: -135, width: 270, padding: 6 }}>
       <div className="mlabel" style={{ padding: "8px 10px 8px" }}>{t.devices}</div>
       {items.map(d => {
@@ -99,6 +99,7 @@ const DevicesPop = ({ close, up = true }) => {
 const DevicesBtn = ({ size = 32, up = true, className = "" }) => {
   const app = useApp();
   const [open, setOpen] = React.useState(false);
+  const [pop, popOut] = useExit(open);
   return (
     <span className={className} style={{ position: "relative", display: "inline-flex" }}>
       <button className={"iconbtn" + (app.device !== "this" || open ? " lit" : "")} style={{ width: size, height: size }}
@@ -107,7 +108,7 @@ const DevicesBtn = ({ size = 32, up = true, className = "" }) => {
         onClick={() => setOpen(!open)}>
         <Ic d={ICONS.devices} size={Math.round(size * 0.52)} />
       </button>
-      {open && <DevicesPop up={up} close={() => setOpen(false)} />}
+      {pop && <DevicesPop up={up} out={popOut} close={() => setOpen(false)} />}
     </span>
   );
 };
@@ -131,10 +132,10 @@ const PlayerIsland = () => {
     <div className={"island" + (square ? " square" : "")} data-screen-label="Островок-плеер"
       onContextMenu={(e) => app.openCtx(e, { kind: "track", id: tr.id })}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-        <button onClick={() => app.setFull(true)} title={t.openFull} aria-label={t.openFull} style={{ flexShrink: 0 }}>
+        <button key={"c" + tr.id} className="fade-in" onClick={() => app.setFull(true)} title={t.openFull} aria-label={t.openFull} style={{ flexShrink: 0 }}>
           <Cover art={al.id} hue={al.hue} size={54} radius={square ? 12 : 99} round={!square} />
         </button>
-        <div className="isl-who" style={{ flex: 1 }}>
+        <div key={"t" + tr.id} className="isl-who fade-in" style={{ flex: 1 }}>
           <div style={{ fontSize: 14.5, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tr.t}</div>
           <button style={{ fontSize: 12.5, color: "var(--mut)", marginTop: 2, display: "block", maxWidth: "100%", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
             onClick={() => app.go("artist", ar.id)}>{ar.name}</button>

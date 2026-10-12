@@ -3,12 +3,21 @@
    и все компоненты у них общие. Логика цвета везде одна: главное действие — цвета текста (--acc),
    фирменный цвет темы — «горячий» (--hot): лайк, «сейчас играет», живое, непрочитанное. */
 
-/* Общее для всех тем: шрифты и скругления */
+/* Общее для всех тем: шрифты, скругления, движение */
 :root {
   --font: 'Geist', sans-serif;
   --mono: 'Geist Mono', monospace;
   --font-dot: 'Doto', 'Geist Mono', monospace;
   --r: 28px; --r-sm: 14px;
+  /* Движение — кривые Material 3, как на Android: их же возьмут Compose и Slint.
+     Появление быстро стартует и мягко садится, уход разгоняется и исчезает, смена состояния — ровная.
+     --t-2 — и длительность ухода окон: её ждёт EXIT_MS в core.jsx */
+  --ease: cubic-bezier(.2, 0, 0, 1);
+  --ease-enter: cubic-bezier(.05, .7, .1, 1);
+  --ease-exit: cubic-bezier(.3, 0, .8, .15);
+  --t-1: 120ms;   /* нажатие, наведение */
+  --t-2: 220ms;   /* смена состояния, уход */
+  --t-3: 420ms;   /* появление окна, листа, полного экрана; лента треков */
 }
 
 /* ---------- Палитры ----------
@@ -200,6 +209,9 @@ body {
 h1, h2, h3, h4, p { margin: 0; }
 button { font-family: inherit; border: none; background: none; color: inherit; cursor: pointer; padding: 0; }
 input, textarea { font-family: inherit; }
+/* Фокус с клавиатуры — одна заметная обводка цвета текста; мышью и пальцем её нет (:focus-visible) */
+:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+button:disabled { cursor: default; pointer-events: none; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 99px; border: 2px solid var(--bg0); }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -240,8 +252,8 @@ input, textarea { font-family: inherit; }
   display: flex; align-items: center; gap: 10px;
   margin: 0 calc(var(--pad) * -1); padding: 18px var(--pad) 12px;
   position: sticky; top: 0; z-index: 30;
-  background: color-mix(in srgb, var(--bg0) 86%, transparent);
-  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  /* Непрозрачная: прокрученное просвечивало сквозь шапку (а размытия фона в Slint нет) */
+  background: var(--bg0);
 }
 .npanel {
   background: var(--bg1); border-left: 1px solid var(--line);
@@ -258,7 +270,7 @@ input, textarea { font-family: inherit; }
   color: var(--mut); font-weight: 500; font-size: 15px; text-align: left;
   transition: background 0.12s, color 0.12s;
 }
-.navitem:hover { color: var(--text); background: color-mix(in oklab, var(--bg2) 55%, transparent); }
+@media (hover: hover) { .navitem:hover { color: var(--text); background: color-mix(in oklab, var(--bg2) 55%, transparent); } }
 .navitem.active { background: var(--bg2); color: var(--text); font-weight: 600; }
 .navitem .badge {
   font-size: 12.5px; font-weight: 700; color: var(--acc-ink); background: var(--acc);
@@ -269,7 +281,7 @@ input, textarea { font-family: inherit; }
 [data-theme] .navitem { font-weight: 400; padding: 11px 10px; }
 [data-theme] .navitem .nav-ic { display: none; }
 [data-theme] .navitem .nav-num { display: inline; }
-[data-theme] .navitem:hover { background: transparent; }
+@media (hover: hover) { [data-theme] .navitem:hover { background: transparent; } }
 [data-theme] .navitem.active { background: transparent; font-weight: 400; }
 [data-theme] .navitem.active .nav-dot { display: inline-block; margin-left: auto; }
 [data-theme] .navitem .badge { background: transparent; color: var(--text); font-family: var(--mono); font-weight: 400; font-size: 12px; padding: 0; }
@@ -280,12 +292,12 @@ input, textarea { font-family: inherit; }
   padding: 6px 10px; font-size: 14px; color: var(--mut); border-radius: var(--r-sm);
   transition: background 0.12s, color 0.12s; min-width: 0;
 }
-.plitem:hover { color: var(--text); background: color-mix(in oklab, var(--bg2) 55%, transparent); }
+@media (hover: hover) { .plitem:hover { color: var(--text); background: color-mix(in oklab, var(--bg2) 55%, transparent); } }
 .plitem.active { color: var(--text); }
 .plitem .pl-name { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .plitem .pl-sub { display: block; font-family: var(--mono, monospace); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mut2); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 [data-theme] .plitem { color: var(--text); }
-[data-theme] .plitem:hover { background: var(--bg2); }
+@media (hover: hover) { [data-theme] .plitem:hover { background: var(--bg2); } }
 
 .netline { font-family: var(--mono, monospace); font-size: 10px; letter-spacing: 0.08em; color: var(--mut2); padding: 4px 12px 8px; display: flex; flex-direction: column; gap: 6px; }
 
@@ -294,10 +306,10 @@ input, textarea { font-family: inherit; }
   padding: 7px 16px; border-radius: 99px; font-size: 13.5px; font-weight: 600;
   background: var(--bg2); color: var(--text); transition: background 0.12s;
 }
-.chip:hover { background: var(--bg3); }
+@media (hover: hover) { .chip:hover { background: var(--bg3); } }
 .chip.on { background: var(--acc); color: var(--acc-ink); }
 [data-theme] .chip { font-weight: 400; background: transparent; box-shadow: inset 0 0 0 1px var(--bg3); padding: 8px 16px; }
-[data-theme] .chip:hover { background: var(--bg2); }
+@media (hover: hover) { [data-theme] .chip:hover { background: var(--bg2); } }
 [data-theme] .chip.on { background: var(--acc); box-shadow: none; }
 
 .btn {
@@ -306,15 +318,15 @@ input, textarea { font-family: inherit; }
   background: var(--acc); color: var(--acc-ink); transition: transform 0.1s, filter 0.12s;
   white-space: nowrap;
 }
-.btn:hover { filter: brightness(1.05); transform: scale(1.02); }
+@media (hover: hover) { .btn:hover { filter: brightness(1.05); transform: scale(1.02); } }
 .btn.ghost { background: var(--bg2); color: var(--text); font-weight: 600; }
-.btn.ghost:hover { background: var(--bg3); }
+@media (hover: hover) { .btn.ghost:hover { background: var(--bg3); } }
 .btn.outline { background: transparent; color: var(--text); border: 1px solid var(--bg3); font-weight: 600; }
-.btn.outline:hover { border-color: var(--mut); }
+@media (hover: hover) { .btn.outline:hover { border-color: var(--mut); } }
 [data-theme] .btn { font-weight: 500; min-height: 44px; }
-[data-theme] .btn:hover { transform: none; filter: brightness(0.92); }
+@media (hover: hover) { [data-theme] .btn:hover { transform: none; filter: brightness(0.92); } }
 [data-theme] .btn.ghost { background: transparent; box-shadow: inset 0 0 0 1px var(--bg3); font-weight: 400; }
-[data-theme] .btn.ghost:hover { background: var(--bg2); filter: none; }
+@media (hover: hover) { [data-theme] .btn.ghost:hover { background: var(--bg2); filter: none; } }
 [data-theme] .btn.outline { font-weight: 400; }
 
 .iconbtn {
@@ -322,13 +334,13 @@ input, textarea { font-family: inherit; }
   align-items: center; justify-content: center; color: var(--mut);
   transition: background 0.12s, color 0.12s; flex-shrink: 0;
 }
-.iconbtn:hover { color: var(--text); background: var(--bg2); }
+@media (hover: hover) { .iconbtn:hover { color: var(--text); background: var(--bg2); } }
 .iconbtn.lit { color: var(--acc); }
 .iconbtn.hot { color: var(--hot); }
 .iconbtn.neg { color: var(--bad); }
 .iconbtn.filled { background: var(--bg2); color: var(--acc); }
 .iconbtn.ring { box-shadow: inset 0 0 0 1px var(--bg3); color: var(--text); }
-.iconbtn.ring:hover { background: var(--bg2); }
+@media (hover: hover) { .iconbtn.ring:hover { background: var(--bg2); } }
 
 /* ---------- Точечные элементы ---------- */
 /* Полоса из точек: --dp — шаг, --dr — радиус точки. Заполнение кратно шагу,
@@ -343,7 +355,7 @@ input, textarea { font-family: inherit; }
   display: block; height: 100%;
   background: radial-gradient(circle, var(--dot-on, var(--text)) 0 var(--dr), transparent calc(var(--dr) + 0.5px)) 0 50% / var(--dp) var(--dp) repeat-x;
 }
-.dotbar.seek:hover { --dot-off: var(--bg3); }
+@media (hover: hover) { .dotbar.seek:hover { --dot-off: var(--bg3); } }
 /* Обложка через точечную матрицу — как Glyph-экран */
 .glyph {
   --gp: 9px; --gr: 3.1px;
@@ -359,8 +371,8 @@ input, textarea { font-family: inherit; }
   display: flex; flex-direction: column; gap: 10px;
   transition: background 0.14s; position: relative;
 }
-.card:hover { background: var(--bg1); }
-[data-theme] .card:hover { background: var(--bg2); }
+@media (hover: hover) { .card:hover { background: var(--bg1); } }
+@media (hover: hover) { [data-theme] .card:hover { background: var(--bg2); } }
 .card .t {
   font-size: 14.5px; font-weight: 600; color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -377,7 +389,7 @@ input, textarea { font-family: inherit; }
   opacity: 0; transform: translateY(6px); transition: opacity 0.15s, transform 0.15s;
   box-shadow: var(--shadow);
 }
-.card:hover .hoverplay { opacity: 1; transform: translateY(0); }
+@media (hover: hover) { .card:hover .hoverplay { opacity: 1; transform: translateY(0); } }
 
 .cardrow {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px;
@@ -391,8 +403,8 @@ input, textarea { font-family: inherit; }
   padding: 6px 12px; border-radius: var(--r-sm);
 }
 .trow.nocover { grid-template-columns: 34px minmax(0, 1fr) minmax(0, 0.7fr) 148px 52px; padding: 10px 12px; }
-.trow:hover { background: var(--bg1); }
-[data-theme] .trow:hover { background: var(--bg2); }
+@media (hover: hover) { .trow:hover { background: var(--bg1); } }
+@media (hover: hover) { [data-theme] .trow:hover { background: var(--bg2); } }
 .trow .num { font-size: 13.5px; color: var(--mut); text-align: right; font-variant-numeric: tabular-nums; }
 .trow .tt { font-size: 14.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .trow .ta { font-size: 12.5px; color: var(--mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -404,7 +416,7 @@ input, textarea { font-family: inherit; }
 [data-theme] .trow .alb { font-family: var(--mono); font-size: 12px; color: var(--mut2); }
 .trow .acts { display: flex; align-items: center; gap: 2px; justify-content: flex-end; }
 .trow .acts .iconbtn { width: 30px; height: 30px; opacity: 0; transition: opacity 0.12s; }
-.trow:hover .acts .iconbtn { opacity: 1; }
+@media (hover: hover) { .trow:hover .acts .iconbtn { opacity: 1; } }
 /* README 3.2: по наведению; всегда видно только сердечко (и метка «скачано» — это статус) */
 .trow .acts .iconbtn.hot, .trow .acts .iconbtn.neg, .trow .acts .dlb.lit { opacity: 1; }
 /* Поповер плюсика живёт в body: мышь уходит со строки в него — кнопка не должна гаснуть */
@@ -502,7 +514,7 @@ input, textarea { font-family: inherit; }
 .h-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; gap: 12px; }
 .h-row h2 { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
 .h-row .more { font-size: 13px; color: var(--mut); font-weight: 600; white-space: nowrap; }
-.h-row .more:hover { color: var(--text); }
+@media (hover: hover) { .h-row .more:hover { color: var(--text); } }
 [data-theme] .h-row h2 { font-family: var(--mono); font-size: 11px; font-weight: 400 !important; letter-spacing: 0.14em !important; text-transform: uppercase; color: var(--mut2); }
 [data-theme] .h-row .more { font-family: var(--mono); font-size: 11px; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; }
 .mono { font-family: var(--mono); }
@@ -515,34 +527,61 @@ input, textarea { font-family: inherit; }
   width: 12px; height: 12px; border-radius: 50%; background: var(--text);
 }
 
-/* Подсветка по наведению — здесь, а не обработчиками mouseenter в компонентах.
+/* Подсветка по наведению — здесь, а не обработчиками mouseenter в компонентах. Только для мыши
+   (hover: hover): на телефоне подсветка «залипала» после касания — серый круг у кнопки, выделенная строка.
    Свойство, которое меняет :hover, не задавать в style={} у элемента: inline-стиль сильнее */
-.pop-item:hover { background: var(--bg3); }          /* пункты меню и поповеров */
-.qrow:hover { background: var(--bg2); }              /* строка очереди */
-.split-row:hover { background: var(--bg3); }         /* «Артистам»: строка распределения */
-.tu-choice:hover { background: var(--bg2); }         /* пополнение: «С карты» / «С другого кошелька» */
+@media (hover: hover) { .pop-item:hover { background: var(--bg3); } }  /* пункты меню и поповеров */
+@media (hover: hover) { .qrow:hover { background: var(--bg2); } }  /* строка очереди */
+@media (hover: hover) { .split-row:hover { background: var(--bg3); } }  /* «Артистам»: строка распределения */
+@media (hover: hover) { .tu-choice:hover { background: var(--bg2); } }  /* пополнение: «С карты» / «С другого кошелька» */
 .gal-card { outline: 1px solid var(--line); }
-.gal-card:hover { outline: 2px solid var(--acc); }   /* галерея тем */
+@media (hover: hover) { .gal-card:hover { outline: 2px solid var(--acc); } }  /* галерея тем */
 .friend-now { background: var(--bg1); }
-.friend-now:hover { background: var(--bg2); }        /* профиль друга: «Слушает сейчас» */
-.play-circle { transition: transform 0.1s; }
-.play-circle:hover { transform: scale(1.05); }       /* главная кнопка плеера */
+@media (hover: hover) { .friend-now:hover { background: var(--bg2); } }  /* профиль друга: «Слушает сейчас» */
+@media (hover: hover) { .play-circle:hover { transform: scale(1.05); } }  /* главная кнопка плеера */
 .ob-choice { border: 1px solid var(--line); }
-.ob-google:hover { border-color: var(--acc); }       /* онбординг: способ входа */
-.ob-seed:hover { border-color: var(--mut); }
+@media (hover: hover) { .ob-google:hover { border-color: var(--acc); } }  /* онбординг: способ входа */
+@media (hover: hover) { .ob-seed:hover { border-color: var(--mut); } }
 /* Зелёный «в плюс»: пополнения в транзакциях, «online» в «Продвинутом» */
 .ok-text { color: oklch(0.7 0.13 150); }
 
-@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.fade-up { animation: fadeUp 0.25s ease both; }
-.fade-in { animation: fadeIn 0.2s ease both; }
+/* Появление. fill-mode backwards: после анимации transform не остаётся — иначе fixed-потомки
+   считали бы позицию от этого элемента (docs/pitfalls.md) */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } }
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes fadeOut { to { opacity: 0; } }
+.fade-up { animation: fadeUp var(--t-3) var(--ease-enter) backwards; }
+.fade-in { animation: fadeIn var(--t-2) var(--ease) backwards; }
+
+/* Окна поверх: поповеры и меню, окна (лист снизу на телефоне), тосты. Уход — класс is-out:
+   компонент держится на экране ещё EXIT_MS (useExit, core.jsx) и в это время не принимает нажатий */
+@keyframes popIn { from { opacity: 0; transform: translateY(6px); } }
+@keyframes popOut { to { opacity: 0; transform: translateY(4px); } }
+@keyframes modalIn { from { opacity: 0; transform: translateY(16px) scale(.98); } }
+@keyframes modalOut { to { opacity: 0; transform: scale(.98); } }
+@keyframes sheetIn { from { transform: translateY(100%); } }
+@keyframes sheetOut { to { transform: translateY(100%); } }
+.pop { animation: popIn var(--t-2) var(--ease-enter) backwards; }
+.scrim { animation: fadeIn var(--t-2) var(--ease) backwards; }
+.modal { animation: modalIn var(--t-3) var(--ease-enter) backwards; }
+.is-out { pointer-events: none; }
+.pop.is-out { animation: popOut var(--t-1) var(--ease-exit) forwards; }
+.scrim.is-out { animation: fadeOut var(--t-2) var(--ease-exit) forwards; }
+.scrim.is-out .modal { animation: modalOut var(--t-2) var(--ease-exit) forwards; }
+.toast { animation: popIn var(--t-3) var(--ease-enter) backwards; }
+.toast.is-out, .mini.is-out { animation: popOut var(--t-2) var(--ease-exit) forwards; }
+/* Полный экран на компьютере проявляется с лёгким приближением; на телефоне выезжает снизу, как лист */
+@keyframes fsIn { from { opacity: 0; transform: scale(.985); } }
+.fs { animation: fsIn var(--t-3) var(--ease-enter) backwards; }
+.fs.is-out { animation: modalOut var(--t-2) var(--ease-exit) forwards; }
+.fsp { animation: sheetIn var(--t-3) var(--ease-enter) backwards; }
+.fsp.is-out { animation: sheetOut var(--t-2) var(--ease-exit) forwards; }
 
 /* Тумблер */
-.toggle { width: 42px; height: 24px; border-radius: 99px; background: var(--bg3); position: relative; transition: background 0.15s; flex-shrink: 0; }
+.toggle { width: 42px; height: 24px; border-radius: 99px; background: var(--bg3); position: relative; transition: background var(--t-2) var(--ease); flex-shrink: 0; }
 .toggle::after {
   content: ""; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px;
-  border-radius: 50%; background: var(--bg0); transition: left 0.15s;
+  border-radius: 50%; background: var(--bg0); transition: left var(--t-2) var(--ease), background var(--t-2) var(--ease);
 }
 .toggle.on { background: var(--acc); }
 .toggle.on::after { left: 21px; background: var(--acc-ink); }
@@ -556,7 +595,7 @@ input, textarea { font-family: inherit; }
   width: 56px; height: 56px; border-radius: 50%; background: var(--acc); color: var(--acc-ink);
   display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: transform 0.1s;
 }
-.playbig:hover { transform: scale(1.05); }
+@media (hover: hover) { .playbig:hover { transform: scale(1.05); } }
 .hero { display: flex; gap: 34px; align-items: flex-end; padding: 30px 0 26px; flex-wrap: wrap; }
 .two-col { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, 1fr); gap: 40px; }
 .sup-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 14px; margin-bottom: 14px; }
@@ -571,6 +610,13 @@ input, textarea { font-family: inherit; }
 }
 .trow-head.nocover { grid-template-columns: 34px minmax(0,1fr) minmax(0,0.7fr) 148px 52px; }
 .home-bento { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 34px; }
+.cont-w { --cw-cover: clamp(110px, 17cqi, 236px); display: flex; gap: 26px; align-items: center; }
+.cw-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; flex: 1; align-self: stretch; }
+.cw-acts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 2px; }
+/* Медиатека: фильтры слева, сортировка и «Новый плейлист» — справа */
+.lib-bar { display: flex; align-items: center; gap: 8px 10px; margin-bottom: 22px; flex-wrap: wrap; }
+.lib-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.lib-tools { display: flex; align-items: center; gap: 6px; margin-left: auto; }
 .home-bento .b-wide { grid-column: span 2; }
 /* Полный экран на компьютере. Сцена между шапкой и таймкодом: обложка слева, название справа,
    текст песни — под названием. Обложка считается от размеров сцены (container query), поэтому
@@ -641,8 +687,8 @@ input, textarea { font-family: inherit; }
 .shell.rail .sidebar .nav-label, .shell.rail .sidebar .badge, .shell.rail .sidebar .pl-head,
 .shell.rail .sidebar .pl-sub, .shell.rail .sidebar .pl-text, .shell.rail .sidebar .netline, .shell.rail .sidebar .nav-num, .shell.rail .sidebar .nav-dot { display: none !important; }
 .shell.rail .sidebar .nav-ic { display: block !important; }
-.shell.rail .navitem { justify-content: center; padding: 11px 0; gap: 0; }
-.shell.rail .navitem.active { background: var(--bg2); }
+.shell.rail .sidebar .navitem { justify-content: center; padding: 11px 0; gap: 0; }
+.shell.rail .sidebar .navitem.active { background: var(--bg2); }
 .shell.rail .plitem { justify-content: center !important; padding: 6px 0 !important; gap: 0 !important; }
 .shell.rail .logo-row { flex-direction: column; gap: 10px; padding: 0 !important; }
 .shell.rail .logo-word { display: none; }
@@ -665,6 +711,7 @@ input, textarea { font-family: inherit; }
 
 @keyframes dlfill { to { stroke-dashoffset: 0; } }
 [data-theme] .navitem.setitem .nav-ic, [data-theme] .navitem.setitem svg { display: block; }
+.navitem.setitem { flex-wrap: nowrap; } /* длинный пункт переносит текст, а не значок над ним */
 [data-theme] .navitem.setitem.active { background: var(--bg2); }
 
 /* ---------- Онбординг ---------- */
@@ -761,6 +808,20 @@ input, textarea { font-family: inherit; }
 
   .hero { gap: 20px; padding: 14px 0 20px; }
   .actions { gap: 8px; }
+  /* Донат — своей строкой во всю ширину: раньше ряд кнопок переносился как попало */
+  .actions .act-wide { order: 1; flex: 1 0 100%; }
+  /* Фильтры медиатеки — лентой с прокруткой, а не в три строки */
+  .lib-chips { flex: 1 0 100%; flex-wrap: nowrap; overflow-x: auto; margin: 0 calc(var(--pad) * -1); padding: 0 var(--pad); scrollbar-width: none; }
+  .lib-chips::-webkit-scrollbar { display: none; }
+  .lib-chips > * { flex-shrink: 0; }
+  .lib-tools { flex: 1 0 100%; justify-content: space-between; margin-left: 0; }
+  /* «Вы остановились здесь»: обложка рядом с подписью, названием и автором; трек, полоса и кнопки — во всю ширину */
+  .cont-w { --cw-cover: 76px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px 16px; }
+  .cont-w > :first-child { grid-row: 1 / span 3; }
+  .cont-w .cw-col { display: contents; }
+  .cont-w .cw-col > :nth-child(n + 4) { grid-column: 1 / -1; }
+  .cont-w .glyph { --gp: 6px !important; --gr: 2.1px !important; }
+  .cw-acts .btn { flex: 1; }
   .home-bento { grid-template-columns: minmax(0, 1fr) !important; gap: 10px; }
   .home-bento > * { grid-column: auto !important; }
   .cardrow { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
@@ -790,7 +851,9 @@ input, textarea { font-family: inherit; }
   .modal {
     width: 100% !important; max-width: none; max-height: 90dvh; border-radius: 28px 28px 0 0;
     border-bottom: none; padding: 22px 18px calc(22px + env(safe-area-inset-bottom));
+    animation-name: sheetIn;
   }
+  .scrim.is-out .modal { animation-name: sheetOut; }
   .bellpop { position: fixed !important; top: 64px !important; left: 12px !important; right: 12px !important; width: auto !important; }
 }
 
@@ -844,7 +907,8 @@ button { touch-action: manipulation; }
 /* Чёрточка сверху — закрыть (тап или смахнуть вниз) */
 .ratepop-grip { display: flex; align-items: center; justify-content: center; width: 64px; height: 22px; margin: 0 auto 2px; border-radius: 11px; touch-action: none; }
 .ratepop-grip span { width: 34px; height: 4px; border-radius: 2px; background: var(--bg3); transition: background 0.12s; }
-.ratepop-grip:hover span, .ratepop-grip:active span { background: var(--mut2); }
+.ratepop-grip:active span { background: var(--mut2); }
+@media (hover: hover) { .ratepop-grip:hover span { background: var(--mut2); } }
 .rate-scale { display: inline-flex; align-items: center; gap: 8px; touch-action: none; cursor: pointer; user-select: none; -webkit-user-select: none; border-radius: 12px; outline-offset: 4px; }
 .rate-cells { display: flex; flex: 1; }
 .rate-cell { flex: 1; display: flex; align-items: center; justify-content: center; }
@@ -870,18 +934,25 @@ button { touch-action: manipulation; }
 .ctx-scrim { z-index: 140; }
 .ctx-head { display: flex; align-items: center; gap: 14px; padding: 2px 12px 14px; margin-bottom: 6px; border-bottom: 1px solid var(--line); }
 
-/* Мини-плеер и полный экран: смена трека и жесты */
-.mp-swap { animation: mpswap 0.28s ease both; }
-@keyframes mpswap { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+/* Мини-плеер и полный экран: жесты */
 .mplayer { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-.mp-row { will-change: transform; }
 .fsp { touch-action: none; overscroll-behavior: contain; -webkit-user-select: none; user-select: none; }
 .fsp-scroll { touch-action: pan-y; overscroll-behavior: contain; }
 .fsp-handle { position: absolute; top: 6px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--bg3); }
-.fsp-cover.from-r { animation: coverR 0.32s cubic-bezier(.2,.8,.2,1) both; }
-.fsp-cover.from-l { animation: coverL 0.32s cubic-bezier(.2,.8,.2,1) both; }
-@keyframes coverR { from { opacity: 0; transform: translateX(48px) scale(0.96); } to { opacity: 1; transform: none; } }
-@keyframes coverL { from { opacity: 0; transform: translateX(-48px) scale(0.96); } to { opacity: 1; transform: none; } }
+
+/* Лента треков (stripDrag, core.jsx): текущий трек в потоке, соседи по бокам на шаг ленты.
+   В капсуле лента начинается от самого края — уезжающий трек прячется за скруглением капсулы */
+.mplayer { overflow: hidden; }
+.mp-pager { flex: 1; min-width: 0; align-self: stretch; display: flex; align-items: center; overflow: hidden; margin-left: -10px; }
+.mplayer.docked .mp-pager { margin-left: -16px; }
+.mp-strip { position: relative; flex: 1; min-width: 0; will-change: transform; }
+.mp-slot { display: flex; align-items: center; gap: 10px; min-width: 0; padding-left: 10px; }
+.mplayer.docked .mp-slot { padding-left: 16px; gap: 12px; }
+.mp-slot.is-side, .fsp-slot.is-side { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.mp-slot.is-side { transform: translateX(calc(var(--i) * 100%)); }
+/* Полный экран: соседние обложки — за краем экрана, на шаг ленты (ширина сцены + 24px) */
+.fsp-strip { position: relative; display: flex; justify-content: center; will-change: transform; }
+.fsp-slot.is-side { display: flex; justify-content: center; transform: translateX(calc(var(--i) * (100cqw + 24px))); }
 
 /* Бегущая строка */
 .mq { animation-name: mq; animation-timing-function: linear; animation-iteration-count: infinite; animation-direction: alternate; }
@@ -901,7 +972,6 @@ button { touch-action: manipulation; }
 
 /* Нижняя навигация: точка активной вкладки появляется с отскоком */
 .mn-item.active .hot-dot { animation: dotpop 0.32s cubic-bezier(.3,1.6,.5,1); }
-.mn-item svg { transition: transform 0.2s; }
 .mn-item.active svg { transform: translateY(-1px); }
 @keyframes dotpop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
 
@@ -921,16 +991,23 @@ button { touch-action: manipulation; }
   .shell.phone input, .shell.phone textarea, .modal input, .modal textarea { -webkit-user-select: text; user-select: text; }
 }
 
-/* Отклик на нажатие для пальца: кнопки и карточки чуть проседают, строки подсвечиваются */
+/* Отклик на нажатие — мышью и пальцем: кнопки чуть проседают. У пальца нет наведения,
+   поэтому для него ещё и строки, пункты меню и карточки отвечают на касание */
+.iconbtn, .btn, .chip, .playbig, .play-circle, .tb-play, .card, .mn-item svg {
+  transition: transform var(--t-1) var(--ease), background var(--t-1) var(--ease), color var(--t-1) var(--ease),
+    box-shadow var(--t-1) var(--ease), filter var(--t-1) var(--ease);
+}
+.iconbtn:active, .playbig:active, .play-circle:active, .tb-play:active { transform: scale(0.92); }
+.chip:active { transform: scale(0.95); }
+.btn:active { transform: scale(0.97); }
 @media (hover: none) {
-  .btn:hover, .card:hover .hoverplay, .play-circle:hover { transform: none; }
-  .iconbtn, .btn, .chip, .playbig, .card, .mn-item, .tb-play, .mplayer .mp-row button { transition: transform 0.12s ease, background 0.12s, color 0.12s; }
-  .iconbtn:active, .btn:active, .chip:active, .playbig:active, .tb-play:active { transform: scale(0.92); }
   .card:active { transform: scale(0.97); }
   .mn-item:active svg { transform: scale(0.88); }
-  .trow:active { background: var(--bg2); }
+  .trow:active, .qrow:active, .pop-item:active, .split-row:active, .tu-choice:active { background: var(--bg2); }
 }
 
+/* Меньше движения (настройка системы): окна и ленты — без анимации, украшения — выключены */
 @media (prefers-reduced-motion: reduce) {
-  .mq, .likebtn.just-liked svg, .mp-swap, .fsp-cover, .tb-play, .mn-item.active .hot-dot { animation: none !important; }
+  :root { --t-1: 1ms; --t-2: 1ms; --t-3: 1ms; }
+  .mq, .likebtn.just-liked svg, .tb-play, .mn-item.active .hot-dot { animation: none !important; }
 }

@@ -14,7 +14,7 @@ const MoreBtn = ({ ctx, size = 48, className = "iconbtn ring" }) => {
   return (
     <button className={className} style={{ width: size, height: size }} title={app.t.more} aria-label={app.t.more}
       onClick={(e) => app.openCtxAt(e.currentTarget, ctx)}>
-      <Ic d={ICONS.more} size={20} sw={3.4} />
+      <Ic d={ICONS.more} size={20} fill="currentColor" />
     </button>
   );
 };
@@ -35,12 +35,12 @@ const PageAlbum = ({ id }) => {
       <header className="hero">
         <Cover art={al.id} hue={al.hue} size="clamp(150px, 20cqi, 264px)" radius={24} />
         <div style={{ minWidth: 0, flex: "1 1 320px", paddingBottom: 4 }}>
-          <div className="mlabel" style={{ marginBottom: 14 }}>{t[al.type]} · {al.year} · {al.tracks.length} {t.tracksN} · {minutesOf(ids)} {t.min}</div>
+          <div className="mlabel" style={{ marginBottom: 14 }}>{t[al.type]} · {al.year} · {al.tracks.length} {t.tracksN(al.tracks.length)} · {minutesOf(ids)} {t.min}</div>
           <h1 style={{ fontSize: "clamp(44px, 9cqi, 128px)", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 0.88, marginBottom: 18, textWrap: "balance", overflowWrap: "anywhere" }}>{al.title}</h1>
           <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: "var(--mut)", flexWrap: "wrap" }}>
             <Cover art={"ar:" + ar.id} hue={ar.hue} size={28} round={true} />
             <button style={{ fontSize: 16, color: "var(--text)" }} onClick={() => app.go("artist", ar.id)}>{ar.name}</button>
-            <span className="mlabel" style={{ letterSpacing: "0.08em" }}>·</span>
+            <span className="mlabel no-phone" style={{ letterSpacing: "0.08em" }}>·</span>
             <span className="mlabel" style={{ letterSpacing: "0.08em" }}>{t.incomeAvgShort(m.fmt(m.usd(ar.avgPerListener), true))}</span>
           </div>
         </div>
@@ -58,10 +58,10 @@ const PageAlbum = ({ id }) => {
           <DLButton size={34} albumId={id} />
           <span className="mono" style={{ fontSize: 12 }} aria-label={t.dlCount(dlN, ids.length)}>{dlN}/{ids.length}</span>
         </span>
-        <button className="btn ghost" style={{ padding: "0 20px", minHeight: 48 }} onClick={() => app.openDonate({ kind: "album", id: al.id })}>
+        <button className="btn ghost act-wide" style={{ padding: "0 20px", minHeight: 48 }} onClick={() => app.openDonate({ kind: "album", id: al.id })}>
           <span className="mono">$</span>{t.supportRelease}
         </button>
-        <ShareBtn />
+        <ShareBtn className="iconbtn ring no-phone" />
         <MoreBtn ctx={{ kind: "album", id }} />
       </div>
 
@@ -152,10 +152,10 @@ const PageArtist = ({ id }) => {
         <button className={"btn " + (following ? "ghost" : "")} style={{ padding: "0 22px", minHeight: 48 }} aria-pressed={following} onClick={() => app.toggleFollow(id)}>
           {following && <Ic d={ICONS.check} size={15} />}{following ? t.following : t.follow}
         </button>
-        <button className="btn ghost" style={{ padding: "0 20px", minHeight: 48 }} onClick={() => app.openDonate({ kind: "artist", id })}>
+        <button className="btn ghost act-wide" style={{ padding: "0 20px", minHeight: 48 }} onClick={() => app.openDonate({ kind: "artist", id })}>
           <span className="mono">$</span>{t.supportArtist}
         </button>
-        <ShareBtn />
+        <ShareBtn className="iconbtn ring no-phone" />
         <MoreBtn ctx={{ kind: "artist", id }} />
       </div>
 

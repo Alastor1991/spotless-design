@@ -35,7 +35,7 @@ const CtxHead = ({ c }) => {
   } else if (c.kind === "playlist") {
     const pl = app.findPl(c.id);
     if (!pl) return null;
-    hue = pl.hue; title = plName(app.lang, pl); sub = `${app.playlistTracks(c.id).length} ${t.tracksN}`;
+    hue = pl.hue; title = plName(app.lang, pl); sub = t.nTracks(app.playlistTracks(c.id).length);
   } else return null;
   return (
     <div className="ctx-head">
@@ -175,7 +175,7 @@ const MENU_ITEMS = { track: TrackItems, album: AlbumItems, artist: ArtistItems, 
 // На компьютере — поповер у курсора, на телефоне — лист снизу.
 const ContextMenu = () => {
   const app = useApp();
-  const c = app.ctx;
+  const [c, out] = useExit(app.ctx);
   const [sub, setSub] = React.useState(null);
   const [pos, setPos] = React.useState(null);
   const ref = React.useRef(null);
@@ -200,7 +200,7 @@ const ContextMenu = () => {
     return () => window.removeEventListener("pointerdown", close, true);
   }, [c]);
   // Esc закрывает только меню: открытое из полного экрана, оно раньше сворачивало и его
-  useEscape(() => app.closeCtx(), !!c);
+  useEscape(() => app.closeCtx(), !!c && !out);
 
   if (!c) return null;
   if (c.kind === "playlist" && !app.findPl(c.id)) return null; // такого плейлиста уже нет
@@ -211,7 +211,7 @@ const ContextMenu = () => {
   // Телефон: то же меню, но листом снизу — с шапкой, крупными строками и смахиванием вниз
   if (app.phone) {
     return (
-      <div className="scrim fade-in ctx-scrim" onClick={() => { if (Date.now() - openedAt.current > 450) X(); }}>
+      <div className={"scrim ctx-scrim" + (out ? " is-out" : "")} onClick={() => { if (Date.now() - openedAt.current > 450) X(); }}>
         <div ref={ref} className="modal ctx-sheet" role="menu" onClick={(e) => e.stopPropagation()} onContextMenu={(e) => e.preventDefault()}>
           <SheetGrip onClose={X} />
           {sub !== "pl" && <CtxHead c={c} />}
@@ -222,7 +222,7 @@ const ContextMenu = () => {
   }
 
   return (
-    <div ref={ref} className="pop fade-in"
+    <div ref={ref} className={"pop" + (out ? " is-out" : "")}
       onMouseDown={(e) => e.stopPropagation()}
       onContextMenu={(e) => e.preventDefault()}
       style={{
@@ -235,7 +235,7 @@ const ContextMenu = () => {
 };
 
 // Поповер уведомлений (живёт под колокольчиком в топбаре)
-const BellPop = ({ close }) => {
+const BellPop = ({ close, out }) => {
   const app = useApp();
   const t = app.t;
   React.useEffect(() => {
@@ -250,7 +250,7 @@ const BellPop = ({ close }) => {
     { hue: 145, icon: "heart", title: t.notifThanks, sub: t.notifThanksSub(app.money), go: () => app.go("artist", "milk") },
   ];
   return (
-    <div className="pop fade-up bellpop" onMouseDown={(e) => e.stopPropagation()}
+    <div className={"pop bellpop" + (out ? " is-out" : "")} onMouseDown={(e) => e.stopPropagation()}
       style={{ top: "calc(100% + 10px)", right: 0, left: "auto", width: 330, padding: 8, zIndex: 70 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 10px 9px" }}>
         <span className="sec-label">{t.notifTitle}</span>
@@ -279,9 +279,12 @@ const BellPop = ({ close }) => {
 
 // Окно создания плейлиста (из сайдбара, медиатеки, плюсика, контекстного меню).
 // Монтируется заново при каждом открытии — имя пустое, цвет случайный
-const CreatePlaylistModal = () => (useApp().createPl ? <CreatePlaylistSheet /> : null);
+const CreatePlaylistModal = () => {
+  const [opts, out] = useExit(useApp().createPl);
+  return opts ? <CreatePlaylistSheet opts={opts} out={out} /> : null;
+};
 const PL_HUES = [55, 120, 250, 300, 170, 35];
-const CreatePlaylistSheet = () => {
+const CreatePlaylistSheet = ({ opts, out }) => {
   const app = useApp();
   const t = app.t;
   const [name, setName] = React.useState("");
@@ -289,12 +292,12 @@ const CreatePlaylistSheet = () => {
   const close = () => app.closeCreatePl();
   const create = () => {
     const nm = name.trim();
-    if (!nm) return;
-    app.createPlaylist(nm, app.createPl.thenAdd, hue);
+    if (!nm || out) return;
+    app.createPlaylist(nm, opts.thenAdd, hue);
     close();
   };
   return (
-    <Sheet close={close} width={420} label={t.newPlaylist} screen="Новый плейлист">
+    <Sheet close={close} out={out} width={420} label={t.newPlaylist} screen="Новый плейлист">
       <SheetHead title={t.newPlaylist} close={close} />
       <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 18 }}>
         <Cover hue={hue} size={64} radius={10} />

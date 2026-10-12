@@ -75,6 +75,31 @@ const useEscape = (close, active = true) => {
   }, [active]);
 };
 
+// Окно уходит не мгновенно: после закрытия (value стало пустым) оно ещё EXIT_MS на экране —
+// с классом is-out, на анимацию ухода (app.css). Возвращает [что показывать, уходит ли].
+// Держим последнее непустое значение: содержимое окна во время ухода не должно пропасть
+const EXIT_MS = 220; // = --t-2 в app.css
+const useExit = (value, ms = EXIT_MS) => {
+  const [kept, setKept] = React.useState(value);
+  React.useEffect(() => {
+    if (value) { setKept(value); return; }
+    const tm = setTimeout(() => setKept(null), window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : ms);
+    return () => clearTimeout(tm);
+  }, [value]);
+  return [value || kept, !value && !!kept];
+};
+// Ключ окна — свой у каждого открытия (у каждого объекта-цели): окно монтируется заново, и его
+// состояние («Спасибо», введённая сумма) не переживает закрытие — даже если открыть снова во время ухода
+const keyOf = (() => { const keys = new WeakMap(); let n = 0; return (o) => { if (!keys.has(o)) keys.set(o, ++n); return keys.get(o); }; })();
+
+// Место элемента без масштаба transform: нажатая кнопка сжата (:active), а окно или меню ставим по её
+// настоящему месту — иначе они съезжали на пиксель-другой. Масштаб — от центра, как у кнопок
+const boxOf = (el) => {
+  const r = el.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+  const left = r.left + (r.width - w) / 2, top = r.top + (r.height - h) / 2;
+  return { left, top, right: left + w, bottom: top + h, width: w, height: h };
+};
+
 // Поповер не должен вылезать за край окна: замеряем и сдвигаем
 const usePopClamp = () => {
   const ref = React.useRef(null);
@@ -176,6 +201,60 @@ const useLongPress = (onLong, ms = 450) => {
   };
 };
 
+// Перед жестом, который двигает элемент, доиграть его анимации до конца: идущая анимация появления
+// перебила бы transform от пальца. Не animation: none — инлайн-«none» потом не дал бы сыграть уходу
+const finishAnims = (el) => { if (el && el.getAnimations) el.getAnimations().forEach(a => a.finish()); };
+const shiftX = (el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).m41;
+// Палец отпустил элемент, и тот доезжает оставшиеся rest px: кривая стартует со скоростью пальца
+// v (px/мс) и мягко садится — без рывка в момент отпускания. Возвращает [мс, transition]
+const fling = (rest, v) => {
+  const sp = Math.abs(v), ms = Math.round(Math.min(420, Math.max(220, (2.2 * rest) / Math.max(sp, 0.5))));
+  return [ms, `transform ${ms}ms cubic-bezier(.3, ${Math.min(1, (0.3 * sp * ms) / Math.max(rest, 1)).toFixed(3)}, .3, 1)`];
+};
+
+// ---------- Лента треков ----------
+// Мини-плеер и обложка полного экрана листают треки одинаково: лента [предыдущий | текущий | следующий]
+// идёт за пальцем 1:1 — соседа видно сразу. Отпустили дальше трети шага или рывком — лента доезжает до
+// соседа (fling) и трек меняется; иначе мягко возвращается. Соседа нет — тянется втрое туже.
+// near — { prev, next } (nearTracks), step — шаг ленты в px (слот с зазором)
+const stripDrag = (el, x, near) => {
+  el.style.transition = "none";
+  el.style.transform = `translateX(${(x < 0 ? near.next : near.prev) ? x : x / 3}px)`;
+};
+const stripBack = (el) => { el.style.transition = "transform var(--t-3) var(--ease)"; el.style.transform = ""; };
+// v — скорость пальца в конце жеста (px/мс); onStep(1) — следующий, onStep(-1) — предыдущий
+const stripRelease = (el, x, v, step, near, onStep) => {
+  const dir = x < 0 ? 1 : -1;
+  const go = !!(dir > 0 ? near.next : near.prev) && (Math.abs(x) > step / 3 || (Math.abs(v) > 0.35 && Math.sign(v) === Math.sign(x)));
+  if (!go) { stripBack(el); return; }
+  const [ms, tr] = fling(step - Math.abs(x), v);
+  el.style.transition = tr;
+  el.style.transform = `translateX(${-dir * step}px)`;
+  el.dataset.swiped = "1";
+  buzz(8);
+  setTimeout(() => onStep(dir), ms);
+};
+// После смены трека лента встаёт на место. Свайпом — она уже на соседе: просто без перехода.
+// Кнопкой или сама (трек доиграл) — новый трек доезжает с нужной стороны: следующий справа,
+// предыдущий слева; не сосед (включили из списка) — проявляется. step — функция: ширину меряем в момент смены
+const useStripSync = (ref, id, near, step) => {
+  const last = React.useRef(null);
+  React.useLayoutEffect(() => { // на каждом рендере: соседи могут поменяться и без смены трека
+    const el = ref.current, was = last.current;
+    last.current = { id, near };
+    if (!el || !was || was.id === id) return;
+    const swiped = !!el.dataset.swiped;
+    const from = swiped ? 0 : id === was.near.next ? 1 : id === was.near.prev ? -1 : 0;
+    delete el.dataset.swiped;
+    el.style.transition = "none";
+    el.style.transform = from ? `translateX(${from * step()}px)` : "";
+    el.classList.remove("fade-in");
+    el.getBoundingClientRect(); // применить начальное положение, иначе переход не сыграет
+    if (from) { el.style.transition = "transform var(--t-3) var(--ease)"; el.style.transform = ""; }
+    else if (!swiped) el.classList.add("fade-in");
+  });
+};
+
 // ---------- Мок-база ----------
 // Трек вместе с его релизом и артистом
 const trackInfo = (id) => {
@@ -274,7 +353,8 @@ const cleanSettings = (s, base = DEFAULT_SETTINGS) => {
 
 Object.assign(window, {
   AppCtx, useApp, createProgress, useProgress, ErrorBoundary, PHONE_Q, useMedia,
-  useEscape, usePopClamp, useWidth, useFitScale, HOLD_MS, SLOP, buzz, isTouchUI, useLongPress,
+  useEscape, EXIT_MS, useExit, keyOf, boxOf, usePopClamp, useWidth, useFitScale, HOLD_MS, SLOP, buzz, isTouchUI, useLongPress,
+  finishAnims, shiftX, fling, stripDrag, stripBack, stripRelease, useStripSync,
   trackInfo, trackSec, minutesOf, albumIds, artistAlbums, topTracks, plName,
   makeMoney, amountText, AMOUNT_MAX, cleanAmount, parseAmount, splitNow, shareOf, copyText, DEFAULT_SETTINGS, cleanSettings,
 });

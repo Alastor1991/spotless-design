@@ -5,13 +5,13 @@
 // Поповер рендерится в body (портал) с fixed-позицией от кнопки: внутри прокручиваемой страницы
 // его обрезал край .main и перекрывала липкая шапка — на странице альбома верхний плейлист
 // было не нажать. Монтируется только при открытии, поэтому замер позиции — в правильный момент.
-const PlusPop = ({ ids, inPls, anchor, close }) => {
+const PlusPop = ({ ids, inPls, anchor, out, close }) => {
   const app = useApp();
   const ref = React.useRef(null);
   const [pos, setPos] = React.useState(null);
   React.useLayoutEffect(() => {
     if (!ref.current || !anchor.current) return;
-    const a = anchor.current.getBoundingClientRect();
+    const a = boxOf(anchor.current);
     const p = ref.current.getBoundingClientRect();
     const left = Math.max(10, Math.min(window.innerWidth - 10 - p.width, a.left + a.width / 2 - p.width / 2));
     let top = a.top - p.height - 10;                                    // над кнопкой,
@@ -34,11 +34,11 @@ const PlusPop = ({ ids, inPls, anchor, close }) => {
     window.addEventListener("scroll", scroll, true);
     return () => { window.removeEventListener("pointerdown", outside, true); window.removeEventListener("scroll", scroll, true); };
   }, []);
-  useEscape(close);
+  useEscape(close, !out);
   // Граница событий: портал всплывает по дереву React к строке трека и жестам плеера — не пускаем
   const wall = (e) => e.stopPropagation();
   return ReactDOM.createPortal(
-    <div ref={ref} className="pop fade-up"
+    <div ref={ref} className={"pop" + (out ? " is-out" : "")}
       onPointerDown={wall} onPointerMove={wall} onPointerUp={wall} onMouseDown={wall} onTouchStart={wall}
       onClick={wall} onDoubleClick={wall} onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
       style={{ position: "fixed", left: pos ? pos.left : -9999, top: pos ? pos.top : -9999, width: 240, padding: 6, zIndex: 300 }}>
@@ -73,6 +73,7 @@ const PlusPop = ({ ids, inPls, anchor, close }) => {
 const PlusButton = ({ trackId, trackIds, size = 30, className = "" }) => {
   const app = useApp();
   const [open, setOpen] = React.useState(false);
+  const [pop, popOut] = useExit(open);
   const btnRef = React.useRef(null);
   const ids = trackIds || [trackId];
   const inPls = app.playlistsWithAll(ids);
@@ -83,7 +84,7 @@ const PlusButton = ({ trackId, trackIds, size = 30, className = "" }) => {
         onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}>
         <Ic d={inPls.length ? ICONS.check : ICONS.plus} size={size * 0.53} sw={2} />
       </button>
-      {open && <PlusPop ids={ids} inPls={inPls} anchor={btnRef} close={() => setOpen(false)} />}
+      {pop && <PlusPop ids={ids} inPls={inPls} anchor={btnRef} out={popOut} close={() => setOpen(false)} />}
     </span>
   );
 };
@@ -138,8 +139,9 @@ const DLButton = ({ trackId, albumId, listIds, size = 42, className = "" }) => {
       )}
       {state === "done" && (
         <svg width={s} height={s} viewBox="0 0 24 24" style={{ display: "block" }}>
+          {/* Скачано — круг со стрелкой, а не вторая галочка: галочка у плюсика значит «в плейлисте» */}
           <circle cx="12" cy="12" r="9.5" fill="var(--acc)"></circle>
-          <path d="M8 12.5l2.8 2.8L16 9.5" stroke="var(--acc-ink)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"></path>
+          <path d="M12 7.4v8.4M8.6 12.4L12 15.8l3.4-3.4" stroke="var(--acc-ink)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"></path>
         </svg>
       )}
     </button>
@@ -182,7 +184,7 @@ const TrackRow = ({ trackId, num, showPlays = false, plId, qIndex, noCover = fal
         <DonateButton target={{ kind: "track", id: trackId }} className="no-phone" />
         <button className="iconbtn only-phone" style={{ width: 36, height: 36 }} aria-label={app.t.more}
           onClick={(e) => { e.stopPropagation(); app.openCtxAt(e.currentTarget, payload); }}>
-          <Ic d={ICONS.more} size={18} sw={3.4} />
+          <Ic d={ICONS.more} size={18} fill="currentColor" />
         </button>
       </div>
       <span className="dur">{tr.dur.padStart(5, "0")}</span>

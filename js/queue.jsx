@@ -80,7 +80,7 @@ const NowPanel = () => {
 
       {tab === "now" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <button onClick={() => app.setFull(true)} aria-label={t.openFull} style={{ display: "block" }}>
+          <button key={tr.id} className="fade-in" onClick={() => app.setFull(true)} aria-label={t.openFull} style={{ display: "block" }}>
             <Cover art={al.id} hue={al.hue} size="100%" radius={22} style={{ width: "100%", height: "auto", aspectRatio: "1" }} />
           </button>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
@@ -112,6 +112,16 @@ const upNext = (queue, current) => {
   const all = queue.map((id, i) => ({ id, i }));
   const k = queue.indexOf(current);
   return (k < 0 ? all : [...all.slice(k + 1), ...all.slice(0, k)]).filter(x => x.id !== current);
+};
+
+// Соседи трека — те, на которые переключат «Предыдущий» и «Следующий» (usePlayer): очередь по кругу;
+// трека нет в очереди — следующий её начало, а предыдущего нет (кнопка начнёт трек заново).
+// Тот же трек (он в очереди один) — не сосед. По соседям листает лента треков (stripDrag в core.jsx)
+const nearTracks = (queue, current) => {
+  const i = queue.indexOf(current), n = queue.length;
+  const next = n ? queue[(i + 1) % n] : null;
+  const prev = i < 0 ? null : queue[(i - 1 + n) % n];
+  return { prev: prev === current ? null : prev, next: next === current ? null : next };
 };
 
 // Очередь с перетаскиванием и удалением
@@ -172,4 +182,4 @@ const QueueRow = ({ id, active, qIndex }) => {
   );
 };
 
-Object.assign(window, { NowPanel, NextUpCard, AboutArtistCard, upNext, QueueList, QueueRow });
+Object.assign(window, { NowPanel, NextUpCard, AboutArtistCard, upNext, nearTracks, QueueList, QueueRow });
