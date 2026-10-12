@@ -48,8 +48,24 @@
 <script type="text/babel" src="js/shell.jsx"></script>
 <script type="text/babel" src="js/app.jsx"></script>
 <script>
-  // Файлы выше Babel скачает только после разбора страницы — успеваем дописать к адресам версию
-  document.querySelectorAll('script[type="text/babel"][src]').forEach(function (s) { s.src = s.getAttribute("src") + "?v=" + SPOTLESS_V; });
+  // Файлы выше Babel скачивает сам (XMLHttpRequest) после разбора страницы и успехом считает только
+  // ответ 200: файл с ответом 304 (Firefox так отвечает при перепроверке кэша) он молча пропускал,
+  // запускал остальные — и приложение падало на «… is not defined». Поэтому адрес у них новый при
+  // каждом открытии: перепроверять нечего, 304 не бывает. Стили и данные грузит браузер — им хватает версии
+  document.querySelectorAll('script[type="text/babel"][src]').forEach(function (s) { s.src = s.getAttribute("src") + "?v=" + SPOTLESS_V + "-" + Date.now(); });
+  // Если файл всё же не пришёл (сбой сети), Babel запускает остальные без него: в консоли «Could not load …»
+  // или «… is not defined». Пока приложение не открылось, лечим одной перезагрузкой — не чаще раза
+  // в 30 секунд, чтобы не уйти в круг. Ошибки в уже открытом приложении сюда не относятся
+  window.addEventListener("error", function (e) {
+    if (document.querySelector(".shell, .ob:not([role=alert])")) return;
+    if (!/Could not load|is not defined|Can't find variable/.test(e.message || "")) return;
+    try {
+      var last = +(sessionStorage.getItem("spotless_retry") || 0);
+      if (Date.now() - last < 30000) return;
+      sessionStorage.setItem("spotless_retry", String(Date.now()));
+    } catch (err) { return; }
+    location.reload();
+  });
 </script>
 </body>
 </html>
