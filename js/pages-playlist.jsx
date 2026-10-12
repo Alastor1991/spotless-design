@@ -41,19 +41,19 @@ const PagePlaylist = ({ id }) => {
           </div>
           <h1 style={{ fontSize: "clamp(30px, 5cqi, 52px)", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.02, marginBottom: 14, textWrap: "balance" }}>{name}</h1>
           <div style={{ fontSize: 14, color: "var(--mut)" }}>
-            {ids.length} {t.tracksN}{ids.length > 0 ? ` · ${minutesOf(ids)} ${t.min}` : ""}
+            {ids.length} {t.tracksN(ids.length)}{ids.length > 0 ? ` · ${minutesOf(ids)} ${t.min}` : ""}
           </div>
         </div>
       </header>
 
       <div className="actions">
-        <button className="playbig" aria-label={t.play} onClick={() => app.playContext(ids)} style={{ opacity: ids.length ? 1 : 0.4 }}>
-          <Ic d={ICONS.play} size={24} fill="currentColor" />
+        <button className="playbig" aria-label={t.play} disabled={!ids.length} onClick={() => app.playContext(ids)} style={{ opacity: ids.length ? 1 : 0.4 }}>
+          <Ic d={ICONS.play} size={22} fill="currentColor" />
         </button>
-        <span style={{ display: "inline-flex" }}><ShuffleBtn size={42} icon={19} /></span>
-        {ids.length > 0 && <DLButton size={42} listIds={ids} />}
-        <ShareBtn size={42} className="iconbtn" />
-        <MoreBtn size={42} className="iconbtn" ctx={{ kind: "playlist", id }} />
+        <span className="iconbtn ring" style={{ width: 48, height: 48, padding: 0 }}><ShuffleBtn size={48} icon={19} /></span>
+        {ids.length > 0 && <DLButton size={48} listIds={ids} className="ring" />}
+        <ShareBtn className="iconbtn ring no-phone" />
+        <MoreBtn ctx={{ kind: "playlist", id }} />
       </div>
 
       {ids.length === 0 ? (
@@ -92,17 +92,17 @@ const PageLiked = () => {
         <div style={{ minWidth: 0, paddingBottom: 4 }}>
           <div className="sec-label" style={{ marginBottom: 10 }}>{t.plLabel} · Лиза</div>
           <h1 style={{ fontSize: "clamp(30px, 5cqi, 52px)", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.02, marginBottom: 14 }}>{t.likedTracks}</h1>
-          <div style={{ fontSize: 14, color: "var(--mut)" }}>{ids.length} {t.tracksN} · {minutesOf(ids)} {t.min}</div>
+          <div style={{ fontSize: 14, color: "var(--mut)" }}>{ids.length} {t.tracksN(ids.length)} · {minutesOf(ids)} {t.min}</div>
         </div>
       </header>
 
       <div className="actions">
         <button className="playbig" aria-label={t.play} onClick={() => app.playContext(ids)}>
-          <Ic d={ICONS.play} size={24} fill="currentColor" />
+          <Ic d={ICONS.play} size={22} fill="currentColor" />
         </button>
-        <span style={{ display: "inline-flex" }}><ShuffleBtn size={42} icon={19} /></span>
-        <DLButton size={42} listIds={ids} />
-        <ShareBtn size={42} className="iconbtn" />
+        <span className="iconbtn ring" style={{ width: 48, height: 48, padding: 0 }}><ShuffleBtn size={48} icon={19} /></span>
+        <DLButton size={48} listIds={ids} className="ring" />
+        <ShareBtn />
       </div>
 
       <TrackHead />
@@ -128,7 +128,7 @@ const showAllCards = (app, id) => {
   const [key, arg] = (id || "").split(":");
   const release = (al) => albumCard(app, al, `${t[al.type]} · ${DB.artists[al.artist].name}`);
   if (key === "recent") return [t.recent, RECENT_ALL.map(r => {
-    if (r.kind === "playlist") { const pl = DB.findPlaylist(r.id); return playlistCard(app, pl, `${app.playlistTracks(pl.id).length} ${t.tracksN}`); }
+    if (r.kind === "playlist") { const pl = DB.findPlaylist(r.id); return playlistCard(app, pl, t.nTracks(app.playlistTracks(pl.id).length)); }
     if (r.kind === "artist") return artistCard(app, DB.artists[r.id], t.artist);
     return release(DB.albums[r.id]);
   })];

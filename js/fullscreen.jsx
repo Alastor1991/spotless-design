@@ -5,7 +5,7 @@ const CoverToggle = ({ glyph, setGlyph, h, bg }) => {
   const app = useApp();
   const opt = (on, label, pick) => (
     <button role="radio" aria-checked={on} className="mono" onClick={pick} style={{
-      height: h, padding: "0 14px", borderRadius: h / 2, fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase",
+      height: h, padding: "0 14px", borderRadius: h / 2, fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", transition: "background var(--t-2) var(--ease), color var(--t-2) var(--ease)",
       background: on ? "var(--acc)" : "transparent", color: on ? "var(--acc-ink)" : "var(--mut)",
     }}>{label}</button>
   );
@@ -46,7 +46,7 @@ const FsHeader = ({ tr, al }) => {
       </button>
       <button className="iconbtn ring" style={{ width: 44, height: 44, background: "var(--bg0)" }} aria-label={t.more}
         onClick={(e) => app.openCtxAt(e.currentTarget, { kind: "track", id: tr.id })}>
-        <Ic d={ICONS.more} size={20} sw={3.4} />
+        <Ic d={ICONS.more} size={20} fill="currentColor" />
       </button>
     </div>
   );
@@ -120,7 +120,7 @@ const FsControls = ({ tr, showLyrics }) => {
 };
 
 // Полноэкранный режим: обложка, название, караоке-текст, точечный таймкод
-const FullScreen = () => {
+const FullScreen = ({ out }) => {
   const app = useApp();
   const pct = useProgress();
   const t = app.t;
@@ -137,7 +137,7 @@ const FullScreen = () => {
   }, []);
 
   return (
-    <div className="fade-in fs" data-screen-label="Полный экран плеера" role="dialog" aria-label={t.nowPlaying} style={{
+    <div className={"fs" + (out ? " is-out" : "")} data-screen-label="Полный экран плеера" role="dialog" aria-label={t.nowPlaying} style={{
       position: "fixed", inset: 0, zIndex: 90,
       background: "radial-gradient(circle, var(--bg2) 0 1.2px, transparent 1.6px) 0 0 / 18px 18px, var(--bg0)",
       display: "flex", flexDirection: "column", padding: "26px 44px 30px", gap: 18,
@@ -148,12 +148,12 @@ const FullScreen = () => {
           медиа-правила, и на узком окне обложка не пряталась */}
       <div className={"fs-grid" + (showLyrics ? " with-lyrics" : "")}>
         <div className="fs-side">
-          <Cover art={al.id} hue={al.hue} glyph={glyph} radius={28} size="var(--fs-cover)" style={{ "--gp": "10px", "--gr": "3.4px" }} />
+          <div key={tr.id} className="fade-in"><Cover art={al.id} hue={al.hue} glyph={glyph} radius={28} size="var(--fs-cover)" style={{ "--gp": "10px", "--gr": "3.4px" }} /></div>
           <CoverToggle glyph={glyph} setGlyph={setGlyph} h={30} bg="var(--bg0)" />
         </div>
 
         <div className="fs-info">
-          <h1 style={{ fontSize: "clamp(38px, 5.6vw, 80px)", lineHeight: 0.95, marginBottom: 12 }}>{tr.t}</h1>
+          <h1 key={tr.id} className="fade-in" style={{ fontSize: "clamp(38px, 5.6vw, 80px)", lineHeight: 0.95, marginBottom: 12 }}>{tr.t}</h1>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 6 }}>
             <button style={{ fontSize: 19, color: "var(--text)", opacity: 0.86 }} onClick={() => { app.setFull(false); app.go("artist", ar.id); }}>{ar.name}</button>
             <button className="mono" onClick={() => app.toggleFollow(ar.id)} style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", padding: "6px 10px", borderRadius: 99, boxShadow: "inset 0 0 0 1px var(--bg3)", color: "var(--mut)" }}>
@@ -177,45 +177,57 @@ const FullScreen = () => {
 };
 
 // Жесты полного экрана на телефоне: тянуть вниз — экран едет за пальцем и сворачивается;
-// вбок по обложке — соседний трек (onSwipe(1) — следующий, onSwipe(-1) — предыдущий).
-// Кнопки, полосы и прокручиваемые списки — не наша зона.
-const useFullScreenGestures = ({ rootRef, coverRef, coverShown, onClose, onSwipe }) => {
+// вбок по обложке — лента обложек (stripDrag, core.jsx). Кнопки, полосы и прокручиваемые списки — не наша зона.
+const useFullScreenGestures = ({ rootRef, stripRef, near, step, coverShown, onClose, onStep }) => {
   const g = React.useRef(null);
   const onDown = (e) => {
     if (e.target.closest("button, input, .dotbar.seek, .fsp-scroll, [role=slider]")) return;
-    g.current = { x: e.clientX, y: e.clientY, t: Date.now(), dx: 0, dy: 0, axis: null, onCover: !!e.target.closest(".fsp-stage") && coverShown };
+    const strip = coverShown ? stripRef.current : null;
+    if (strip && strip.dataset.swiped) return;
+    g.current = { x: e.clientX, y: e.clientY, t: e.timeStamp, dx: 0, dy: 0, v: 0, axis: null,
+      onCover: !!strip && !!e.target.closest(".fsp-stage"), base: strip ? shiftX(strip) : 0 };
   };
   const onMove = (e) => {
     const s = g.current; if (!s) return;
-    s.dx = e.clientX - s.x; s.dy = e.clientY - s.y;
-    if (!s.axis && Math.hypot(s.dx, s.dy) > 8) s.axis = Math.abs(s.dy) > Math.abs(s.dx) ? "v" : (s.onCover ? "h" : null);
-    if (s.axis === "v" && rootRef.current) {
+    const dx = e.clientX - s.x, dy = e.clientY - s.y;
+    if (!s.axis && Math.hypot(dx, dy) > SLOP) {
+      s.axis = Math.abs(dy) > Math.abs(dx) ? "v" : (s.onCover ? "h" : null);
+      if (s.axis === "v") finishAnims(rootRef.current); // экран мог ещё выезжать
+    }
+    // Скорость — по последним движениям: важно, с какой скоростью палец отпустил, а не средняя
+    s.v = 0.8 * ((s.axis === "h" ? dx - s.dx : dy - s.dy) / Math.max(1, e.timeStamp - s.t)) + 0.2 * s.v;
+    if (s.axis === "v") {
       const el = rootRef.current;
       el.style.transition = "none";
-      el.style.transform = `translateY(${Math.max(0, s.dy)}px)`;
-      el.style.borderRadius = s.dy > 0 ? "28px 28px 0 0" : "";
+      el.style.transform = `translateY(${Math.max(0, dy)}px)`;
+      el.style.borderRadius = dy > 0 ? "28px 28px 0 0" : "";
     }
-    if (s.axis === "h" && coverRef.current) {
-      coverRef.current.style.transition = "none";
-      coverRef.current.style.transform = `translateX(${s.dx * 0.6}px) rotate(${s.dx * 0.02}deg)`;
-    }
+    if (s.axis === "h") stripDrag(stripRef.current, s.base + dx, near);
+    s.dx = dx; s.dy = dy; s.t = e.timeStamp;
   };
   const onUp = () => {
     const s = g.current; g.current = null; if (!s) return;
-    const v = s.dy / Math.max(1, Date.now() - s.t);
-    if (s.axis === "v" && rootRef.current) {
+    if (s.axis === "v") {
       const el = rootRef.current;
-      el.style.transition = "transform .24s cubic-bezier(.2,.8,.2,1), border-radius .24s";
-      if (s.dy > 140 || v > 0.7) { el.style.transform = "translateY(100%)"; buzz(8); setTimeout(onClose, 210); }
-      else { el.style.transform = ""; el.style.borderRadius = ""; }
+      if (s.dy > 140 || s.v > 0.6) {
+        const [ms, tr] = fling(el.offsetHeight - s.dy, s.v);
+        el.style.transition = tr;
+        el.style.transform = "translateY(100%)";
+        buzz(8); setTimeout(onClose, ms);
+      } else {
+        el.style.transition = "transform var(--t-settle) var(--ease-settle), border-radius var(--t-settle) var(--ease)";
+        el.style.transform = ""; el.style.borderRadius = "";
+      }
     }
-    if (s.axis === "h" && coverRef.current) {
-      coverRef.current.style.transition = "transform .22s cubic-bezier(.2,.8,.2,1)";
-      coverRef.current.style.transform = "";
-      if (Math.abs(s.dx) > 70) { buzz(8); onSwipe(s.dx < 0 ? 1 : -1); }
-    }
+    if (s.axis === "h") stripRelease(stripRef.current, s.base + s.dx, s.v, step(), near, onStep);
   };
-  return { onPointerDown: onDown, onPointerMove: onMove, onPointerUp: onUp, onPointerCancel: onUp };
+  // Жест отняла система — экран и лента возвращаются на место
+  const onCancel = () => {
+    const s = g.current; g.current = null; if (!s) return;
+    if (s.axis === "v") { const el = rootRef.current; el.style.transition = "transform var(--t-settle) var(--ease-settle)"; el.style.transform = ""; el.style.borderRadius = ""; }
+    if (s.axis === "h") stripBack(stripRef.current);
+  };
+  return { onPointerDown: onDown, onPointerMove: onMove, onPointerUp: onUp, onPointerCancel: onCancel };
 };
 
 // Верх полного экрана на телефоне: «Свернуть», релиз (ссылкой), «Ещё»
@@ -229,7 +241,7 @@ const FspHeader = ({ tr, al }) => {
         <span className="mlabel" style={{ fontSize: 9 }}>{t[al.type]} · {al.year}</span>
         <span style={{ fontSize: 13, fontWeight: 500, maxWidth: "52vw", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{al.title}</span>
       </button>
-      <button className="iconbtn ring" style={{ width: 44, height: 44 }} aria-label={t.more} onClick={(e) => app.openCtxAt(e.currentTarget, { kind: "track", id: tr.id })}><Ic d={ICONS.more} size={18} sw={3.4} /></button>
+      <button className="iconbtn ring" style={{ width: 44, height: 44 }} aria-label={t.more} onClick={(e) => app.openCtxAt(e.currentTarget, { kind: "track", id: tr.id })}><Ic d={ICONS.more} size={18} fill="currentColor" /></button>
     </div>
   );
 };
@@ -268,7 +280,7 @@ const FspActions = ({ tr, view, toggle }) => {
 
 // Полный экран на телефоне: обложка (по умолчанию — точечной матрицей), точечный таймкод,
 // текст и очередь открываются на месте обложки
-const FullScreenPhone = () => {
+const FullScreenPhone = ({ out }) => {
   const app = useApp();
   const pct = useProgress();
   const t = app.t;
@@ -283,18 +295,26 @@ const FullScreenPhone = () => {
   const toggle = (v) => setView(view === v ? "cover" : v);
 
   const rootRef = React.useRef(null);
-  const coverRef = React.useRef(null);
-  // С какой стороны въезжает новая обложка после свайпа
-  const [dir, setDir] = React.useState(0);
+  // Лента обложек: соседние треки по бокам, листается пальцем и кнопками (useStripSync)
+  const stripRef = React.useRef(null);
+  const near = nearTracks(app.queue, tr.id);
+  const step = () => stripRef.current.closest(".fsp-stage").clientWidth + 24; // шаг — сцена и зазор, как в app.css (.fsp-slot)
+  useStripSync(stripRef, tr.id, near, step);
   const gestures = useFullScreenGestures({
-    rootRef, coverRef, coverShown: view === "cover",
+    rootRef, stripRef, near, step, coverShown: view === "cover",
     onClose: () => app.setFull(false),
-    onSwipe: (d) => { setDir(d); d > 0 ? app.nextTrack() : app.prevTrack(); },
+    onStep: (d) => (d > 0 ? app.nextTrack() : app.prevTrack()),
   });
+  const cover = (key, id, i) => id && (
+    <div key={key} className={"fsp-slot" + (i ? " is-side" : "")} style={i ? { "--i": i } : undefined}>
+      <Cover art={DB.trackIndex[id].album} hue={DB.albums[DB.trackIndex[id].album].hue} glyph={glyph} radius={28}
+        size="max(120px, min(100cqw, 100cqh - 52px))" style={{ "--gp": "9px", "--gr": "3px" }} />
+    </div>
+  );
   // Едва заметное свечение цветом обложки поверх точечной сетки
   const glow = `radial-gradient(120% 55% at 50% 18%, color-mix(in oklab, oklch(0.62 0.12 ${al.hue}) 16%, transparent), transparent 72%), radial-gradient(circle, var(--bg2) 0 1.1px, transparent 1.5px) 0 0 / 16px 16px, var(--bg0)`;
   return (
-    <div ref={rootRef} className="fade-in fsp" role="dialog" aria-label={t.nowPlaying} data-screen-label="Полный экран (телефон)"
+    <div ref={rootRef} className={"fsp" + (out ? " is-out" : "")} role="dialog" aria-label={t.nowPlaying} data-screen-label="Полный экран (телефон)"
       style={{ background: glow }} {...gestures}>
       <span className="fsp-handle" aria-hidden="true"></span>
       <FspHeader tr={tr} al={al} />
@@ -304,11 +324,7 @@ const FullScreenPhone = () => {
       <div className="fsp-stage">
         {view === "cover" && (
           <React.Fragment>
-            <div ref={coverRef} style={{ display: "flex", justifyContent: "center" }}>
-              <div key={tr.id} className={"fsp-cover" + (dir > 0 ? " from-r" : dir < 0 ? " from-l" : "")}>
-                <Cover art={al.id} hue={al.hue} glyph={glyph} radius={28} size="max(120px, min(100cqw, 100cqh - 52px))" style={{ "--gp": "9px", "--gr": "3px" }} />
-              </div>
-            </div>
+            <div ref={stripRef} className="fsp-strip">{cover("prev", near.prev, -1)}{cover("cur", tr.id, 0)}{cover("next", near.next, 1)}</div>
             <CoverToggle glyph={glyph} setGlyph={setGlyph} h={32} />
           </React.Fragment>
         )}
@@ -318,15 +334,19 @@ const FullScreenPhone = () => {
         )}
       </div>
 
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 12 }}>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <Marquee key={tr.id} style={{ fontSize: "clamp(22px, 7vw, 28px)", fontWeight: 300, letterSpacing: "-0.045em", lineHeight: 1.15 }}>{tr.t}</Marquee>
-          <button style={{ fontSize: 15, color: "var(--mut)", marginTop: 6 }} onClick={() => { app.setFull(false); app.go("artist", ar.id); }}>{ar.name}</button>
+      {/* Название — во всю ширину: рядом с оценкой от него оставалась половина («Стеклянная в…») */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <div key={tr.id} className="fade-in" style={{ minWidth: 0 }}>
+          <Marquee style={{ fontSize: "clamp(22px, 7vw, 28px)", fontWeight: 300, letterSpacing: "-0.045em", lineHeight: 1.15 }}>{tr.t}</Marquee>
         </div>
-        <span className="fsp-like" style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 44, padding: "0 14px 0 2px", borderRadius: 22, boxShadow: "inset 0 0 0 1px var(--bg3)", flexShrink: 0 }}>
-          <LikeButton trackId={tr.id} always={true} size={40} />
-          <RateScale value={st.rating} variant="inline" showValue={true} onCommit={(n) => app.setRating(tr.id, n)} />
-        </span>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <button key={ar.id} className="fade-in" style={{ fontSize: 15, color: "var(--mut)", minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+            onClick={() => { app.setFull(false); app.go("artist", ar.id); }}>{ar.name}</button>
+          <span className="fsp-like" style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 44, padding: "0 14px 0 2px", borderRadius: 22, boxShadow: "inset 0 0 0 1px var(--bg3)", flexShrink: 0 }}>
+            <LikeButton trackId={tr.id} always={true} size={40} />
+            <RateScale value={st.rating} variant="inline" showValue={true} onCommit={(n) => app.setRating(tr.id, n)} />
+          </span>
+        </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

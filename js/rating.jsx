@@ -69,6 +69,7 @@ const LikeButton = ({ trackId, size = 30, always = false }) => {
   const btnRef = React.useRef(null);
   const scaleRef = React.useRef(null);
   const [open, setOpen] = React.useState(false);
+  const [pop, popOut] = useExit(open);
   const [draft, setDraft] = React.useState(null);
   const [justLiked, setJustLiked] = React.useState(false);
   // Жест: press → (отпустил быстро) тап | (держит HOLD_MS) armed → (сдвинул > SLOP) scrub → отпустил = оценка
@@ -135,22 +136,28 @@ const LikeButton = ({ trackId, size = 30, always = false }) => {
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
         onContextMenu={(e) => e.preventDefault()}
         onClick={(e) => e.stopPropagation()}
-        onAnimationEnd={() => setJustLiked(false)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tap(); }
           if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); setOpen(true); }
         }}
       >
-        <Ic d={neg ? ICONS.heartOff : ICONS.heart} size={size * 0.56} fill={!neg && lit ? "currentColor" : "none"} sw={1.8} />
+        <Ic d={neg ? ICONS.heartOff : ICONS.heart} size={size * 0.56} fill={!neg && lit ? "currentColor" : "none"} />
       </button>
+      {/* Разлёт точек (app.css). just-liked снимается по его концу: он дольше подпрыгивания сердца,
+          а подпрыгивание в «Уменьшить движение» выключено совсем — его конца не дождаться */}
+      {justLiked && (
+        <span className="like-burst" aria-hidden="true" style={{ fontSize: size * 0.56 }} onAnimationEnd={() => setJustLiked(false)}>
+          {[0, 1, 2, 3, 4, 5, 6, 7].map(k => <i key={k} style={{ "--a": k * 45 + "deg" }}></i>)}
+        </span>
+      )}
       {showNum && (
         <span className="rate-n mono" style={{
           position: "absolute", top: -2, right: -4, fontSize: 10, fontWeight: 500,
           color: neg ? "var(--bad)" : "var(--text)", pointerEvents: "none",
         }}>{st.rating}</span>
       )}
-      {open && (
-        <RatingPop trackId={trackId} anchor={btnRef} scaleRef={scaleRef} draft={draft}
+      {pop && (
+        <RatingPop trackId={trackId} anchor={btnRef} scaleRef={scaleRef} draft={draft} out={popOut}
           onCommit={commit}
           onClear={() => { app.setRating(trackId, null); setOpen(false); }}
           close={() => { setDraft(null); setOpen(false); }} />
@@ -162,7 +169,7 @@ const LikeButton = ({ trackId, size = 30, always = false }) => {
 // Окно оценки. Позиционируется от кнопки, рендерится в body. Закрывается тапом мимо,
 // чёрточкой сверху (тап или смахнуть) и Esc. Крупная цифра показывает значение на ходу:
 // при ведении от сердечка (draft) и при ведении/наведении по самой шкале (preview).
-const RatingPop = ({ trackId, anchor, scaleRef, draft, onCommit, onClear, close }) => {
+const RatingPop = ({ trackId, anchor, scaleRef, draft, out, onCommit, onClear, close }) => {
   const app = useApp();
   const st = app.trackState(trackId);
   const [pos, setPos] = React.useState(null);
@@ -172,7 +179,7 @@ const RatingPop = ({ trackId, anchor, scaleRef, draft, onCommit, onClear, close 
 
   React.useLayoutEffect(() => {
     if (!popRef.current || !anchor.current) return;
-    const a = anchor.current.getBoundingClientRect();
+    const a = boxOf(anchor.current);
     const p = popRef.current.getBoundingClientRect();
     const left = Math.max(10, Math.min(window.innerWidth - 10 - p.width, a.left + a.width / 2 - p.width / 2));
     let top = a.top - p.height - 12;
@@ -188,12 +195,12 @@ const RatingPop = ({ trackId, anchor, scaleRef, draft, onCommit, onClear, close 
     window.addEventListener("pointerdown", outside, true); // перехват: многие элементы гасят всплытие
     return () => window.removeEventListener("pointerdown", outside, true);
   }, []);
-  useEscape(close); // Esc закрывает только окно, полный экран под ним остаётся
+  useEscape(close, !out); // Esc закрывает только окно, полный экран под ним остаётся
 
   // Граница событий: портал всплывает по дереву React к родителям сердечка — не пускаем
   const wall = (e) => e.stopPropagation();
   return ReactDOM.createPortal(
-    <div ref={popRef} className="pop fade-up ratepop" role="dialog" aria-label={app.t.yourRating}
+    <div ref={popRef} className={"pop ratepop" + (out ? " is-out" : "")} role="dialog" aria-label={app.t.yourRating}
       onPointerDown={wall} onPointerMove={wall} onPointerUp={wall} onClick={wall} onContextMenu={(e) => e.preventDefault()}
       style={{ position: "fixed", left: pos ? pos.left : -9999, top: pos ? pos.top : -9999, zIndex: 300 }}>
       <button className="ratepop-grip" aria-label={app.t.close}

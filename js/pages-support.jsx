@@ -103,7 +103,7 @@ const BalanceWidget = () => {
           <span style={{ fontSize: 32 * k, color: "var(--mut2)" }}>{sep}{cents}</span>
         </span>
       </span>
-      <button className="btn" onClick={() => app.openTopUp()}><Ic d={ICONS.plus} size={15} sw={2} />{t.supTopUp}</button>
+      <button className="btn" onClick={() => app.openTopUp()}><Ic d={ICONS.plus} size={15} />{t.supTopUp}</button>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
         {[[t.tuCard, "Apple Pay, Google Pay"], [t.tuWallet, t.tuNetwork]].map(([a, b], i) => (
           <button key={i} onClick={() => app.openTopUp()} style={{ padding: "10px 12px", borderRadius: 14, boxShadow: "inset 0 0 0 1px var(--line)", textAlign: "left", display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "var(--mut)" }}>
@@ -240,10 +240,10 @@ const PageSupport = () => {
 // ---------- Окно доната ----------
 // Окно монтируется заново при каждом открытии: раньше его состояние жило между открытиями,
 // и на долю секунды мелькало «Спасибо» от прошлого доната, а таймер закрытия от прошлого раза
-// мог закрыть новое окно
+// мог закрыть новое окно. Закрытое окно ещё EXIT_MS уходит с анимацией (useExit)
 const DonateModal = () => {
-  const tgt = useApp().donateTarget;
-  return tgt ? <DonateSheet key={tgt.kind + ":" + tgt.id} tgt={tgt} /> : null;
+  const [tgt, out] = useExit(useApp().donateTarget);
+  return tgt ? <DonateSheet key={keyOf(tgt)} tgt={tgt} out={out} /> : null;
 };
 
 // Кому донат: обложка, название и подпись
@@ -260,7 +260,7 @@ const donateHead = (t, tgt) => {
   return { title: a.name, sub: t.dnArtist, hue: a.hue, art: "ar:" + a.id, round: true };
 };
 
-const DonateSheet = ({ tgt }) => {
+const DonateSheet = ({ tgt, out }) => {
   const app = useApp();
   const t = app.t;
   const m = app.money;
@@ -275,6 +275,7 @@ const DonateSheet = ({ tgt }) => {
   // Донат идёт с баланса: больше, чем на нём есть, не отправить — вместо этого предлагаем пополнить
   const short = val > app.balance;
   const send = () => {
+    if (out) return;
     if (short) { close(); app.openTopUp(); return; }
     if (val <= 0) return;
     app.payFromBalance(val, title);
@@ -282,7 +283,7 @@ const DonateSheet = ({ tgt }) => {
   };
 
   return (
-    <Sheet close={close} label={t.dnTitle + " " + title} screen="Модалка доната">
+    <Sheet close={close} out={out} label={t.dnTitle + " " + title} screen="Модалка доната">
       {!sent ? (
         <React.Fragment>
           <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 22 }}>
@@ -341,20 +342,25 @@ const topUpFee = (val) => (val > 0 ? Math.max(0.25, val * 0.024) : 0);
 const payFor = (need) => Math.ceil(Math.max(need + 0.25, need / 0.976) * 100 - 1e-6) / 100;
 
 // Как и донат, монтируется заново при каждом открытии — без вспышки «Счёт пополнен» от прошлого раза
-const TopUpModal = () => { const tu = useApp().topUp; return tu ? <TopUpSheet need={tu.amount} /> : null; };
+const TopUpModal = () => {
+  const [tu, out] = useExit(useApp().topUp);
+  return tu ? <TopUpSheet key={keyOf(tu)} need={tu.amount} out={out} /> : null;
+};
 
 // Выбрали сумму в месяц больше баланса: предложить пополнить на разницу сейчас. «Пополнить» открывает
 // обычное окно пополнения (оба пути), в пути «с карты» сумма подставлена так, чтобы дошла вся разница
-const TopUpOfferModal = () => (useApp().topUpOffer ? <TopUpOffer /> : null);
-const TopUpOffer = () => {
+const TopUpOfferModal = () => {
+  const [monthly, out] = useExit(useApp().topUpOffer);
+  return monthly ? <TopUpOffer monthly={monthly} out={out} /> : null;
+};
+const TopUpOffer = ({ monthly, out }) => {
   const app = useApp();
   const t = app.t;
   const m = app.money;
-  const monthly = app.topUpOffer;
   const need = Math.round((monthly - app.balance) * 100) / 100;
   const close = () => app.closeTopUpOffer();
   return (
-    <Sheet close={close} label={t.offerTitle} screen="Предложение пополнить счёт" width={420}>
+    <Sheet close={close} out={out} label={t.offerTitle} screen="Предложение пополнить счёт" width={420}>
       <SheetHead title={t.offerTitle} close={close} />
       <p style={{ fontSize: 14.5, color: "var(--mut)", lineHeight: 1.6, marginBottom: 20, overflowWrap: "anywhere", textWrap: "pretty" }}>
         {t.offerNote(m.fmt(monthly), m.fmt(app.balance), m.fmt(need))}
@@ -485,7 +491,7 @@ const TopUpWallet = () => {
 };
 
 // need — сколько должно дойти до баланса (из предложения пополнить): в пути «с карты» сумма подставлена
-const TopUpSheet = ({ need }) => {
+const TopUpSheet = ({ need, out }) => {
   const app = useApp();
   const t = app.t;
   const [mode, setMode] = React.useState("choose"); // choose | card | wallet | done
@@ -494,10 +500,10 @@ const TopUpSheet = ({ need }) => {
   const timer = React.useRef(null);
   React.useEffect(() => () => clearTimeout(timer.current), []);
   const close = () => app.closeTopUp();
-  const paid = (sum) => { app.topUpBalance(sum); setLanded(sum); setMode("done"); timer.current = setTimeout(close, 1600); };
+  const paid = (sum) => { if (out) return; app.topUpBalance(sum); setLanded(sum); setMode("done"); timer.current = setTimeout(close, 1600); };
 
   return (
-    <Sheet close={close} label={t.tuTitle} screen="Пополнение счёта">
+    <Sheet close={close} out={out} label={t.tuTitle} screen="Пополнение счёта">
       {mode !== "done" && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
           {mode !== "choose" && (
@@ -525,7 +531,7 @@ const TopUpSheet = ({ need }) => {
             width: 72, height: 72, borderRadius: "50%", background: "var(--acc)", color: "var(--acc-ink)",
             display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px",
           }}>
-            <Ic d={ICONS.check} size={30} sw={2.6} />
+            <Ic d={ICONS.check} size={30} sw={3.25} />
           </div>
           <p style={{ fontSize: 18, fontWeight: 400, letterSpacing: "-0.02em" }}>{t.tuDone}</p>
           <p className="mono" style={{ fontSize: 12, color: "var(--mut)", marginTop: 8 }}>+{app.money.fmt(landed, true)} · {t.tuDoneNote}</p>

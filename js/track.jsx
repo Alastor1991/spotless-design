@@ -5,13 +5,13 @@
 // Поповер рендерится в body (портал) с fixed-позицией от кнопки: внутри прокручиваемой страницы
 // его обрезал край .main и перекрывала липкая шапка — на странице альбома верхний плейлист
 // было не нажать. Монтируется только при открытии, поэтому замер позиции — в правильный момент.
-const PlusPop = ({ ids, inPls, anchor, close }) => {
+const PlusPop = ({ ids, inPls, anchor, out, close }) => {
   const app = useApp();
   const ref = React.useRef(null);
   const [pos, setPos] = React.useState(null);
   React.useLayoutEffect(() => {
     if (!ref.current || !anchor.current) return;
-    const a = anchor.current.getBoundingClientRect();
+    const a = boxOf(anchor.current);
     const p = ref.current.getBoundingClientRect();
     const left = Math.max(10, Math.min(window.innerWidth - 10 - p.width, a.left + a.width / 2 - p.width / 2));
     let top = a.top - p.height - 10;                                    // над кнопкой,
@@ -34,11 +34,11 @@ const PlusPop = ({ ids, inPls, anchor, close }) => {
     window.addEventListener("scroll", scroll, true);
     return () => { window.removeEventListener("pointerdown", outside, true); window.removeEventListener("scroll", scroll, true); };
   }, []);
-  useEscape(close);
+  useEscape(close, !out);
   // Граница событий: портал всплывает по дереву React к строке трека и жестам плеера — не пускаем
   const wall = (e) => e.stopPropagation();
   return ReactDOM.createPortal(
-    <div ref={ref} className="pop fade-up"
+    <div ref={ref} className={"pop" + (out ? " is-out" : "")}
       onPointerDown={wall} onPointerMove={wall} onPointerUp={wall} onMouseDown={wall} onTouchStart={wall}
       onClick={wall} onDoubleClick={wall} onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
       style={{ position: "fixed", left: pos ? pos.left : -9999, top: pos ? pos.top : -9999, width: 240, padding: 6, zIndex: 300 }}>
@@ -54,7 +54,7 @@ const PlusPop = ({ ids, inPls, anchor, close }) => {
               }}>
               <Cover hue={pl.hue} size={24} radius={6} />
               <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{plName(app.lang, pl)}</span>
-              {on && <Ic d={ICONS.check} size={14} sw={2.2} style={{ color: "var(--acc)" }} />}
+              {on && <Ic d={ICONS.check} size={14} style={{ color: "var(--acc)" }} />}
             </button>
           );
         })}
@@ -73,6 +73,7 @@ const PlusPop = ({ ids, inPls, anchor, close }) => {
 const PlusButton = ({ trackId, trackIds, size = 30, className = "" }) => {
   const app = useApp();
   const [open, setOpen] = React.useState(false);
+  const [pop, popOut] = useExit(open);
   const btnRef = React.useRef(null);
   const ids = trackIds || [trackId];
   const inPls = app.playlistsWithAll(ids);
@@ -81,9 +82,9 @@ const PlusButton = ({ trackId, trackIds, size = 30, className = "" }) => {
       <button ref={btnRef} className={"iconbtn " + className + (inPls.length ? " lit" : "")} style={{ width: size, height: size }}
         title={app.t.addToPlaylist} aria-label={app.t.addToPlaylist} aria-expanded={open}
         onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}>
-        <Ic d={inPls.length ? ICONS.check : ICONS.plus} size={size * 0.53} sw={2} />
+        <Ic d={inPls.length ? ICONS.check : ICONS.plus} size={size * 0.53} />
       </button>
-      {open && <PlusPop ids={ids} inPls={inPls} anchor={btnRef} close={() => setOpen(false)} />}
+      {pop && <PlusPop ids={ids} inPls={inPls} anchor={btnRef} out={popOut} close={() => setOpen(false)} />}
     </span>
   );
 };
@@ -95,7 +96,7 @@ const DonateButton = ({ target, size = 30, className = "" }) => {
     <button className={"iconbtn " + className} style={{ width: size, height: size }} title={app.t.donate} aria-label={app.t.donate}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => { e.stopPropagation(); app.openDonate(target); }}>
-      <Ic d={ICONS.dollar} size={size * 0.5} sw={1.9} />
+      <Ic d={ICONS.dollar} size={size * 0.5} />
     </button>
   );
 };
@@ -122,24 +123,27 @@ const DLButton = ({ trackId, albumId, listIds, size = 42, className = "" }) => {
     else if (listIds) app.toggleDlList(listIds);
   };
   const R = 9.2, C = (2 * Math.PI * R).toFixed(1);
-  const s = Math.round(size * 0.52);
+  // Линия — 1,25 px, как у значков (Ic). Не через non-scaling-stroke: тогда и штрих прогресса
+  // (dasharray) считался бы в px экрана, а не в единицах кольца
+  const s = Math.round(size * 0.52), lw = 30 / s;
   return (
     <button className={"iconbtn " + className + (state === "done" ? " lit" : "")} style={{ width: size, height: size }}
       title={state === "done" ? app.t.downloaded : app.t.download} aria-label={state === "done" ? app.t.downloaded : app.t.download} onClick={click}>
       {state === "idle" && <Ic d={ICONS.downloadCircle} size={s} />}
       {state === "loading" && (
         <svg width={s} height={s} viewBox="0 0 24 24" style={{ display: "block" }}>
-          <circle cx="12" cy="12" r={R} fill="none" stroke="var(--bg3)" strokeWidth="1.8"></circle>
-          <circle cx="12" cy="12" r={R} fill="none" stroke="var(--acc)" strokeWidth="1.8" strokeLinecap="round"
+          <circle cx="12" cy="12" r={R} fill="none" stroke="var(--bg3)" strokeWidth={lw}></circle>
+          <circle cx="12" cy="12" r={R} fill="none" stroke="var(--acc)" strokeWidth={lw} strokeLinecap="round"
             strokeDasharray={C} strokeDashoffset={C} transform="rotate(-90 12 12)"
             style={{ animation: `dlfill ${dur}ms linear forwards` }}></circle>
-          <path d="M12 8.2v5.6 M9.8 11.6L12 13.8l2.2-2.2" stroke="var(--mut)" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"></path>
+          <path d="M12 8.2v5.6 M9.8 11.6L12 13.8l2.2-2.2" stroke="var(--mut)" strokeWidth={lw} fill="none" strokeLinecap="round" strokeLinejoin="round"></path>
         </svg>
       )}
       {state === "done" && (
         <svg width={s} height={s} viewBox="0 0 24 24" style={{ display: "block" }}>
+          {/* Скачано — круг со стрелкой, а не вторая галочка: галочка у плюсика значит «в плейлисте» */}
           <circle cx="12" cy="12" r="9.5" fill="var(--acc)"></circle>
-          <path d="M8 12.5l2.8 2.8L16 9.5" stroke="var(--acc-ink)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"></path>
+          <path d="M12 7.4v8.4M8.6 12.4L12 15.8l3.4-3.4" stroke="var(--acc-ink)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"></path>
         </svg>
       )}
     </button>
@@ -182,7 +186,7 @@ const TrackRow = ({ trackId, num, showPlays = false, plId, qIndex, noCover = fal
         <DonateButton target={{ kind: "track", id: trackId }} className="no-phone" />
         <button className="iconbtn only-phone" style={{ width: 36, height: 36 }} aria-label={app.t.more}
           onClick={(e) => { e.stopPropagation(); app.openCtxAt(e.currentTarget, payload); }}>
-          <Ic d={ICONS.more} size={18} sw={3.4} />
+          <Ic d={ICONS.more} size={18} fill="currentColor" />
         </button>
       </div>
       <span className="dur">{tr.dur.padStart(5, "0")}</span>

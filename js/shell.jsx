@@ -13,6 +13,9 @@ const Shell = () => {
   const { route, settings, phone, panel, rail } = app;
   const Page = pageFor(route.page);
   const docked = settings.island === "panel";
+  // Полный экран и мини-плеер уходят с анимацией (useExit)
+  const [full, fullOut] = useExit(app.full);
+  const [mini, miniOut] = useExit(app.mini && !phone);
   // Фон окна с обоями: строка с картинкой может весить сотни килобайт — собираем её, только когда обои меняются
   const wp = settings.wallpaper;
   const wpi = settings.wallpaperImg;
@@ -41,8 +44,8 @@ const Shell = () => {
           ? <React.Fragment><MobilePlayer /><MobileNav /></React.Fragment>
           : docked ? <PlayerDock /> : <PlayerIsland />}
       </div>
-      {app.full && (phone ? <FullScreenPhone /> : <FullScreen />)}
-      {app.mini && !phone && <MiniPlayer />}
+      {full && (phone ? <FullScreenPhone out={fullOut} /> : <FullScreen out={fullOut} />)}
+      {mini && <MiniPlayer out={miniOut} />}
       <DonateModal />
       <TopUpOfferModal />
       <TopUpModal />
@@ -138,7 +141,7 @@ const Sidebar = () => {
           </span>
           <span className="pl-text" style={{ minWidth: 0 }}>
             <span className="pl-name">{t.likedTracks}</span>
-            <span className="pl-sub">{app.likedIds().length} {t.tracksN}</span>
+            <span className="pl-sub">{app.likedIds().length} {t.tracksN(app.likedIds().length)}</span>
           </span>
         </button>
         {app.allPlaylists.map(pl => (
@@ -149,7 +152,7 @@ const Sidebar = () => {
             <Cover hue={pl.hue} size={40} radius={10} />
             <span className="pl-text" style={{ minWidth: 0 }}>
               <span className="pl-name">{plName(app.lang, pl)}</span>
-              <span className="pl-sub">{pl.collab ? t.collab + " · " : ""}{app.playlistTracks(pl.id).length} {t.tracksN}</span>
+              <span className="pl-sub">{pl.collab ? t.collab + " · " : ""}{app.playlistTracks(pl.id).length} {t.tracksN(app.playlistTracks(pl.id).length)}</span>
             </span>
           </button>
         ))}
@@ -169,6 +172,7 @@ const BellBtn = () => {
   const app = useApp();
   const t = app.t;
   const [open, setOpen] = React.useState(false);
+  const [pop, popOut] = useExit(open);
   return (
     <span style={{ position: "relative", display: "inline-flex" }}>
       <button className={"iconbtn" + (open ? " lit" : "")} style={{ width: 44, height: 44 }} title={t.notifTitle} aria-label={t.notifTitle} aria-expanded={open}
@@ -177,7 +181,7 @@ const BellBtn = () => {
         <Ic d={ICONS.bell} size={19} />
         {!app.notifRead && <span className="hot-dot" style={{ position: "absolute", top: 11, right: 12 }}></span>}
       </button>
-      {open && <BellPop close={() => setOpen(false)} />}
+      {pop && <BellPop out={popOut} close={() => setOpen(false)} />}
     </span>
   );
 };
@@ -274,10 +278,10 @@ const TopBarDesktop = () => {
   return (
     <div className="topbar">
       <div className="tb-nav" style={{ display: "flex", gap: 8 }}>
-        <button className="iconbtn ring" style={{ width: 40, height: 40, opacity: app.history.length ? 1 : 0.35 }} aria-label={t.back} onClick={app.goBack}>
+        <button className="iconbtn ring" style={{ width: 40, height: 40, opacity: app.history.length ? 1 : 0.35 }} aria-label={t.back} disabled={!app.history.length} onClick={app.goBack}>
           <Ic d={ICONS.back} size={17} />
         </button>
-        <button className="iconbtn ring" style={{ width: 40, height: 40, opacity: app.future.length ? 1 : 0.35 }} aria-label={t.forward} onClick={app.goFwd}>
+        <button className="iconbtn ring" style={{ width: 40, height: 40, opacity: app.future.length ? 1 : 0.35 }} aria-label={t.forward} disabled={!app.future.length} onClick={app.goFwd}>
           <Ic d={ICONS.fwd} size={17} />
         </button>
       </div>

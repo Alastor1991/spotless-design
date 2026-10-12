@@ -1,4 +1,8 @@
 // Spotless — строки интерфейса RU/EN
+
+// Русские числительные: 1 трек, 2 трека, 5 треков, 11–14 треков
+const plRu = (n, one, few, many) => (n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? few : many);
+
 window.I18N = {
   ru: {
     // Навигация
@@ -32,7 +36,8 @@ window.I18N = {
     recentSearches: "Вы искали", browseAll: "Жанры и настроения",
     // Медиатека
     sortRecent: "Недавние", filterAll: "Всё", filterPl: "Плейлисты", filterAr: "Артисты", filterAl: "Альбомы",
-    pinned: "Закреплено", tracksN: "треков",
+    pinned: "Закреплено", tracksN: (n) => plRu(n, "трек", "трека", "треков"), nTracks: (n) => `${n} ${plRu(n, "трек", "трека", "треков")}`,
+    playlistsN: (n) => plRu(n, "плейлист", "плейлиста", "плейлистов"), followsN: (n) => plRu(n, "подписка", "подписки", "подписок"),
     // Альбом / артист
     album: "Альбом", single: "Сингл", ep: "EP", year: "год", min: "мин",
     supportRelease: "Поддержать релиз", supportArtist: "Поддержать артиста",
@@ -218,7 +223,8 @@ window.I18N = {
     topResult: "Top result", tracks: "Tracks", artists: "Artists", albums: "Albums",
     recentSearches: "Recent searches", browseAll: "Genres & moods",
     sortRecent: "Recents", filterAll: "All", filterPl: "Playlists", filterAr: "Artists", filterAl: "Albums",
-    pinned: "Pinned", tracksN: "tracks",
+    pinned: "Pinned", tracksN: (n) => (n === 1 ? "track" : "tracks"), nTracks: (n) => `${n} track${n === 1 ? "" : "s"}`,
+    playlistsN: (n) => (n === 1 ? "playlist" : "playlists"), followsN: () => "following",
     album: "Album", single: "Single", ep: "EP", year: "year", min: "min",
     supportRelease: "Support this release", supportArtist: "Support artist",
     monthlyListeners: "monthly listeners", discography: "Discography", topTracks: "Popular tracks",

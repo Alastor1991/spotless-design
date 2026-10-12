@@ -18,11 +18,11 @@ const ContinueWidget = () => {
   const tr = al.tracks[idx];
   const resume = () => { app.playContext(albumIds(al).slice(idx)); setTimeout(() => app.seekTo(0.62), 0); };
   return (
-    <section className="widget b-wide cont-w" style={{ display: "flex", gap: 26, alignItems: "center" }}>
+    <section className="widget b-wide cont-w">
       <button onClick={() => app.go("album", al.id)} aria-label={al.title} style={{ flexShrink: 0 }}>
-        <Cover art={al.id} hue={al.hue} glyph={true} size="clamp(110px, 17cqi, 236px)" style={{ "--gp": "9px", "--gr": "3.1px" }} />
+        <Cover art={al.id} hue={al.hue} glyph={true} size="var(--cw-cover)" style={{ "--gp": "9px", "--gr": "3.1px" }} />
       </button>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0, flex: 1, alignSelf: "stretch" }}>
+      <div className="cw-col">
         <span className="mlabel">{t.continueHere}</span>
         <button onClick={() => app.go("album", al.id)} style={{ textAlign: "left", fontSize: "clamp(28px, 3.4cqi, 40px)", letterSpacing: "-0.045em", lineHeight: 1, fontWeight: 400 }}>{al.title}</button>
         <span style={{ fontSize: 14, color: "var(--mut)" }}>{ar.name} · {t[al.type].toLowerCase()}, {al.year}</span>
@@ -32,7 +32,7 @@ const ContinueWidget = () => {
         </span>
         <DotBar pct={0.62} pitch={8} />
         <span className="mono" style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--mut2)" }}><span>02:21</span><span>{tr.dur.padStart(5, "0")}</span></span>
-        <span style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 2 }}>
+        <span className="cw-acts">
           <button className="btn" style={{ padding: "0 22px 0 18px" }} onClick={resume}><Ic d={ICONS.play} size={14} fill="currentColor" />{t.continueBtn}</button>
           <PlusButton trackId={tr.id} size={44} className="ring" />
           <DonateButton target={{ kind: "album", id: al.id }} size={44} className="ring" />
@@ -135,7 +135,7 @@ const PageHome = () => {
   const card = (r, key) => {
     if (r.kind === "playlist") {
       const pl = DB.playlists.find(p => p.id === r.id);
-      return <MediaCard key={key} {...playlistCard(app, pl, `${t.plLabel} · ${app.playlistTracks(pl.id).length} ${t.tracksN}`)} />;
+      return <MediaCard key={key} {...playlistCard(app, pl, `${t.plLabel} · ${t.nTracks(app.playlistTracks(pl.id).length)}`)} />;
     }
     if (r.kind === "artist") {
       const ar = DB.artists[r.id];
@@ -304,12 +304,12 @@ const libraryItems = (app) => {
   const t = app.t;
   const allDl = (ids) => ids.length > 0 && ids.every(id => app.downloads[id] === "done");
   const liked = app.likedIds();
-  const items = [{ kind: "pl", id: "__liked", name: t.likedTracks, hue: 95, sub: `${t.plLabel} · ${liked.length} ${t.tracksN}`, pinned: true, dl: allDl(liked), tracks: liked }];
+  const items = [{ kind: "pl", id: "__liked", name: t.likedTracks, hue: 95, sub: `${t.plLabel} · ${t.nTracks(liked.length)}`, pinned: true, dl: allDl(liked), tracks: liked }];
   app.allPlaylists.forEach(pl => {
     const tracks = app.playlistTracks(pl.id);
     items.push({
       kind: "pl", id: pl.id, name: plName(app.lang, pl), hue: pl.hue,
-      sub: `${tracks.length} ${t.tracksN}` + (pl.collab ? ` · ${t.collab}` : ""), dl: allDl(tracks), tracks,
+      sub: t.nTracks(tracks.length) + (pl.collab ? ` · ${t.collab}` : ""), dl: allDl(tracks), tracks,
     });
   });
   app.followed.forEach(id => {
@@ -335,28 +335,31 @@ const PageLibrary = () => {
   return (
     <div className="fade-in" data-screen-label="Медиатека">
       <h1 style={{ fontSize: 34, fontWeight: 800, margin: "18px 0 18px" }}>{t.library}</h1>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 22, flexWrap: "wrap" }}>
-        {[["all", t.filterAll], ["pl", t.filterPl], ["ar", t.filterAr], ["al", t.filterAl], ["dl", t.filterDl]].map(([k, label]) => (
-          <button key={k} className={"chip" + (filter === k ? " on" : "")} aria-pressed={filter === k} onClick={() => setFilter(k)}>
-            {k === "dl" && <Ic d={ICONS.downloadCircle} size={14} style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }} />}
-            {label}
+      <div className="lib-bar">
+        <div className="lib-chips">
+          {[["all", t.filterAll], ["pl", t.filterPl], ["ar", t.filterAr], ["al", t.filterAl], ["dl", t.filterDl]].map(([k, label]) => (
+            <button key={k} className={"chip" + (filter === k ? " on" : "")} aria-pressed={filter === k} onClick={() => setFilter(k)}>
+              {k === "dl" && <Ic d={ICONS.downloadCircle} size={14} style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }} />}
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="lib-tools">
+          <button className="mlabel" style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--mut)", padding: "8px 6px" }}
+            onClick={() => setSort(sort === "recent" ? "az" : "recent")}>
+            <Ic d={ICONS.clock} size={14} />{sort === "recent" ? t.sortRecent : t.sortAZ}
           </button>
-        ))}
-        <div style={{ flex: 1 }}></div>
-        <button className="mlabel" style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--mut)", padding: "8px 6px" }}
-          onClick={() => setSort(sort === "recent" ? "az" : "recent")}>
-          <Ic d={ICONS.clock} size={14} />{sort === "recent" ? t.sortRecent : t.sortAZ}
-        </button>
-        <button className="btn ghost" style={{ padding: "0 16px", fontSize: 13 }} onClick={() => app.openCreatePl()}>
-          <Ic d={ICONS.plus} size={15} />{t.newPlaylist}
-        </button>
+          <button className="btn ghost" style={{ padding: "0 16px", fontSize: 13 }} onClick={() => app.openCreatePl()}>
+            <Ic d={ICONS.plus} size={15} />{t.newPlaylist}
+          </button>
+        </div>
       </div>
       <div className="cardrow" style={{ rowGap: 8 }}>
         {visible.map((it) => (
           <div key={it.kind + ":" + it.id} style={{ position: "relative" }}>
             {it.pinned && <Ic d={ICONS.pin} size={13} style={{ position: "absolute", top: 18, right: 18, color: "var(--text)", zIndex: 2 }} />}
             {it.dl && <span title={t.downloaded} style={{ position: "absolute", top: 17, left: 17, zIndex: 2, width: 18, height: 18, borderRadius: "50%", background: "var(--acc)", color: "var(--acc-ink)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Ic d={ICONS.check} size={11} sw={3} />
+              <Ic d={ICONS.downloadCircle.slice(1)} size={13} sw={1.4} />
             </span>}
             {it.id === "__liked" ? (
               <button className="card" onClick={() => open(it)}>
