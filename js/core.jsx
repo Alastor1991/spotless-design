@@ -335,8 +335,11 @@ const copyText = (s) => {
 // Значения по умолчанию и проверка. Нужна дважды — при загрузке сохранённого и при импорте темы
 // из JSON: раньше туда попадало что угодно («island»: "zzz").
 // base — что оставить, если значение не годится (при импорте — текущие настройки).
-// dotScale — от чего считать полосы распределения денег: от самой крупной доли (share) или от всей суммы (total)
-const DEFAULT_SETTINGS = { island: "pill", density: "n", accent: null, wallpaper: null, wallpaperImg: null, likeRating: 10, dotScale: "share" };
+// dotScale — от чего считать полосы распределения денег: от самой крупной доли (share) или от всей суммы (total).
+// style — архитектура стиля (style.jsx): «Точка» или Material. У каждой — свои цвета: палитра «Точки» живёт
+// в theme (useSettings), у Material — mTheme (тёмная, светлая, как в системе) и mAccent (null — цвет из обложки)
+const DEFAULT_SETTINGS = { island: "pill", density: "n", accent: null, wallpaper: null, wallpaperImg: null, likeRating: 10, dotScale: "share",
+  style: "dot", mTheme: "dark", mAccent: null };
 const isHue = (v) => typeof v === "number" && isFinite(v) && v >= 0 && v <= 360;
 const cleanSettings = (s, base = DEFAULT_SETTINGS) => {
   const o = s && typeof s === "object" ? s : {};
@@ -349,6 +352,9 @@ const cleanSettings = (s, base = DEFAULT_SETTINGS) => {
     wallpaperImg: pick("wallpaperImg", v => v === null || (typeof v === "string" && v.startsWith("data:image/"))),
     likeRating: pick("likeRating", v => Number.isInteger(v) && v >= 5 && v <= 10),
     dotScale: pick("dotScale", v => v === "share" || v === "total"),
+    style: pick("style", v => ["dot", "material"].includes(v)),
+    mTheme: pick("mTheme", v => ["dark", "light", "system"].includes(v)),
+    mAccent: pick("mAccent", v => v === null || ["amber", "mint", "pink", "blue", "white"].includes(v)),
   };
 };
 

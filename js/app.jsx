@@ -31,11 +31,15 @@ const App = () => {
   const parts = [locale, feedback, nav, settings, layout, money, overlays, player, library, downloads];
   usePersist(Object.assign({}, ...parts.map(p => p.keep)));
   const api = joinApi(parts.map(p => p.api));
+  // Цвет из обложки (Material): от играющего трека; в онбординге цвета ещё нет
+  useStyleAccent(api.style, api.player.trackId, api.settings.mAccent, api.onboarded);
 
   return (
-    <AppCtx.Provider value={api}>
-      {api.onboarded ? <Shell /> : <Onboarding />}
-    </AppCtx.Provider>
+    <StyleCtx.Provider value={api.style}>
+      <AppCtx.Provider value={api}>
+        {api.onboarded ? <Shell /> : <Onboarding />}
+      </AppCtx.Provider>
+    </StyleCtx.Provider>
   );
 };
 

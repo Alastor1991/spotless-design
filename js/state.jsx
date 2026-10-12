@@ -92,19 +92,33 @@ const useSettings = (saved) => {
   const [theme, setTheme] = React.useState(saved.uiVersion === 2 ? (saved.theme || "dot") : "dot");
   const [settings, setSettings] = React.useState(saved.settings);
 
-  // Тему, плотность и акцент — на корень документа: их читает CSS
+  // Material: «как в системе» — следим за темой системы
+  const sysLight = useMedia("(prefers-color-scheme: light)");
+  const style = settings.style || "dot";
+  const mTheme = settings.mTheme === "system" ? (sysLight ? "light" : "dark") : (settings.mTheme || "dark");
+
+  // Стиль, тему, плотность и акцент — на корень документа: их читает CSS.
+  // data-theme (палитра «Точки») остаётся и в Material: на ней держатся общие правила app.css,
+  // а цвета Material перекрывает style-material.css по data-style и data-mtheme
   React.useEffect(() => {
     const root = document.documentElement;
+    root.setAttribute("data-style", style);
+    if (style === "material") root.setAttribute("data-mtheme", mTheme); else root.removeAttribute("data-mtheme");
     root.setAttribute("data-theme", theme);
     root.setAttribute("data-density", settings.density || "n");
     ["--acc", "--acc-ink", "--hot"].forEach(p => root.style.removeProperty(p));
-    // Акцент подменяет горячий цвет темы (лайк, «сейчас»); главное действие остаётся цвета текста
-    if (settings.accent != null) root.style.setProperty("--hot", `oklch(0.66 0.17 ${settings.accent})`);
-  }, [theme, settings.accent, settings.density]);
+    // Акцент «Точки» подменяет горячий цвет темы (лайк, «сейчас»); главное действие остаётся цвета текста.
+    // У Material свой акцент — из обложки (useStyleAccent)
+    if (style === "dot" && settings.accent != null) root.style.setProperty("--hot", `oklch(0.66 0.17 ${settings.accent})`);
+    loadStyleFonts(style);
+  }, [style, mTheme, theme, settings.accent, settings.density]);
 
   return {
     api: {
-      theme, setTheme, settings, setSettings,
+      theme, setTheme, settings, setSettings, style, mTheme,
+      setStyle: (v) => setSettings(s => ({ ...s, style: v })),
+      setMTheme: (v) => setSettings(s => ({ ...s, mTheme: v })),
+      setMAccent: (v) => setSettings(s => ({ ...s, mAccent: v })),
       setAccent: (h) => setSettings(s => ({ ...s, accent: h })),
       setWallpaper: (h) => setSettings(s => ({ ...s, wallpaper: h, wallpaperImg: null })),
       setWallpaperImg: (data) => setSettings(s => ({ ...s, wallpaperImg: data, wallpaper: null })),

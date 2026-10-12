@@ -1,0 +1,111 @@
+/* Spotless — архитектура стиля Material («здорового человека»). Действует только при
+   data-style="material" на корне (style.jsx, state.jsx); «Точку» этот файл не трогает.
+   Принципы (CLAUDE.md 4.1): поверхности — чистый серый без оттенка, цвет — только из обложки играющего
+   трека; плотно (шапка и строки 56, кнопки 40, панель 64); скругление кнопок 12, круг — только у
+   кнопок-значков; тени и слои; значки Material Symbols; шрифт Roboto Flex; движение Expressive.
+   Токены — те же имена, что у палитр «Точки»: компоненты читают одни и те же переменные. */
+
+/* Цвет из обложки перетекает при смене трека: переменная — цвет, её можно анимировать */
+@property --m-acc { syntax: "<color>"; inherits: true; initial-value: #EDEDED; }
+
+/* ---------- Токены: общее ---------- */
+:root[data-style="material"] {
+  --font: 'Roboto Flex', system-ui, sans-serif;
+  --mono: 'Roboto Flex', system-ui, sans-serif;
+  --font-dot: 'Roboto Flex', system-ui, sans-serif;
+  --r: 16px; --r-sm: 12px;
+  --acc: var(--m-acc); --acc-ink: var(--m-ink);
+  --hot: var(--m-acc); --hot-ink: var(--m-ink);
+  transition: --m-acc 400ms var(--ease);
+}
+/* Тёмная */
+:root[data-style="material"], :root[data-style="material"][data-mtheme="dark"] {
+  --m-acc: var(--m-acc-d, #EDEDED);
+  --m-ink: var(--m-ink-d, #121212);
+  --bg0: #121212;   /* bg — фон экрана */
+  --bg1: #161616;   /* боковое меню */
+  --bg2: #232323;   /* поля, наведение */
+  --bg3: #363636;   /* выбранная вкладка, обводка */
+  --line: #262626;
+  --text: #EDEDED;
+  --mut: #ADADAD;
+  --mut2: #8F8F8F;
+  --dot-off: #2E2E2E; /* track — пустая часть полос */
+  --dot-l: 0.8;
+  --bad: #FF8A80;
+  --island: #1B1B1B; /* surface-1 — карточки, виджеты */
+  --m-s2: #262626;   /* surface-2 — плеер, мини-плеер */
+  --m-s3: #2D2D2D;   /* surface-3 — меню, окна, листы */
+  --m-ctl: #2C2C2C;  /* control — серые кнопки, сегменты */
+  --m-outline: #444444;
+  --m-icon: #D6D6D6;
+  --m-danger: #FF6B5E;
+  --m-badge: #FF5A4E;
+  --island-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 6px 20px rgba(0, 0, 0, 0.5);
+  --shadow: 0 2px 6px rgba(0, 0, 0, 0.5), 0 16px 40px rgba(0, 0, 0, 0.6);
+  --scrim: rgba(0, 0, 0, 0.62);
+  --cover-l1: 0.30; --cover-l2: 0.25;
+  --m-grad: -25; /* GRAD значков: светлый значок на тёмном иначе выглядит жирнее */
+  color-scheme: dark;
+}
+/* Светлая */
+:root[data-style="material"][data-mtheme="light"] {
+  --m-acc: var(--m-acc-l, #1A1A1A);
+  --m-ink: #FFFFFF;
+  --bg0: #F5F5F5;
+  --bg1: #EEEEEE;
+  --bg2: #EAEAEA;
+  --bg3: #DCDCDC;
+  --line: #E0E0E0;
+  --text: #1A1A1A;
+  --mut: #5C5C5C;
+  --mut2: #6B6B6B;
+  --dot-off: #E2E2E2;
+  --dot-l: 0.6;
+  --bad: #C62F24;
+  --island: #FFFFFF;
+  --m-s2: #FFFFFF;
+  --m-s3: #FFFFFF;
+  --m-ctl: #EBEBEB;
+  --m-outline: #C4C4C4;
+  --m-icon: #3A3A3A;
+  --m-danger: #C62F24;
+  --m-badge: #E5372B;
+  --island-shadow: 0 1px 2px rgba(0, 0, 0, 0.14), 0 6px 20px rgba(0, 0, 0, 0.12);
+  --shadow: 0 2px 6px rgba(0, 0, 0, 0.12), 0 16px 40px rgba(0, 0, 0, 0.14);
+  --scrim: rgba(0, 0, 0, 0.40);
+  --cover-l1: 0.86; --cover-l2: 0.81;
+  --m-grad: 0;
+  color-scheme: light;
+}
+
+/* ---------- Значки: Material Symbols ----------
+   Размер — только из ряда 14/16/18/20/24/32/40, оптический размер — по нему (style.jsx, msSize) */
+.ms {
+  font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; line-height: 1;
+  letter-spacing: normal; text-transform: none; white-space: nowrap; direction: ltr; font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased; user-select: none; overflow: hidden; flex-shrink: 0;
+  display: block; width: 1em; height: 1em;
+  --fill: 0; --wght: 400; --opsz: 24;
+  font-variation-settings: 'FILL' var(--fill), 'wght' var(--wght), 'GRAD' var(--m-grad, 0), 'opsz' var(--opsz);
+}
+.ms.f { --fill: 1; }
+.ms.i14 { font-size: 14px; --opsz: 20; --wght: 600; }
+.ms.i16 { font-size: 16px; --opsz: 20; }
+.ms.i18 { font-size: 18px; --opsz: 20; }
+.ms.i20 { font-size: 20px; --opsz: 20; }
+.ms.i24 { font-size: 24px; --opsz: 24; }
+.ms.i32 { font-size: 32px; --opsz: 40; }
+.ms.i40 { font-size: 40px; --opsz: 40; }
+
+/* ---------- Типографика ---------- */
+[data-style="material"] body { font-size: 14px; }
+/* «Точка» делает заголовки тонкими (!important в app.css) — у Material они плотные */
+[data-style="material"] h1 { font-weight: 650 !important; letter-spacing: -0.02em !important; }
+[data-style="material"] h2 { font-weight: 600 !important; letter-spacing: 0 !important; }
+/* Подписи «Точки» — моноширинные капсом; у Material — обычные, с заглавной */
+[data-style="material"] .mlabel, [data-style="material"] .sec-label {
+  font-family: var(--font); font-size: 12px; font-weight: 500; letter-spacing: 0.02em; text-transform: none; color: var(--mut);
+}
+/* Цифры — не точечным шрифтом, а Roboto Flex */
+[data-style="material"] .dots { font-family: var(--font); font-variation-settings: normal; font-weight: 650; line-height: 1; letter-spacing: -0.02em; }

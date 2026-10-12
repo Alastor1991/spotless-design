@@ -16,7 +16,20 @@
   var SPOTLESS_V = document.lastModified.replace(/\D/g, "");
   // ?r= приходит из 404.html (обход кэша при переходе со старого адреса) — в строке адреса он не нужен
   if (/[?&]r=/.test(location.search)) history.replaceState(null, "", location.pathname + location.hash);
-  document.write('<link rel="stylesheet" href="css/app.css?v=' + SPOTLESS_V + '">');
+  // Стиль и тему — на корень сразу, из сохранённого: иначе до запуска React мелькал бы не тот дизайн
+  // (дальше их ведёт useSettings, state.jsx)
+  try {
+    var savedUi = JSON.parse(localStorage.getItem("spotless_proto_v1")) || {};
+    var savedSt = savedUi.settings || {};
+    var de = document.documentElement;
+    if (savedUi.uiVersion === 2 && savedUi.theme) de.setAttribute("data-theme", savedUi.theme);
+    if (savedSt.style === "material") {
+      de.setAttribute("data-style", "material");
+      de.setAttribute("data-mtheme", savedSt.mTheme === "light" || (savedSt.mTheme === "system" && matchMedia("(prefers-color-scheme: light)").matches) ? "light" : "dark");
+    }
+  } catch (e) {}
+  // Оформление архитектур стиля — после общего app.css (style.jsx)
+  document.write('<link rel="stylesheet" href="css/app.css?v=' + SPOTLESS_V + '"><link rel="stylesheet" href="css/style-material.css?v=' + SPOTLESS_V + '">');
 </script>
 </head>
 <body>
@@ -28,6 +41,7 @@
   document.write('<script src="js/data.js?v=' + SPOTLESS_V + '"><\/script><script src="js/i18n.js?v=' + SPOTLESS_V + '"><\/script>');
 </script>
 <script type="text/babel" src="js/core.jsx"></script>
+<script type="text/babel" src="js/style.jsx"></script>
 <script type="text/babel" src="js/ui.jsx"></script>
 <script type="text/babel" src="js/rating.jsx"></script>
 <script type="text/babel" src="js/track.jsx"></script>

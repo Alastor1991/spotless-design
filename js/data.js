@@ -40,9 +40,10 @@ window.DB = (() => {
     },
   };
 
+  // acc — цвет обложки для стиля Material: [на тёмной теме, на светлой]; контраст с фоном ≥ 4,5:1
   const albums = {
     grunt: {
-      id: "grunt", artist: "milk", title: "Грунт", year: 2024, type: "album", hue: 25,
+      id: "grunt", artist: "milk", title: "Грунт", year: 2024, type: "album", hue: 25, acc: ["#F0B54A", "#9A5F00"],
       tracks: [
         { id: "g1", t: "Первый снег в сентябре", dur: "3:24", plays: "1 204 318", liked: true, rating: 9 },
         { id: "g2", t: "Грунт", dur: "4:02", plays: "987 220", liked: false, rating: null },
@@ -56,11 +57,11 @@ window.DB = (() => {
       ],
     },
     glass: {
-      id: "glass", artist: "milk", title: "Стеклянная вода", year: 2026, type: "single", hue: 145,
+      id: "glass", artist: "milk", title: "Стеклянная вода", year: 2026, type: "single", hue: 145, acc: ["#6FE3C1", "#00785C"],
       tracks: [{ id: "gl1", t: "Стеклянная вода", dur: "3:56", plays: "214 870", liked: true, rating: 8 }],
     },
     salt: {
-      id: "salt", artist: "lowtide", title: "Salt & Signal", year: 2025, type: "album", hue: 190,
+      id: "salt", artist: "lowtide", title: "Salt & Signal", year: 2025, type: "album", hue: 190, acc: ["#8FB4C8", "#3D6A82"],
       tracks: [
         { id: "s1", t: "Foam Letters", dur: "3:42", plays: "2 304 118", liked: false, rating: null },
         { id: "s2", t: "Lighthouse Keeper", dur: "4:15", plays: "1 887 410", liked: true, rating: 9 },
@@ -70,7 +71,7 @@ window.DB = (() => {
       ],
     },
     hourglass: {
-      id: "hourglass", artist: "velvet", title: "Hourglass II", year: 2026, type: "album", hue: 305,
+      id: "hourglass", artist: "velvet", title: "Hourglass II", year: 2026, type: "album", hue: 305, acc: ["#FF7AB0", "#B0306A"],
       tracks: [
         { id: "h1", t: "Neon Stairs", dur: "4:08", plays: "884 312", liked: false, rating: null },
         { id: "h2", t: "Afterimage", dur: "3:51", plays: "1 102 480", liked: true, rating: 8 },
@@ -79,7 +80,7 @@ window.DB = (() => {
       ],
     },
     animal: {
-      id: "animal", artist: "paper", title: "Animal Letters", year: 2026, type: "album", hue: 240,
+      id: "animal", artist: "paper", title: "Animal Letters", year: 2026, type: "album", hue: 240, acc: ["#8FA8FF", "#3B5BD9"],
       tracks: [
         { id: "a1", t: "Fox on the Roof", dur: "3:18", plays: "1 540 220", liked: false, rating: null },
         { id: "a2", t: "Paper Cranes", dur: "3:47", plays: "2 011 873", liked: true, rating: 9 },
@@ -87,7 +88,7 @@ window.DB = (() => {
       ],
     },
     seven: {
-      id: "seven", artist: "bruno", title: "Семь восьмых", year: 2025, type: "album", hue: 330,
+      id: "seven", artist: "bruno", title: "Семь восьмых", year: 2025, type: "album", hue: 330, acc: ["#C8F04A", "#557000"],
       tracks: [
         { id: "b1", t: "Семь восьмых", dur: "3:33", plays: "412 380", liked: false, rating: null },
         { id: "b2", t: "Панельный вальс", dur: "4:11", plays: "388 102", liked: true, rating: 7 },
@@ -95,11 +96,11 @@ window.DB = (() => {
       ],
     },
     cassette: {
-      id: "cassette", artist: "bruno", title: "Кассета 04", year: 2026, type: "single", hue: 15,
+      id: "cassette", artist: "bruno", title: "Кассета 04", year: 2026, type: "single", hue: 15, acc: ["#FF8A4C", "#B04A12"],
       tracks: [{ id: "c1", t: "Кассета 04", dur: "2:48", plays: "118 204", liked: false, rating: 7 }],
     },
     pole: {
-      id: "pole", artist: "gruntovka", title: "Поле, ещё поле", year: 2026, type: "ep", hue: 70,
+      id: "pole", artist: "gruntovka", title: "Поле, ещё поле", year: 2026, type: "ep", hue: 70, acc: ["#D6BE5A", "#6E5F12"],
       tracks: [
         { id: "p1", t: "Поле, ещё поле", dur: "4:12", plays: "88 320", liked: false, rating: null },
         { id: "p2", t: "Провода", dur: "3:27", plays: "64 110", liked: false, rating: null },

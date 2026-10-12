@@ -1,14 +1,23 @@
 // Spotless — UI-примитивы: иконки, обложки, точечные полосы и время, окна и ручка листа,
 // бегущая строка, карточки, тосты.
 
-// Линия у всех значков — ровно 1,25 px при любом размере (non-scaling-stroke); sw — толщина в px
-const Ic = ({ d, size = 20, sw = 1.25, style = {}, fill = "none", className }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} className={className}
-    stroke={fill === "none" ? "currentColor" : "none"} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"
-    style={{ flexShrink: 0, display: "block", ...style }}>
-    {(Array.isArray(d) ? d : [d]).map((p, i) => <path key={i} d={p} vectorEffect="non-scaling-stroke" />)}
-  </svg>
-);
+// Линия у всех значков — ровно 1,25 px при любом размере (non-scaling-stroke); sw — толщина в px.
+// В стиле Material тот же значок — символ Material Symbols (style.jsx): Ic узнаёт его по контуру из ICONS.
+// Заливной значок (fill) — залитый символ
+const Ic = ({ d, size = 20, sw = 1.25, style = {}, fill = "none", className }) => {
+  const kind = useStyle();
+  const key = kind === "material" ? iconKey(d) : null;
+  if (key && MS_NAMES[key]) {
+    return <MsIcon name={MS_NAMES[key]} size={size} filled={fill !== "none"} className={className} style={{ flexShrink: 0, ...style }} />;
+  }
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} className={className}
+      stroke={fill === "none" ? "currentColor" : "none"} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"
+      style={{ flexShrink: 0, display: "block", ...style }}>
+      {(Array.isArray(d) ? d : [d]).map((p, i) => <path key={i} d={p} vectorEffect="non-scaling-stroke" />)}
+    </svg>
+  );
+};
 
 const ICONS = {
   home: "M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z",
