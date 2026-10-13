@@ -96,7 +96,7 @@ const FriendsWidget = () => {
           <button key={f.id} onClick={() => app.go("profile", f.id)} style={{ display: "flex", gap: 12, alignItems: "center", textAlign: "left", minWidth: 0 }}>
             <span className={"friend-av" + (now ? " is-now" : "")} style={{ "--fh": f.hue }}>{f.name[0]}</span>
             <span style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
-              <span style={{ fontSize: 13, fontWeight: 500 }}>{f.name} <span className={"friend-when mono" + (now ? " is-now" : "")}>· {now ? t.agoNow : t.ago(app.lang === "ru" ? f.ago : f.agoEn)}</span></span>
+              <span style={{ fontSize: 13, fontWeight: 500 }}>{f.name} <span className={"friend-when" + (now ? " is-now" : "")}>· {now ? t.agoNow : t.ago(app.lang === "ru" ? f.ago : f.agoEn)}</span></span>
               <span style={{ fontSize: 12, color: "var(--mut)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.track} — {f.artist}</span>
             </span>
           </button>

@@ -141,7 +141,7 @@ const MpTrack = ({ id, pct, docked }) => {
           <React.Fragment>
             <span style={{ fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tr.t}{!docked && <span style={{ color: "var(--mut2)" }}> · {ar.name}</span>}</span>
             {docked
-              ? <span className="mlabel ml-s ml-w">{ar.name} · {zpad(app.fmtTime(pct), 5, kind)}</span>
+              ? <span className="mlabel ml-s">{ar.name} · {zpad(app.fmtTime(pct), 5, kind)}</span>
               : <DotBar track pct={pct} pitch={5} r={1.4} label={app.t.trackProgress} />}
           </React.Fragment>
         )}

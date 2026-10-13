@@ -40,8 +40,8 @@ const PageAlbum = ({ id }) => {
           <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: "var(--mut)", flexWrap: "wrap" }}>
             <Cover art={"ar:" + ar.id} hue={ar.hue} size={28} round={true} />
             <button style={{ fontSize: 16, color: "var(--text)" }} onClick={() => app.go("artist", ar.id)}>{ar.name}</button>
-            <span className="mlabel ml-w no-phone">·</span>
-            <span className="mlabel ml-w">{t.incomeAvgShort(m.fmt(m.usd(ar.avgPerListener), true))}</span>
+            <span className="mlabel no-phone">·</span>
+            <span className="mlabel">{t.incomeAvgShort(m.fmt(m.usd(ar.avgPerListener), true))}</span>
           </div>
         </div>
       </header>
@@ -77,7 +77,7 @@ const PageAlbum = ({ id }) => {
         {al.tracks.map((tr, i) => <TrackRow key={tr.id} trackId={tr.id} num={i + 1} showPlays={true} noCover={true} />)}
       </div>
 
-      <p className="mlabel ml-w" style={{ marginBottom: 40 }}>
+      <p className="mlabel" style={{ marginBottom: 40 }}>
         {al.year} · {ar.name}. {t.rightsArtist}
       </p>
 

@@ -25,7 +25,7 @@ const BigMoney = ({ value, size: full = 150 }) => {
 // Подпись над числом: «Комиссия сервиса 0%» читается именно в таком порядке
 const SupStat = ({ label, value }) => (
   <span style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-    <span className="mlabel ml-s ml-t">{label}</span>
+    <span className="mlabel ml-s">{label}</span>
     <span className="ty-light" style={{ fontSize: 30, lineHeight: 1 }}>{value}</span>
   </span>
 );
@@ -136,7 +136,7 @@ const SplitWidget = ({ split, total }) => {
     <section className="widget" style={{ padding: "24px 28px 24px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
         <h2 style={{ fontSize: 18, fontWeight: 700 }}>{t.howSplit(m.fmt(total))}</h2>
-        <span className="mlabel ml-s ml-t">{t.dotIsC(unit, m.currency, unit >= 1000 ? m.int(unit) : m.fmt(unit))}</span>
+        <span className="mlabel ml-s">{t.dotIsC(unit, m.currency, unit >= 1000 ? m.int(unit) : m.fmt(unit))}</span>
       </div>
       <div style={{ display: "flex", flexDirection: "column" }}>
         {split.map((s) => {
@@ -184,7 +184,7 @@ const HistoryWidget = () => {
     <section className="widget" style={{ display: "flex", flexDirection: "column", gap: 14, padding: "24px 24px 22px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
         <h2 style={{ fontSize: 18, fontWeight: 700 }}>{t.supHistory}</h2>
-        <span className="mlabel ml-s ml-t" style={{ display: "flex", alignItems: "center", gap: 6 }}><span className="hot-dot"></span>{t.supExtra}</span>
+        <span className="mlabel ml-s" style={{ display: "flex", alignItems: "center", gap: 6 }}><span className="hot-dot"></span>{t.supExtra}</span>
       </div>
       <div style={{ flex: 1, minHeight: 150, display: "grid", gridTemplateColumns: `repeat(${history.length}, minmax(0, 1fr))`, alignItems: "end", gap: 8 }}>
         {history.map((h, i) => {
@@ -198,7 +198,7 @@ const HistoryWidget = () => {
                 {dots(h.extra, "e", "var(--hot)")}
                 {dots(h.amount, "b", cur ? "var(--text)" : "var(--mut2)")}
               </span>
-              <span className="mlabel ml-s ml-t" style={{ color: cur ? "var(--text)" : "var(--mut2)" }}>{month}</span>
+              <span className="mlabel ml-s" style={{ color: cur ? "var(--text)" : "var(--mut2)" }}>{month}</span>
             </div>
           );
         })}
