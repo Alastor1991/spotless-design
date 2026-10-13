@@ -222,10 +222,39 @@ const ObAmount = ({ amt, setAmt, custom, setCustom, next }) => {
   );
 };
 
+// Шаг 4 у Material — все три пункта на одной карточке, с крупными пояснениями
+const ObTourCard = () => {
+  const app = useApp();
+  const t = app.t;
+  const items = [
+    { icon: "heart", fill: true, title: t.obTour1t, sub: t.obTour1s(app.likeRating) },
+    { icon: "plus", title: t.obTour2t, sub: t.obTour2s },
+    { icon: "dollar", title: t.obTour3t, sub: t.obTour3s },
+  ];
+  return (
+    <React.Fragment>
+      <h1 style={{ ...obTitle, marginBottom: 20 }}>{t.obTourTitle}</h1>
+      <div className="ob-tour">
+        {items.map(it => (
+          <div key={it.icon} className="ob-tour-row">
+            <span className="ob-tour-ic"><Ic d={ICONS[it.icon]} size={24} fill={it.fill ? "currentColor" : "none"} /></span>
+            <span>
+              <span className="ob-tour-t">{it.title}</span>
+              <span className="ob-tour-s">{it.sub}</span>
+            </span>
+          </div>
+        ))}
+      </div>
+      <button className="btn ob-cta ob-cta-gap" onClick={app.finishOnboarding}>{t.obFinish}</button>
+    </React.Fragment>
+  );
+};
+
 // Шаг 4 — три карточки: сердечко, плюсик, $
 const ObTour = ({ card, setCard }) => {
   const app = useApp();
   const t = app.t;
+  if (useStyle() === "material") return <ObTourCard />;
   const cards = [
     { icon: "heart", title: t.obTour1t, sub: t.obTour1s(app.likeRating), demo: "rating" },
     { icon: "plus", title: t.obTour2t, sub: t.obTour2s, demo: null },

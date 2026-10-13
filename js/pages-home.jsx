@@ -163,11 +163,14 @@ const PageHome = () => {
         </div>
       ) : (
         <React.Fragment>
-          <div className="home-bento">
-            <ContinueWidget />
-            <SupportWidget />
-            <FriendsWidget />
-          </div>
+          {/* Виджеты можно убрать в настройках («Внешний вид»): тогда на главной только подборки */}
+          {app.settings.homeWidgets && (
+            <div className="home-bento">
+              <ContinueWidget />
+              <SupportWidget />
+              <FriendsWidget />
+            </div>
+          )}
           <CardShelf title={t.recent} more="recent">{HOME_RECENT.map((r, i) => card(r, i))}</CardShelf>
           <CardShelf title={t.newFromArtists} more="new">{HOME_NEW.map((id, i) => card({ kind: "album", id }, "n" + i))}</CardShelf>
           <CardShelf title={t.madeForYou} more="mixes" last={true}>
