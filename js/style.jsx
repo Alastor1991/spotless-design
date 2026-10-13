@@ -10,6 +10,13 @@ const STYLE_LIST = [
   { id: "dot", ru: "Точка", en: "Dot" },
   { id: "material", ru: "Material", en: "Material" },
 ];
+// Образцы стилей в настройках и онбординге (StyleSwatch): свои цвета у каждого — образец показывает
+// стиль таким, какой он есть, а не в цветах того, что выбран сейчас
+const STYLE_PREVIEW = {
+  dot: { bg: "#000000", fg: "#F2F2F2", mut: "#8A8A8A", line: "#262626", hot: "#D71921" },
+  material: { bg: "#121212", card: "#1B1B1B", bar: "#262626", ind: "#363636", mut: "#5C5C5C", acc: "#F0B54A" },
+};
+const STYLE_WAVE = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M0 4q3-3.5 6 0t6 0' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E\") 0 50% / 12px 8px repeat-x";
 const StyleCtx = React.createContext("dot");
 const useStyle = () => React.useContext(StyleCtx);
 
@@ -50,7 +57,7 @@ const Logo = ({ size = 24 }) => (useStyle() === "material"
   ? <span className="logo-word m-logo" style={{ fontSize: size - 4 }}>Spotless</span>
   : <React.Fragment>
       <span className="dots logo-word" style={{ fontSize: size, letterSpacing: "0.02em" }}>SPOTLESS</span>
-      <span className="hot-dot" style={size >= 24 ? { width: 7, height: 7 } : undefined}></span>
+      <span className="hot-dot" style={size >= 30 ? { width: 9, height: 9 } : size >= 24 ? { width: 7, height: 7 } : undefined}></span>
     </React.Fragment>);
 
 // ---------- Material: полоса ----------
@@ -123,4 +130,4 @@ const useStyleAccent = (style, trackId, mAccent, active) => {
   }, [style, trackId, mAccent, active]);
 };
 
-Object.assign(window, { useStyleAccent, MBar, Logo, STYLE_LIST, StyleCtx, useStyle, MS_NAMES, iconKey, msSize, MsIcon, loadStyleFonts, M_ACCENTS, mAccentPair });
+Object.assign(window, { STYLE_PREVIEW, STYLE_WAVE, useStyleAccent, MBar, Logo, STYLE_LIST, StyleCtx, useStyle, MS_NAMES, iconKey, msSize, MsIcon, loadStyleFonts, M_ACCENTS, mAccentPair });

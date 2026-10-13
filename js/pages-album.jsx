@@ -36,7 +36,7 @@ const PageAlbum = ({ id }) => {
         <Cover art={al.id} hue={al.hue} size="clamp(150px, 20cqi, 264px)" radius={24} />
         <div style={{ minWidth: 0, flex: "1 1 320px", paddingBottom: 4 }}>
           <div className="mlabel" style={{ marginBottom: 14 }}>{t[al.type]} · {al.year} · {al.tracks.length} {t.tracksN(al.tracks.length)} · {minutesOf(ids)} {t.min}</div>
-          <h1 style={{ fontSize: "clamp(44px, 9cqi, 128px)", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 0.88, marginBottom: 18, textWrap: "balance", overflowWrap: "anywhere" }}>{al.title}</h1>
+          <h1 className="hero-title" style={{ "--fs": "clamp(44px, 9cqi, 128px)", "--lh": 0.88 }}>{al.title}</h1>
           <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: "var(--mut)", flexWrap: "wrap" }}>
             <Cover art={"ar:" + ar.id} hue={ar.hue} size={28} round={true} />
             <button style={{ fontSize: 16, color: "var(--text)" }} onClick={() => app.go("artist", ar.id)}>{ar.name}</button>
@@ -139,7 +139,7 @@ const PageArtist = ({ id }) => {
           <div className="mlabel" style={{ marginBottom: 14 }}>
             {t.artist} · {ar.listeners.toLocaleString(app.lang)} {t.monthlyListeners}
           </div>
-          <h1 style={{ fontSize: "clamp(40px, 8cqi, 112px)", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 0.9, marginBottom: 18, overflowWrap: "anywhere" }}>{ar.name}</h1>
+          <h1 className="hero-title" style={{ "--fs": "clamp(40px, 8cqi, 112px)", "--lh": 0.9, textWrap: "wrap" }}>{ar.name}</h1>
           <IncomeLine ar={ar} />
           {shareOf(id, app.monthly) && <div style={{ marginTop: 10 }}><YouGave artistId={id} short={true} /></div>}
         </div>

@@ -561,6 +561,10 @@ button:disabled { cursor: default; pointer-events: none; }
 .gal-card { outline: 1px solid var(--line); }
 @media (hover: hover) { .gal-card:hover { outline: 2px solid var(--acc); } }  /* галерея тем */
 .friend-now { background: var(--bg1); }
+/* «Что слушают друзья»: аватар-буква (у того, кто слушает сейчас, — кольцо горячего цвета) и «когда» */
+.friend-av { width: 38px; height: 38px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--bg3); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.friend-av.is-now { box-shadow: inset 0 0 0 1.5px var(--hot); }
+.friend-when { font-size: 10px; letter-spacing: 0.06em; color: var(--mut2); font-weight: 400; text-transform: uppercase; }
 @media (hover: hover) { .friend-now:hover { background: var(--bg2); } }  /* профиль друга: «Слушает сейчас» */
 .play-circle { border-radius: 50%; }  /* главная кнопка плеера (PlayBtn) */
 @media (hover: hover) { .play-circle:hover { transform: scale(1.05); } }
@@ -605,6 +609,14 @@ button:disabled { cursor: default; pointer-events: none; }
 .fsp { animation: sheetIn var(--t-3) var(--ease-enter) backwards; }
 .fsp.is-out { animation: sheetOut var(--t-2) var(--ease-exit) forwards; }
 
+/* Переключатель из нескольких вариантов (Seg, настройки) */
+.seg { display: flex; background: var(--bg2); border-radius: 99px; padding: 3px; }
+.seg-btn {
+  padding: 6px 14px; border-radius: 99px; font-size: 12.5px; font-weight: 700; transition: background var(--t-2) var(--ease), color var(--t-2) var(--ease);
+  background: transparent; color: var(--mut);
+}
+.seg-btn.is-on { background: var(--acc); color: var(--acc-ink); }
+
 /* Тумблер */
 .toggle { width: 42px; height: 24px; border-radius: 99px; background: var(--bg3); position: relative; transition: background var(--t-2) var(--ease); flex-shrink: 0; }
 .toggle::after {
@@ -627,6 +639,15 @@ button:disabled { cursor: default; pointer-events: none; }
 .hero { display: flex; gap: 34px; align-items: flex-end; padding: 30px 0 26px; flex-wrap: wrap; }
 .two-col { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, 1fr); gap: 40px; }
 .sup-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 14px; margin-bottom: 14px; }
+/* Плитка жанра: точечный узор в цвете жанра (--gh — оттенок) */
+.genre-tile {
+  height: 110px; border-radius: 22px; padding: 16px 18px; position: relative; overflow: hidden;
+  background: radial-gradient(circle, oklch(var(--dot-l) 0.13 var(--gh)) 0 1.6px, transparent 2px) 0 0 / 9px 9px, var(--bg2);
+  display: flex; align-items: flex-end; text-align: left;
+}
+.genre-name { font-size: 18px; font-weight: 400; letter-spacing: -0.02em; color: var(--text); background: var(--bg2); padding: 4px 10px 4px 0; border-radius: 6px; }
+/* Заголовок альбома и артиста: размер (--fs) и высота строки (--lh) — у каждой страницы свои */
+.hero-title { font-size: var(--fs); font-weight: 800; letter-spacing: -0.03em; line-height: var(--lh, 0.9); margin-bottom: 18px; text-wrap: balance; overflow-wrap: anywhere; }
 .genre-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
 .search-grid { display: grid; grid-template-columns: minmax(260px, 360px) minmax(0, 1fr); gap: 26px; margin: 26px 0; }
 .settings-grid { display: grid; grid-template-columns: 218px minmax(0, 720px); gap: 36px; }
@@ -1061,4 +1082,19 @@ button { touch-action: manipulation; }
 @media (prefers-reduced-motion: reduce) {
   :root { --t-1: 1ms; --t-2: 1ms; --t-3: 1ms; --t-settle: 1ms; }
   .mq, .likebtn.just-liked svg, .tb-play, .mn-item.active .hot-dot { animation: none !important; }
+}
+
+/* Выбор архитектуры стиля (StyleSwatch: настройки, онбординг) */
+.style-grid { display: grid; grid-template-columns: repeat(2, max-content); gap: 14px; margin-bottom: 26px; }
+.style-card { border-radius: 14px; padding: 4px; outline: 1px solid var(--line); outline-offset: 2px; text-align: left; display: flex; flex-direction: column; }
+.style-card.is-on { outline: 2.5px solid var(--acc); }
+.style-pv { display: block; position: relative; width: 168px; height: 104px; border-radius: 11px; overflow: hidden; }
+.style-name { font-size: 12.5px; font-weight: 700; padding: 8px 4px 4px; color: var(--text); }
+.m-sw { width: 44px; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.m-sw.is-on { box-shadow: inset 0 0 0 2px var(--text); }
+.ob-styles { justify-content: center; margin-bottom: 22px; }
+.ob-mcolors { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+@media (max-width: 640px) {
+  .ob-styles { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  .ob-styles .style-pv { width: 100%; height: 92px; }
 }

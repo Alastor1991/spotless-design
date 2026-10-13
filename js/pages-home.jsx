@@ -93,9 +93,9 @@ const FriendsWidget = () => {
         const now = f.ago === "сейчас";
         return (
           <button key={f.id} onClick={() => app.go("profile", f.id)} style={{ display: "flex", gap: 12, alignItems: "center", textAlign: "left", minWidth: 0 }}>
-            <span style={{ width: 38, height: 38, borderRadius: "50%", boxShadow: `inset 0 0 0 1.5px ${now ? "var(--hot)" : "var(--bg3)"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>{f.name[0]}</span>
+            <span className={"friend-av" + (now ? " is-now" : "")} style={{ "--fh": f.hue }}>{f.name[0]}</span>
             <span style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
-              <span style={{ fontSize: 13, fontWeight: 500 }}>{f.name} <span className="mono" style={{ fontSize: 10, letterSpacing: "0.06em", color: "var(--mut2)", fontWeight: 400, textTransform: "uppercase" }}>· {now ? t.agoNow : t.ago(app.lang === "ru" ? f.ago : f.agoEn)}</span></span>
+              <span style={{ fontSize: 13, fontWeight: 500 }}>{f.name} <span className={"friend-when mono" + (now ? " is-now" : "")}>· {now ? t.agoNow : t.ago(app.lang === "ru" ? f.ago : f.agoEn)}</span></span>
               <span style={{ fontSize: 12, color: "var(--mut)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.track} — {f.artist}</span>
             </span>
           </button>
@@ -211,12 +211,8 @@ const SearchStart = () => {
       <div className="mlabel" style={{ marginBottom: 14 }}>{t.browseAll}</div>
       <div className="genre-grid">
         {(app.lang === "ru" ? GENRES_RU : GENRES_EN).map(([key, g, hue]) => (
-          <button key={key} onClick={() => app.go("genre", key)} style={{
-            height: 110, borderRadius: 22, padding: "16px 18px", position: "relative", overflow: "hidden",
-            background: `radial-gradient(circle, oklch(var(--dot-l) 0.13 ${hue}) 0 1.6px, transparent 2px) 0 0 / 9px 9px, var(--bg2)`,
-            display: "flex", alignItems: "flex-end", textAlign: "left",
-          }}>
-            <span style={{ fontSize: 18, fontWeight: 400, letterSpacing: "-0.02em", color: "var(--text)", background: "var(--bg2)", padding: "4px 10px 4px 0", borderRadius: 6 }}>{g}</span>
+          <button key={key} className="genre-tile" onClick={() => app.go("genre", key)} style={{ "--gh": hue }}>
+            <span className="genre-name">{g}</span>
           </button>
         ))}
       </div>

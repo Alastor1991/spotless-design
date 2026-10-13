@@ -47,14 +47,11 @@ const SettingRow = ({ label, note, children }) => (
   </div>
 );
 
+// Переключатель из нескольких вариантов. Вид — классами (.seg): у Material это группа кнопок
 const Seg = ({ options, value, onChange }) => (
-  <div style={{ display: "flex", background: "var(--bg2)", borderRadius: 99, padding: 3 }}>
+  <div className="seg" role="group">
     {options.map(([k, label]) => (
-      <button key={k} onClick={() => onChange(k)} style={{
-        padding: "6px 14px", borderRadius: 99, fontSize: 12.5, fontWeight: 700, transition: "background var(--t-2) var(--ease), color var(--t-2) var(--ease)",
-        background: value === k ? "var(--acc)" : "transparent",
-        color: value === k ? "var(--acc-ink)" : "var(--mut)",
-      }}>{label}</button>
+      <button key={k} className={"seg-btn" + (value === k ? " is-on" : "")} aria-pressed={value === k} onClick={() => onChange(k)}>{label}</button>
     ))}
   </div>
 );
@@ -170,7 +167,7 @@ const ThemeTools = ({ openModal }) => {
   const [importOpen, setImportOpen] = React.useState(false);
   const [importVal, setImportVal] = React.useState("");
   const exportTheme = () => {
-    const json = JSON.stringify({ theme: app.theme, accent: S.accent, wallpaper: S.wallpaper, island: S.island, density: S.density }, null, 0);
+    const json = JSON.stringify({ style: S.style, theme: app.theme, accent: S.accent, mTheme: S.mTheme, mAccent: S.mAccent, wallpaper: S.wallpaper, island: S.island, density: S.density }, null, 0);
     copyText(json);
     app.toast(t.themeCopied);
   };
@@ -247,20 +244,99 @@ const WallpaperPicker = () => {
   );
 };
 
+// Образец архитектуры стиля: свой рисунок у каждой — по нему видно, чем они отличаются,
+// какой бы стиль ни был выбран сейчас (цвета — из STYLE_PREVIEW, style.jsx)
+const StyleSwatch = ({ id, active, onClick, wide }) => {
+  const app = useApp();
+  const st = STYLE_LIST.find(s => s.id === id);
+  const c = STYLE_PREVIEW[id];
+  return (
+    <button className={"style-card" + (active ? " is-on" : "")} aria-pressed={active} onClick={onClick}>
+      <span className="style-pv" style={{ background: c.bg, width: wide ? "100%" : undefined }} aria-hidden="true">
+        {id === "dot" ? (
+          <React.Fragment>
+            <span style={{ position: "absolute", left: 12, top: 12, width: 40, height: 4, borderRadius: 2, background: c.fg }}></span>
+            <span style={{ position: "absolute", left: 58, top: 11, width: 6, height: 6, borderRadius: 3, background: c.hot }}></span>
+            <span style={{ position: "absolute", left: 12, right: 12, top: 34, height: 6, background: `radial-gradient(circle, ${c.fg} 0 2px, transparent 2.5px) 0 0 / 8px 6px repeat-x` }}></span>
+            <span style={{ position: "absolute", left: 12, right: 12, bottom: 12, height: 22, borderRadius: 11, boxShadow: `inset 0 0 0 1px ${c.line}`, display: "flex", alignItems: "center", padding: "0 3px", gap: 6 }}>
+              <span style={{ width: 16, height: 16, borderRadius: 8, background: c.fg }}></span>
+              <span style={{ width: 34, height: 3, borderRadius: 2, background: c.mut }}></span>
+            </span>
+          </React.Fragment>
+        ) : (
+          <React.Fragment>
+            <span style={{ position: "absolute", left: 10, right: 10, top: 10, height: 40, borderRadius: 10, background: c.card, display: "flex", alignItems: "center", padding: "0 8px", gap: 8 }}>
+              <span style={{ width: 24, height: 24, borderRadius: 8, background: c.acc }}></span>
+              <span style={{ flex: 1, height: 8, background: c.acc, WebkitMask: STYLE_WAVE, mask: STYLE_WAVE }}></span>
+            </span>
+            <span style={{ position: "absolute", left: 10, right: 10, bottom: 10, height: 24, borderRadius: 12, background: c.bar, boxShadow: "0 2px 6px rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "space-around" }}>
+              <span style={{ width: 22, height: 12, borderRadius: 6, background: c.ind }}></span>
+              <span style={{ width: 10, height: 10, borderRadius: 3, background: c.mut }}></span>
+              <span style={{ width: 10, height: 10, borderRadius: 3, background: c.mut }}></span>
+            </span>
+          </React.Fragment>
+        )}
+      </span>
+      <span className="style-name">{app.lang === "ru" ? st.ru : st.en}</span>
+    </button>
+  );
+};
+
+// Акцент Material: из обложки (по умолчанию) или постоянный цвет
+const MAccentPicker = () => {
+  const app = useApp();
+  const t = app.t;
+  const cur = app.settings.mAccent;
+  const light = app.mTheme === "light";
+  const ring = (on) => (on ? "m-sw is-on" : "m-sw");
+  const tr = DB.trackIndex[app.player.trackId];
+  return (
+    <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+      <button className={ring(cur == null)} title={t.stFromCover} aria-label={t.stFromCover} aria-pressed={cur == null} onClick={() => app.setMAccent(null)}>
+        <Cover art={tr.album} hue={DB.albums[tr.album].hue} size={34} round={true} />
+      </button>
+      {M_ACCENTS.map(a => (
+        <button key={a.id} className={ring(cur === a.id)} title={app.lang === "ru" ? a.ru : a.en} aria-label={app.lang === "ru" ? a.ru : a.en} aria-pressed={cur === a.id}
+          onClick={() => app.setMAccent(a.id)}>
+          <span style={{ width: 34, height: 34, borderRadius: 17, background: a.acc ? a.acc[light ? 1 : 0] : "var(--text)" }}></span>
+        </button>
+      ))}
+    </div>
+  );
+};
+
 const SetAppearance = ({ openModal }) => {
   const app = useApp();
   const t = app.t;
   const S = app.settings;
   const set = (k) => (v) => app.setSettings({ ...S, [k]: v });
+  const material = app.style === "material";
   return (
     <div className="fade-up">
-      <div className="sec-label" style={{ marginBottom: 14 }}>{t.stThemes}</div>
-      <div className="theme-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, max-content)", gap: 14, marginBottom: 10 }}>
-        {THEME_LIST.map(th => (
-          <ThemeSwatch key={th.id} th={th} active={app.theme === th.id} onClick={() => app.setTheme(th.id)} />
-        ))}
+      <div className="sec-label" style={{ marginBottom: 6 }}>{t.stStyle}</div>
+      <p style={{ fontSize: 12.5, color: "var(--mut)", lineHeight: 1.5, marginBottom: 14, maxWidth: 520 }}>{t.stStyleNote}</p>
+      <div className="style-grid">
+        {STYLE_LIST.map(s => <StyleSwatch key={s.id} id={s.id} active={app.style === s.id} onClick={() => app.setStyle(s.id)} />)}
       </div>
-      <ThemeTools openModal={openModal} />
+      {material ? (
+        <React.Fragment>
+          <SettingRow label={t.stTheme}>
+            <Seg value={S.mTheme} onChange={app.setMTheme}
+              options={[["dark", t.stThemeDark], ["light", t.stThemeLight], ["system", t.stThemeSystem]]} />
+          </SettingRow>
+          <SettingRow label={t.stAccent} note={t.stMAccentNote}><MAccentPicker /></SettingRow>
+        </React.Fragment>
+      ) : (
+        <React.Fragment>
+          <div className="sec-label" style={{ marginBottom: 14 }}>{t.stThemes}</div>
+          <div className="theme-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, max-content)", gap: 14, marginBottom: 10 }}>
+            {THEME_LIST.map(th => (
+              <ThemeSwatch key={th.id} th={th} active={app.theme === th.id} onClick={() => app.setTheme(th.id)} />
+            ))}
+          </div>
+          <ThemeTools openModal={openModal} />
+        </React.Fragment>
+      )}
       <WallpaperPicker />
       <SettingRow label={t.stIsland} note={t.stIslandNote}>
         <Seg value={S.island} onChange={set("island")}
@@ -274,7 +350,7 @@ const SetAppearance = ({ openModal }) => {
         <Seg value={S.dotScale} onChange={set("dotScale")}
           options={[["share", t.stDotsShare], ["total", t.stDotsTotal]]} />
       </SettingRow>
-      <SettingRow label={t.stAccent} note={t.stAccentNote}>
+      {!material && <SettingRow label={t.stAccent} note={t.stAccentNote}>
         <div style={{ display: "flex", gap: 6 }}>
           {[95, 230, 350, 160].map(h => (
             <button key={h} onClick={() => app.setAccent(h)} style={{
@@ -288,7 +364,7 @@ const SetAppearance = ({ openModal }) => {
             color: "var(--mut)", display: "flex", alignItems: "center", justifyContent: "center",
           }} title="reset"><Ic d={ICONS.refresh} size={13} /></button>
         </div>
-      </SettingRow>
+      </SettingRow>}
     </div>
   );
 };
@@ -478,4 +554,4 @@ const PageSettings = () => {
   );
 };
 
-Object.assign(window, { PageSettings, THEME_LIST, ThemeSwatch, SettingRow, Seg });
+Object.assign(window, { PageSettings, THEME_LIST, ThemeSwatch, StyleSwatch, MAccentPicker, SettingRow, Seg });

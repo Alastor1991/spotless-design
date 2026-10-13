@@ -92,13 +92,15 @@ const AppCrash = ({ detail }) => {
 // ---------- Сайдбар ----------
 // В «Точке» пункты пронумерованы моно-цифрами, активный отмечен красной точкой;
 // в рейле и старых темах вместо номеров — иконки.
-const NavItem = ({ page, num, icon, label, badge }) => {
+// mIcon — свой значок у Material (в макетах «Артистам» — $, как на телефоне)
+const NavItem = ({ page, num, icon, mIcon, label, badge }) => {
   const app = useApp();
+  const kind = useStyle();
   const active = app.route.page === page;
   return (
     <button className={"navitem" + (active ? " active" : "")} aria-current={active ? "page" : undefined} title={label}
       onClick={() => app.go(page)}>
-      <span className="nav-ic"><Ic d={ICONS[icon]} size={20} /></span>
+      <span className="nav-ic"><Ic d={ICONS[kind === "material" && mIcon ? mIcon : icon]} size={20} /></span>
       <span className="nav-num">{num}</span>
       <span className="nav-label" style={{ flex: badge == null ? 1 : "none" }}>{label}</span>
       {badge != null && <span className="badge">{badge}</span>}
@@ -127,7 +129,7 @@ const Sidebar = () => {
         <NavItem page="home" num="01" icon="home" label={t.home} />
         <NavItem page="search" num="02" icon="search" label={t.search} />
         <NavItem page="library" num="03" icon="library" label={t.library} />
-        <NavItem page="support" num="04" icon="wallet" label={t.support} badge={app.money.fmt(app.monthly)} />
+        <NavItem page="support" num="04" icon="wallet" mIcon="dollar" label={t.support} badge={app.money.fmt(app.monthly)} />
       </nav>
       <div className="pl-head" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 6px 0 12px", margin: "26px 0 8px" }}>
         <span className="mlabel">{t.playlists}</span>

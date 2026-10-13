@@ -47,8 +47,7 @@ const ObWelcome = ({ next }) => {
   return (
     <React.Fragment>
       <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 42 }}>
-        <span className="dots" style={{ fontSize: 30, letterSpacing: "0.02em" }}>SPOTLESS</span>
-        <span className="hot-dot" style={{ width: 9, height: 9 }}></span>
+        <Logo size={30} />
       </div>
       <h1 style={{ fontSize: "clamp(34px, 9vw, 46px)", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.12 }}>
         {t.obWelcome1}<br />{t.obWelcome2}
@@ -134,18 +133,32 @@ const ObSeed = ({ seed, setSeed, next }) => {
 };
 
 // Шаг 2 — тема
+// Шаг 2 — стиль и его цвета: архитектура стиля (style.jsx), под ней палитры «Точки»
+// или тема и акцент Material
 const ObTheme = ({ next }) => {
   const app = useApp();
   const t = app.t;
+  const material = app.style === "material";
   return (
     <React.Fragment>
-      <h1 style={{ ...obTitle, marginBottom: 8, textWrap: "balance" }}>{t.obThemeTitle}</h1>
-      <p style={{ fontSize: 14.5, color: "var(--mut)", marginBottom: 30, textWrap: "pretty" }}>{t.obThemeSub}</p>
-      <div className="ob-themes" style={{ display: "flex", flexWrap: "wrap", gap: 18, justifyContent: "center" }}>
-        {THEME_LIST.map(th => (
-          <ThemeSwatch key={th.id} th={th} size="big" active={app.theme === th.id} onClick={() => app.setTheme(th.id)} />
-        ))}
+      <h1 style={{ ...obTitle, marginBottom: 8, textWrap: "balance" }}>{t.obStyleTitle}</h1>
+      <p style={{ fontSize: 14.5, color: "var(--mut)", marginBottom: 26, textWrap: "pretty" }}>{t.obStyleSub}</p>
+      <div className="style-grid ob-styles">
+        {STYLE_LIST.map(s => <StyleSwatch key={s.id} id={s.id} active={app.style === s.id} onClick={() => app.setStyle(s.id)} />)}
       </div>
+      {material ? (
+        <div className="ob-mcolors">
+          <Seg value={app.settings.mTheme} onChange={app.setMTheme}
+            options={[["dark", t.stThemeDark], ["light", t.stThemeLight], ["system", t.stThemeSystem]]} />
+          <MAccentPicker />
+        </div>
+      ) : (
+        <div className="ob-themes" style={{ display: "flex", flexWrap: "wrap", gap: 18, justifyContent: "center" }}>
+          {THEME_LIST.map(th => (
+            <ThemeSwatch key={th.id} th={th} size="big" active={app.theme === th.id} onClick={() => app.setTheme(th.id)} />
+          ))}
+        </div>
+      )}
       <button className="btn" style={{ padding: "13px 44px", fontSize: 15, marginTop: 34 }} onClick={next}>{t.next}</button>
     </React.Fragment>
   );
