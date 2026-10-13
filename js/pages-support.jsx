@@ -15,9 +15,9 @@ const BigMoney = ({ value, size: full = 150 }) => {
   const { whole, cents, sep } = m.parts(value);
   return (
     <span ref={ref} aria-label={m.fmt(value)} style={{ display: "inline-flex", alignItems: "baseline", gap: size * 0.03 }}>
-      <span aria-hidden="true" style={{ fontWeight: 300, fontSize: size * 0.37, color: "var(--mut)" }}>{m.sign}</span>
+      <span aria-hidden="true" className="dots dots-sign" style={{ fontSize: size, color: "var(--mut2)" }}>{m.sign}</span>
       <span aria-hidden="true" className="dots" style={{ fontSize: size }}>{whole}</span>
-      {cents !== "00" && <span aria-hidden="true" className="dots" style={{ fontSize: size * 0.42, color: "var(--dot-off)" }}>{sep}{cents}</span>}
+      {cents !== "00" && <span aria-hidden="true" className="dots" style={{ fontSize: size * 0.42, color: "var(--mut2)" }}>{sep}{cents}</span>}
     </span>
   );
 };

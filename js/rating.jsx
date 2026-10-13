@@ -63,7 +63,8 @@ const RateScale = React.forwardRef(({ value, external = null, onCommit, onPrevie
   );
 });
 
-const LikeButton = ({ trackId, size = 30, always = false }) => {
+// icon — размер сердца, если он не из размера кнопки (мини-плеер «Точки»: кнопка 44, сердце 20)
+const LikeButton = ({ trackId, size = 30, always = false, icon }) => {
   const app = useApp();
   const st = app.trackState(trackId);
   const btnRef = React.useRef(null);
@@ -141,12 +142,12 @@ const LikeButton = ({ trackId, size = 30, always = false }) => {
           if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); setOpen(true); }
         }}
       >
-        <Ic d={neg ? ICONS.heartOff : ICONS.heart} size={size * 0.56} fill={!neg && lit ? "currentColor" : "none"} />
+        <Ic d={neg ? ICONS.heartOff : ICONS.heart} size={icon || size * 0.56} fill={!neg && lit ? "currentColor" : "none"} />
       </button>
       {/* Разлёт точек (app.css). just-liked снимается по его концу: он дольше подпрыгивания сердца,
           а подпрыгивание в «Уменьшить движение» выключено совсем — его конца не дождаться */}
       {justLiked && (
-        <span className="like-burst" aria-hidden="true" style={{ fontSize: size * 0.56 }} onAnimationEnd={() => setJustLiked(false)}>
+        <span className="like-burst" aria-hidden="true" style={{ fontSize: icon || size * 0.56 }} onAnimationEnd={() => setJustLiked(false)}>
           {[0, 1, 2, 3, 4, 5, 6, 7].map(k => <i key={k} style={{ "--a": k * 45 + "deg" }}></i>)}
         </span>
       )}

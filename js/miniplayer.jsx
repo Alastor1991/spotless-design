@@ -130,7 +130,7 @@ const MpTrack = ({ id, pct, docked }) => {
   return (
     <React.Fragment>
       <Cover art={al.id} hue={al.hue} size={42} round={true} />
-      <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: docked ? 3 : kind === "material" ? 0 : 6 }}>
+      <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: docked ? 3 : kind === "material" ? 0 : 1 }}>
         {kind === "material" && !docked ? (
           // Material: название и артист двумя строками, прогресс — линией по краю капсулы (MobilePlayer)
           <React.Fragment>
@@ -139,10 +139,16 @@ const MpTrack = ({ id, pct, docked }) => {
           </React.Fragment>
         ) : (
           <React.Fragment>
-            <span style={{ fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tr.t}{!docked && <span style={{ color: "var(--mut2)" }}> · {ar.name}</span>}</span>
+            <span style={{ fontSize: 14, fontWeight: docked ? 400 : 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tr.t}</span>
             {docked
               ? <span className="mlabel ml-s">{ar.name} · {zpad(app.fmtTime(pct), 5, kind)}</span>
-              : <DotBar track pct={pct} pitch={5} r={1.4} label={app.t.trackProgress} />}
+              : (
+                // «Точка»: название и артист двумя строками, под ними — прогресс точками
+                <React.Fragment>
+                  <span className="mlabel" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ar.name}</span>
+                  <DotBar track pct={pct} pitch={5} r={1.4} label={app.t.trackProgress} style={{ marginTop: 4 }} />
+                </React.Fragment>
+              )}
           </React.Fragment>
         )}
       </div>
@@ -177,7 +183,7 @@ const MobilePlayer = () => {
         <div className="mp-pager">
           <div className="mp-strip" ref={stripRef}>{slot("prev", near.prev, -1)}{slot("cur", id, 0)}{slot("next", near.next, 1)}</div>
         </div>
-        <LikeButton trackId={id} always={true} size={44} />
+        <LikeButton trackId={id} always={true} size={44} icon={kind === "material" ? undefined : 20} />
         <PlayBtn size={44} />
       </div>
       {kind === "material" && !docked && <div className="mp-edge"><MBar pct={pct} pitch={3} label={app.t.trackProgress} /></div>}

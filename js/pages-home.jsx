@@ -31,7 +31,7 @@ const ContinueWidget = () => {
           <span className="mono" style={{ fontSize: 11, color: "var(--mut2)" }}>{zpad(idx + 1, 2, kind)}</span>
           <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tr.t}</span>
         </span>
-        <DotBar pct={0.62} pitch={8} />
+        <DotBar pct={0.62} pitch={11} r={3} />
         <span className="mono" style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--mut2)" }}><span>{zpad("2:21", 5, kind)}</span><span>{zpad(tr.dur, 5, kind)}</span></span>
         <span className="cw-acts">
           <button className="btn" style={{ padding: "0 22px 0 18px" }} onClick={resume}><Ic d={ICONS.play} size={14} fill="currentColor" />{t.continueBtn}</button>
@@ -63,7 +63,7 @@ const SupportWidget = () => {
   const row = (key, name, amount, dim, onClick) => (
     <button key={key} onClick={onClick} style={{ display: "grid", gridTemplateColumns: `minmax(0, 96px) 1fr ${numW}px`, alignItems: "center", gap: 8, fontSize: 12, textAlign: "left", color: dim ? "var(--mut)" : "var(--text)" }}>
       <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</span>
-      <DotBar pct={amount / max} pitch={7} r={2.1} on={dim ? "var(--mut2)" : undefined} />
+      <DotBar pct={amount / max} pitch={8} r={2.6} on={dim ? "var(--mut2)" : undefined} />
       <span className="mono" style={{ fontSize: 11, textAlign: "right", color: "var(--mut)" }}>{m.num(amount, true)}</span>
     </button>
   );
@@ -72,9 +72,9 @@ const SupportWidget = () => {
       <button className="mlabel" style={{ textAlign: "left" }} onClick={() => app.go("support")}>{t.supWidget}</button>
       <button onClick={() => app.go("support")} aria-label={m.fmt(app.monthly)} style={{ display: "flex", alignItems: "baseline", margin: "6px 0 10px" }}>
         <span ref={sumRef} style={{ display: "inline-flex", alignItems: "baseline", gap: 3 }}>
-          <span style={{ fontWeight: 300, fontSize: 38 * k, color: "var(--mut)" }}>{m.sign}</span>
+          <span className="dots dots-sign" style={{ fontSize: 78 * k, color: "var(--mut2)" }}>{m.sign}</span>
           <span className="dots" style={{ fontSize: 78 * k }}>{whole}</span>
-          <span className="dots" style={{ fontSize: 34 * k, color: "var(--dot-off)" }}>{sep}{cents}</span>
+          <span className="dots" style={{ fontSize: 40 * k, color: "var(--mut2)" }}>{sep}{cents}</span>
         </span>
       </button>
       {top.map(s => row(s.artist, DB.artists[s.artist].name, s.amount, false, () => app.go("artist", s.artist)))}

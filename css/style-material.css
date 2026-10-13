@@ -113,6 +113,7 @@ html:not(.ms-ready) .ms { visibility: hidden; }
 }
 /* Цифры — не точечным шрифтом, а Roboto Flex */
 [data-style="material"] .dots { font-family: var(--font); font-variation-settings: normal; font-weight: 650; line-height: 1; letter-spacing: -0.02em; }
+[data-style="material"] .dots-sign { font-weight: 300; }
 
 /* ---------- Полоса (MBar, style.jsx) ----------
    Заполнение | зазор, ручка, зазор | остаток с точкой-концом. --p — доля 0…1, --th — место под ручку */
