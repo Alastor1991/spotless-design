@@ -203,7 +203,7 @@
 [data-style="material"] .btn.ghost { background: var(--m-ctl); box-shadow: none; color: var(--text); font-weight: 600; }
 @media (hover: hover) { [data-style="material"] .btn.ghost:hover { background: var(--bg3); filter: none; } }
 [data-style="material"] .btn.outline { background: transparent; border: none; box-shadow: inset 0 0 0 1px var(--m-outline); font-weight: 600; }
-[data-style="material"] .chip { height: 32px; padding: 0 12px; border-radius: 8px; font-size: 14px; font-weight: 500; box-shadow: inset 0 0 0 1px var(--m-outline); background: transparent; color: var(--m-icon); display: inline-flex; align-items: center; gap: 6px; }
+[data-style="material"] .chip { height: 32px; padding: 0 12px; border-radius: 8px; font-size: 14px; font-weight: 500; box-shadow: inset 0 0 0 1px var(--m-outline); background: transparent; color: var(--m-icon); display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 @media (hover: hover) { [data-style="material"] .chip:hover { background: var(--bg2); } }
 /* Выбранный чип — серая подложка и галочка (символ Material), без цвета */
 [data-style="material"] .chip.on { background: var(--bg3); box-shadow: none; color: var(--text); padding-left: 8px; }
@@ -306,3 +306,42 @@
 [data-style="material"] .style-card.is-on { box-shadow: inset 0 0 0 2px var(--acc); }
 [data-style="material"] .style-name { font-weight: 600; font-size: 14px; }
 [data-style="material"] .set-row { border-bottom-color: var(--line); }
+
+/* =================== Роли крупного текста =================== */
+[data-style="material"] .ty-light, [data-style="material"] .ty-reg { font-weight: 650; letter-spacing: -0.02em; }
+
+/* =================== Полный экран =================== */
+/* Фон — ровный, без точечной сетки; свечение цветом обложки не нужно: цвет и так у кнопок */
+[data-style="material"] .fs, [data-style="material"] .fsp { background: var(--bg0); }
+[data-style="material"] .fs .btn.fs-collapse { font-family: var(--font); font-size: 14px; letter-spacing: 0; text-transform: none; background: transparent; padding: 0 14px 0 8px; font-weight: 600; }
+[data-style="material"] .fs-title { font-size: clamp(32px, 3.6vw, 48px); line-height: 1.12; letter-spacing: -0.02em; }
+[data-style="material"] .follow-pill { font-family: var(--font); font-size: 13px; letter-spacing: 0; text-transform: none; font-weight: 600; padding: 0 12px; height: 32px; border-radius: 10px; box-shadow: inset 0 0 0 1px var(--m-outline); color: var(--text); }
+[data-style="material"] .net-chip { font-family: var(--font); font-size: 13px; letter-spacing: 0; text-transform: none; border-radius: 8px; padding: 6px 10px; box-shadow: inset 0 0 0 1px var(--m-outline); }
+[data-style="material"] .fsp-handle { background: var(--m-outline); }
+
+/* =================== Поля, тосты, окна, меню =================== */
+/* Поле суммы — залитое, скругление 12; выбрано или в фокусе — кольцо цвета обложки */
+[data-style="material"] .amt-field { border-radius: 12px; background: var(--bg2); box-shadow: none; min-height: 44px; }
+[data-style="material"] .amt-field.is-on, [data-style="material"] .amt-field:focus-within { box-shadow: inset 0 0 0 2px var(--acc); background: var(--bg2); color: var(--text); }
+[data-style="material"] .amt-field.amt-fill.is-on { background: var(--bg2); color: var(--text); }
+[data-style="material"] .amt-field .mono, [data-style="material"] .chip.mono { font-family: var(--font); }
+
+/* Тост — тёмная плашка со скруглением 12 (снизу на светлой теме — тёмная, на тёмной — светлая) */
+[data-style="material"] .toast { border-radius: 12px; font-size: 14px; text-align: left; padding: 12px 16px; box-shadow: var(--shadow); }
+[data-style="material"] .toast.has-action { padding: 6px 6px 6px 16px; }
+[data-style="material"] .toast-act { border-radius: 10px; background: transparent; color: var(--m-acc-l, var(--bg0)); font-weight: 700; }
+[data-style="material"][data-mtheme="light"] .toast-act { color: var(--m-acc-d, var(--bg0)); }
+
+/* Окна и листы: поверхность-3, скругление 20 (лист снизу — 24 сверху), тень */
+[data-style="material"] .modal { background: var(--m-s3); border: none; border-radius: 20px; box-shadow: var(--shadow); }
+[data-style="material"] .pop { background: var(--m-s3); border: none; border-radius: 16px; box-shadow: var(--shadow); }
+@media (hover: hover) { [data-style="material"] .pop-item:hover { background: var(--bg3); } }
+@media (max-width: 640px) {
+  [data-style="material"] .modal { border-radius: 24px 24px 0 0; box-shadow: 0 48px 0 var(--m-s3), var(--shadow); }
+  [data-style="material"] .sheet-grip span { width: 32px; background: var(--m-outline); }
+}
+
+/* Шкала оценки в плеере — не точки, а короткие черты */
+[data-style="material"] .rate-inline .rate-cell > i { width: 5px; height: 14px; border-radius: 2.5px; }
+[data-style="material"] .rate-inline .rate-cell > i.is-on { background: var(--hot); }
+[data-style="material"] .rate-pop .rate-cell > i { width: 16px; height: 22px; border-radius: 6px; }

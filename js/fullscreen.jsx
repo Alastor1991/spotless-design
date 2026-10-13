@@ -38,8 +38,7 @@ const FsHeader = ({ tr, al }) => {
   const t = app.t;
   return (
     <div className="fs-top" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-      <button className="btn ghost" style={{ padding: "0 18px 0 12px", fontFamily: "var(--mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", background: "var(--bg0)" }}
-        onClick={() => app.setFull(false)}>
+      <button className="btn ghost fs-collapse" onClick={() => app.setFull(false)}>
         <Ic d={ICONS.chevD} size={17} />{t.collapse}
       </button>
       <button onClick={() => { app.setFull(false); app.go("album", al.id); }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, minWidth: 0 }}>
@@ -139,11 +138,7 @@ const FullScreen = ({ out }) => {
   }, []);
 
   return (
-    <div className={"fs" + (out ? " is-out" : "")} data-screen-label="Полный экран плеера" role="dialog" aria-label={t.nowPlaying} style={{
-      position: "fixed", inset: 0, zIndex: 90,
-      background: "radial-gradient(circle, var(--bg2) 0 1.2px, transparent 1.6px) 0 0 / 18px 18px, var(--bg0)",
-      display: "flex", flexDirection: "column", padding: "26px 44px 30px", gap: 18,
-    }}>
+    <div className={"fs" + (out ? " is-out" : "")} data-screen-label="Полный экран плеера" role="dialog" aria-label={t.nowPlaying}>
       <FsHeader tr={tr} al={al} />
 
       {/* Раскладка сцены и размер обложки (--fs-cover) — в app.css: inline-стиль перебил бы
@@ -155,10 +150,10 @@ const FullScreen = ({ out }) => {
         </div>
 
         <div className="fs-info">
-          <h1 key={tr.id} className="fade-in" style={{ fontSize: "clamp(38px, 5.6vw, 80px)", lineHeight: 0.95, marginBottom: 12 }}>{tr.t}</h1>
+          <h1 key={tr.id} className="fade-in fs-title">{tr.t}</h1>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 6 }}>
             <button style={{ fontSize: 19, color: "var(--text)", opacity: 0.86 }} onClick={() => { app.setFull(false); app.go("artist", ar.id); }}>{ar.name}</button>
-            <button className="mono" onClick={() => app.toggleFollow(ar.id)} style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", padding: "6px 10px", borderRadius: 99, boxShadow: "inset 0 0 0 1px var(--bg3)", color: "var(--mut)" }}>
+            <button className="mono follow-pill" onClick={() => app.toggleFollow(ar.id)}>
               {app.followed.includes(ar.id) ? t.following : t.follow}
             </button>
           </div>
@@ -313,11 +308,9 @@ const FullScreenPhone = ({ out }) => {
         size="max(120px, min(100cqw, 100cqh - 52px))" style={{ "--gp": "9px", "--gr": "3px" }} />
     </div>
   );
-  // Едва заметное свечение цветом обложки поверх точечной сетки
-  const glow = `radial-gradient(120% 55% at 50% 18%, color-mix(in oklab, oklch(0.62 0.12 ${al.hue}) 16%, transparent), transparent 72%), radial-gradient(circle, var(--bg2) 0 1.1px, transparent 1.5px) 0 0 / 16px 16px, var(--bg0)`;
   return (
     <div ref={rootRef} className={"fsp" + (out ? " is-out" : "")} role="dialog" aria-label={t.nowPlaying} data-screen-label="Полный экран (телефон)"
-      style={{ background: glow }} {...gestures}>
+      style={{ "--fs-hue": al.hue }} {...gestures}>
       <span className="fsp-handle" aria-hidden="true"></span>
       <FspHeader tr={tr} al={al} />
 

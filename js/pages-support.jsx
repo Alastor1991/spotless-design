@@ -51,13 +51,7 @@ const MonthlyWidget = ({ split }) => {
             <button key={n} role="radio" aria-checked={preset(n)} className={"chip mono" + (preset(n) ? " on" : "")}
               style={{ minHeight: 44, padding: "0 20px" }} onClick={() => { chosen(n); app.setMonthly(n); }}>{m.sign}{n}</button>
           ))}
-          <label style={{
-            display: "flex", alignItems: "center", gap: 4, borderRadius: 99, minHeight: 44,
-            padding: "0 16px", fontSize: 14,
-            background: app.customAmt ? "var(--acc)" : "transparent",
-            color: app.customAmt ? "var(--acc-ink)" : "var(--text)",
-            boxShadow: app.customAmt ? "none" : "inset 0 0 0 1px var(--bg3)",
-          }}>
+          <label className={"amt-field amt-fill" + (app.customAmt ? " is-on" : "")} style={{ gap: 4, minHeight: 44, padding: "0 16px", fontSize: 14 }}>
             <span className="mono">{m.sign}</span><input value={app.customAmt} inputMode="decimal" onChange={(e) => app.setCustomAmt(cleanAmount(e.target.value))}
               onBlur={() => chosen(app.commitCustom())} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} aria-label={t.supCustom}
               placeholder={t.supCustom} style={{
@@ -302,10 +296,7 @@ const DonateSheet = ({ tgt, out }) => {
                 style={{ flex: 1, padding: 0, minHeight: 48, fontSize: 15 }}
                 onClick={() => { setAmt(n); setCustom(""); }}>{m.sign}{n}</button>
             ))}
-            <label style={{
-              flex: 1.3, display: "flex", alignItems: "center", borderRadius: 99, padding: "0 14px", fontSize: 15,
-              boxShadow: custom ? "inset 0 0 0 2px var(--acc)" : "inset 0 0 0 1px var(--bg3)",
-            }}>
+            <label className={"amt-field" + (custom ? " is-on" : "")} style={{ flex: 1.3, padding: "0 14px", fontSize: 15 }}>
               <span className="mono">{m.sign}</span><input value={custom} inputMode="decimal" onChange={(e) => setCustom(cleanAmount(e.target.value))} placeholder="…" aria-label={t.supCustom}
                 style={{ width: "100%", background: "none", border: "none", outline: "none", color: "var(--text)", fontSize: 15, padding: "12px 0 12px 2px" }} />
             </label>
@@ -432,10 +423,7 @@ const TopUpCard = ({ order, setOrder, onPaid }) => {
               style={{ flex: 1, padding: 0, minHeight: 44, fontSize: 14.5 }}
               onClick={() => setAmt(n)}>{m.sign}{n}</button>
           ))}
-          <label style={{
-            flex: 1.1, display: "flex", alignItems: "center", borderRadius: 99, padding: "0 13px", fontSize: 14.5,
-            boxShadow: custom ? "inset 0 0 0 2px var(--acc)" : "inset 0 0 0 1px var(--bg3)",
-          }}>
+          <label className={"amt-field" + (custom ? " is-on" : "")} style={{ flex: 1.1, padding: "0 13px", fontSize: 14.5 }}>
             <span className="mono">{m.sign}</span><input value={custom} inputMode="decimal" onChange={(e) => setCustom(cleanAmount(e.target.value))} placeholder="…" aria-label={t.tuAmount}
               style={{ width: "100%", background: "none", border: "none", outline: "none", color: "var(--text)", fontSize: 14.5, padding: "10px 0 10px 2px" }} />
           </label>
@@ -467,10 +455,7 @@ const TopUpWallet = () => {
   const t = app.t;
   return (
     <React.Fragment>
-      <div className="mono" style={{
-        display: "inline-flex", alignItems: "center", gap: 8, borderRadius: 99, padding: "8px 14px",
-        fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 16, boxShadow: "inset 0 0 0 1px var(--bg3)",
-      }}>
+      <div className="mono net-chip">
         <span className="hot-dot"></span>{t.tuNetwork}
       </div>
       <div style={{ display: "flex", gap: 18, alignItems: "flex-start", marginBottom: 16, flexWrap: "wrap" }}>

@@ -617,6 +617,20 @@ button:disabled { cursor: default; pointer-events: none; }
 }
 .seg-btn.is-on { background: var(--acc); color: var(--acc-ink); }
 
+/* Поле своей суммы: капсула; выбрано — залито главным цветом (amt-fill, «Артистам») или в кольце (донат, пополнение) */
+.amt-field { display: flex; align-items: center; border-radius: 99px; box-shadow: inset 0 0 0 1px var(--bg3); color: var(--text); }
+.amt-field.is-on { box-shadow: inset 0 0 0 2px var(--acc); }
+.amt-field.amt-fill.is-on { background: var(--acc); color: var(--acc-ink); box-shadow: none; }
+
+/* Тост: снизу по центру, цвета текста; с действием («Вернуть») — кнопка справа */
+.toast {
+  background: var(--text); color: var(--bg0); border-radius: 99px;
+  padding: 11px 22px; font-size: 13.5px; font-weight: 500; box-shadow: var(--island-shadow);
+  max-width: calc(100vw - 32px); text-align: center; display: flex; align-items: center; gap: 12px;
+}
+.toast.has-action { padding: 6px 6px 6px 22px; }
+.toast-act { pointer-events: auto; min-height: 36px; padding: 0 16px; border-radius: 99px; font-weight: 600; background: var(--bg0); color: var(--text); }
+
 /* Тумблер */
 .toggle { width: 42px; height: 24px; border-radius: 99px; background: var(--bg3); position: relative; transition: background var(--t-2) var(--ease); flex-shrink: 0; }
 .toggle::after {
@@ -671,6 +685,17 @@ button:disabled { cursor: default; pointer-events: none; }
    текст песни — под названием. Обложка считается от размеров сцены (container query), поэтому
    на низком или узком окне она уменьшается, а не наезжает на таймкод и кнопки. Раньше без текста
    песни название стояло под обложкой без места под себя и ложилось поверх кнопок */
+/* Полный экран на компьютере: фон в точку, «Свернуть», название трека, «Подписаться» */
+.fs {
+  position: fixed; inset: 0; z-index: 90;
+  background: radial-gradient(circle, var(--bg2) 0 1.2px, transparent 1.6px) 0 0 / 18px 18px, var(--bg0);
+  display: flex; flex-direction: column; padding: 26px 44px 30px; gap: 18px;
+}
+.fs .btn.fs-collapse { padding: 0 18px 0 12px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; background: var(--bg0); }
+.fs-title { font-size: clamp(38px, 5.6vw, 80px); line-height: 0.95; margin-bottom: 12px; }
+.follow-pill { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; padding: 6px 10px; border-radius: 99px; box-shadow: inset 0 0 0 1px var(--bg3); color: var(--mut); }
+/* Пополнение с кошелька: метка сети */
+.net-chip { display: inline-flex; align-items: center; gap: 8px; border-radius: 99px; padding: 8px 14px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 16px; box-shadow: inset 0 0 0 1px var(--bg3); }
 .fs-grid {
   flex: 1; min-height: 0; container-type: size;
   display: grid; grid-template-columns: auto minmax(0, 640px); justify-content: center; align-items: center;
@@ -817,7 +842,9 @@ button:disabled { cursor: default; pointer-events: none; }
   position: fixed; inset: 0; z-index: 90; overflow: hidden;
   display: flex; flex-direction: column; gap: 16px;
   padding: 14px 18px calc(16px + env(safe-area-inset-bottom));
-  background: radial-gradient(circle, var(--bg2) 0 1.1px, transparent 1.5px) 0 0 / 16px 16px, var(--bg0);
+  /* Едва заметное свечение цветом обложки (--fs-hue — оттенок альбома) поверх точечной сетки */
+  background: radial-gradient(120% 55% at 50% 18%, color-mix(in oklab, oklch(0.62 0.12 var(--fs-hue, 60)) 16%, transparent), transparent 72%),
+    radial-gradient(circle, var(--bg2) 0 1.1px, transparent 1.5px) 0 0 / 16px 16px, var(--bg0);
   /* Выезжает с перелётом (--ease-enter) и чуть приподнимается над низом экрана: под ним «юбка» того же
      цвета — иначе в этот миг снизу мелькала бы щель. Тень, а не ::after: overflow её не обрезает */
   box-shadow: 0 48px 0 var(--bg0);

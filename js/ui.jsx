@@ -316,17 +316,10 @@ const Toasts = () => {
   return (
     <div className="toasts" role="status" aria-live="polite" style={{ position: "fixed", bottom: 116, left: 16, right: 16, zIndex: 200, display: "flex", flexDirection: "column", gap: 8, alignItems: "center", pointerEvents: "none" }}>
       {app.toasts.map(t => (
-        <div key={t.id} className={"toast" + (t.out ? " is-out" : "")} style={{
-          background: "var(--text)", color: "var(--bg0)", borderRadius: 99,
-          padding: t.action ? "6px 6px 6px 22px" : "11px 22px", fontSize: 13.5, fontWeight: 500, boxShadow: "var(--island-shadow)",
-          maxWidth: "calc(100vw - 32px)", textAlign: "center", display: "flex", alignItems: "center", gap: 12,
-        }}>
+        <div key={t.id} className={"toast" + (t.action ? " has-action" : "") + (t.out ? " is-out" : "")}>
           <span style={{ textWrap: "balance" }}>{t.msg}</span>
           {t.action && (
-            <button onClick={() => { t.action.run(); app.dismissToast(t.id); }} style={{
-              pointerEvents: "auto", minHeight: 36, padding: "0 16px", borderRadius: 99, fontWeight: 600,
-              background: "var(--bg0)", color: "var(--text)",
-            }}>{t.action.label}</button>
+            <button className="toast-act" onClick={() => { t.action.run(); app.dismissToast(t.id); }}>{t.action.label}</button>
           )}
         </div>
       ))}
