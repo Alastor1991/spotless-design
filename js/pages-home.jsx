@@ -11,6 +11,7 @@ const greetKey = () => {
 // Виджет «Вы остановились здесь»: обложка точечной матрицей + прогресс
 const ContinueWidget = () => {
   const app = useApp();
+  const kind = useStyle();
   const t = app.t;
   const al = DB.albums.grunt;
   const ar = DB.artists[al.artist];
@@ -27,11 +28,11 @@ const ContinueWidget = () => {
         <button onClick={() => app.go("album", al.id)} className="ty-reg" style={{ textAlign: "left", fontSize: "clamp(28px, 3.4cqi, 40px)", "--ty-ls": "-0.045em", lineHeight: 1 }}>{al.title}</button>
         <span style={{ fontSize: 14, color: "var(--mut)" }}>{ar.name} · {t[al.type].toLowerCase()}, {al.year}</span>
         <span style={{ marginTop: "auto", display: "flex", alignItems: "baseline", gap: 10, fontSize: 14, minWidth: 0 }}>
-          <span className="mono" style={{ fontSize: 11, color: "var(--mut2)" }}>{String(idx + 1).padStart(2, "0")}</span>
+          <span className="mono" style={{ fontSize: 11, color: "var(--mut2)" }}>{zpad(idx + 1, 2, kind)}</span>
           <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tr.t}</span>
         </span>
         <DotBar pct={0.62} pitch={8} />
-        <span className="mono" style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--mut2)" }}><span>02:21</span><span>{tr.dur.padStart(5, "0")}</span></span>
+        <span className="mono" style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--mut2)" }}><span>{zpad("2:21", 5, kind)}</span><span>{zpad(tr.dur, 5, kind)}</span></span>
         <span className="cw-acts">
           <button className="btn" style={{ padding: "0 22px 0 18px" }} onClick={resume}><Ic d={ICONS.play} size={14} fill="currentColor" />{t.continueBtn}</button>
           <PlusButton trackId={tr.id} size={44} className="ring" />

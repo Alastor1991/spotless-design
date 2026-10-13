@@ -234,6 +234,12 @@ button:disabled { cursor: default; pointer-events: none; }
   font-family: var(--mono, monospace); font-size: 11px; letter-spacing: 0.14em;
   text-transform: uppercase; color: var(--mut2); font-weight: 400;
 }
+/* Ступени подписи: размер 10 и 9 px, разрядка поуже (0,1 и 0,08 em).
+   Классами, а не inline: у Material подписи свои (style-material.css), inline их перебивал бы */
+.mlabel.ml-s { font-size: 10px; }
+.mlabel.ml-xs { font-size: 9px; }
+.mlabel.ml-t { letter-spacing: 0.1em; }
+.mlabel.ml-w { letter-spacing: 0.08em; }
 .hot-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--hot); flex-shrink: 0; display: inline-block; }
 
 /* ---------- Каркас ---------- */
@@ -798,6 +804,18 @@ button:disabled { cursor: default; pointer-events: none; }
 .ob-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; align-items: center; padding: 16px 0; }
 .ob-inner { margin-block: auto; max-width: 100%; text-align: center; display: flex; flex-direction: column; align-items: center; }
 .ob-foot { display: flex; flex-direction: column; gap: 16px; align-items: center; padding-top: 12px; flex-shrink: 0; }
+.ob-dots { display: flex; gap: 7px; justify-content: center; }
+.ob-dot { width: 7px; height: 7px; border-radius: 99px; background: var(--bg3); transition: all 0.25s; }
+.ob-dot.is-done { background: var(--text); }
+.ob-dot.is-on { background: var(--hot); }
+/* Главная кнопка шага */
+.btn.ob-cta { padding: 13px 44px; font-size: 15px; }
+.btn.ob-cta-l { padding: 14px 44px; font-size: 16px; }
+.ob-cta-gap { margin-top: 34px; }
+/* Второе действие под главной кнопкой */
+.ob-alt { margin-top: 16px; }
+.ob-alt.ob-alt-s { margin-top: 14px; }
+.ob-amts { display: flex; gap: 10px; margin-bottom: 26px; flex-wrap: wrap; justify-content: center; }
 
 /* ---------- Телефон (Android) ----------
    Раскладку включает JS (useMedia(PHONE_Q)): сайдбар и правая панель уходят,

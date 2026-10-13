@@ -5,37 +5,48 @@
 // и React перемонтировал поддерево (карточки «мигали»).
 
 const ObDots = ({ step }) => (
-  <div style={{ display: "flex", gap: 7, justifyContent: "center" }}>
+  <div className="ob-dots">
     {[0, 1, 2, 3, 4].map(i => (
-      <span key={i} style={{
-        width: 7, height: 7, borderRadius: 99,
-        background: i === step ? "var(--hot)" : i < step ? "var(--text)" : "var(--bg3)", transition: "all 0.25s",
-      }}></span>
+      <span key={i} className={"ob-dot" + (i === step ? " is-on" : i < step ? " is-done" : "")}></span>
     ))}
   </div>
 );
 
 // Три зоны в потоке, без абсолютного позиционирования: верхняя строка, прокручиваемое
-// содержимое (по центру, если влезает) и низ с точками шагов — на коротком экране ничего не наезжает
-const ObWrap = ({ app, t, step, setStep, wide, onBack, children }) => (
-  <div className="ob" data-screen-label={"Онбординг шаг " + (step + 1)}>
-    <div className="ob-top">
-      {step > 0
-        ? <button className="iconbtn" style={{ width: 44, height: 44 }} aria-label={t.back} onClick={onBack || (() => setStep(step - 1))}><Ic d={ICONS.back} size={18} /></button>
-        : <span></span>}
-      <button className="more" onClick={app.finishOnboarding}>{t.skipAll}</button>
-    </div>
-    <div className="ob-body">
-      <div className="fade-up ob-inner" key={step} style={{ width: wide ? 880 : 520 }}>
-        {children}
+// содержимое (по центру, если влезает) и низ с точками шагов — на коротком экране ничего не наезжает.
+// У Material точки шагов — в верхней строке, а главная кнопка шага на телефоне прижата к низу (.ob-cta)
+const ObWrap = ({ app, t, step, setStep, wide, onBack, children }) => {
+  const material = useStyle() === "material";
+  return (
+    <div className="ob" data-screen-label={"Онбординг шаг " + (step + 1)}>
+      <div className="ob-top">
+        {step > 0
+          ? <button className="iconbtn" style={{ width: 44, height: 44 }} aria-label={t.back} onClick={onBack || (() => setStep(step - 1))}><Ic d={ICONS.back} size={18} /></button>
+          : <span></span>}
+        {material && <ObDots step={step} />}
+        <button className="more" onClick={app.finishOnboarding}>{t.skipAll}</button>
+      </div>
+      <div className="ob-body">
+        <div className="fade-up ob-inner" key={step} style={{ width: wide ? 880 : 520 }}>
+          {children}
+        </div>
+      </div>
+      <div className="ob-foot">
+        {!material && <ObDots step={step} />}
+        {step > 0 && step < 4 && (
+          <button className="more" onClick={() => setStep(step + 1)}>{t.skip}</button>
+        )}
       </div>
     </div>
-    <div className="ob-foot">
-      <ObDots step={step} />
-      {step > 0 && step < 4 && (
-        <button className="more" onClick={() => setStep(step + 1)}>{t.skip}</button>
-      )}
-    </div>
+  );
+};
+
+// Веер обложек на первом шаге Material — вместо логотипа, как в одобренном макете
+const ObFan = () => (
+  <div className="ob-fan" aria-hidden="true">
+    <span className="ob-fan-l"><Cover art="glass" size="var(--fan-s)" radius={20} /></span>
+    <span className="ob-fan-r"><Cover art="hourglass" size="var(--fan-s)" radius={20} /></span>
+    <span className="ob-fan-c"><Cover art="grunt" size="var(--fan)" radius={22} /></span>
   </div>
 );
 
@@ -46,17 +57,17 @@ const ObWelcome = ({ next }) => {
   const t = useApp().t;
   return (
     <React.Fragment>
-      <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 42 }}>
-        <Logo size={30} />
-      </div>
+      {useStyle() === "material"
+        ? <ObFan />
+        : <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 42 }}><Logo size={30} /></div>}
       <h1 style={{ fontSize: "clamp(34px, 9vw, 46px)", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.12 }}>
         {t.obWelcome1}<br />{t.obWelcome2}
       </h1>
       <p style={{ fontSize: 16.5, color: "var(--mut)", lineHeight: 1.6, margin: "22px 0 36px", maxWidth: 460, textWrap: "pretty" }}>
         {t.obWelcomeSub}
       </p>
-      <button className="btn" style={{ padding: "14px 44px", fontSize: 16 }} onClick={next}>{t.obStart}</button>
-      <button className="more" style={{ marginTop: 16 }} onClick={next}>{t.obHaveAcc}</button>
+      <button className="btn ob-cta ob-cta-l" onClick={next}>{t.obStart}</button>
+      <button className="more ob-alt" onClick={next}>{t.obHaveAcc}</button>
     </React.Fragment>
   );
 };
@@ -124,7 +135,7 @@ const ObSeed = ({ seed, setSeed, next }) => {
           {words.length} / 12 {t.seedCount}
         </span>
       </div>
-      <button className="btn" style={{ padding: "13px 44px", fontSize: 15, opacity: ok ? 1 : 0.45 }}
+      <button className="btn ob-cta" style={{ opacity: ok ? 1 : 0.45 }}
         onClick={() => { if (ok) next(); }}>
         <Ic d={ICONS.lock} size={15} />{t.seedGo}
       </button>
@@ -159,7 +170,7 @@ const ObTheme = ({ next }) => {
           ))}
         </div>
       )}
-      <button className="btn" style={{ padding: "13px 44px", fontSize: 15, marginTop: 34 }} onClick={next}>{t.next}</button>
+      <button className="btn ob-cta ob-cta-gap" onClick={next}>{t.next}</button>
     </React.Fragment>
   );
 };
@@ -179,7 +190,7 @@ const ObAmount = ({ amt, setAmt, custom, setCustom, next }) => {
     <React.Fragment>
       <h1 style={{ ...obTitle, marginBottom: 12, textWrap: "balance" }}>{t.obAmountTitle}</h1>
       <p style={{ fontSize: 14.5, color: "var(--mut)", lineHeight: 1.6, marginBottom: 30, maxWidth: 440, textWrap: "pretty" }}>{t.obAmountSub}</p>
-      <div style={{ display: "flex", gap: 10, marginBottom: 26, flexWrap: "wrap", justifyContent: "center" }}>
+      <div className="ob-amts">
         {[2, 5, 10].map(n => {
           const on = !custom && amt === n;
           return (
@@ -203,10 +214,10 @@ const ObAmount = ({ amt, setAmt, custom, setCustom, next }) => {
             }} />
         </div>
       </div>
-      <button className="btn" style={{ padding: "13px 44px", fontSize: 15 }} onClick={commit}>
+      <button className="btn ob-cta" onClick={commit}>
         {t.next}{val > 0 ? ` · ${m.fmt(val)}/${t.supMonth}` : ""}
       </button>
-      <button className="more" style={{ marginTop: 14 }} onClick={next}>{t.obAmountSkip}</button>
+      <button className="more ob-alt ob-alt-s" onClick={next}>{t.obAmountSkip}</button>
     </React.Fragment>
   );
 };
@@ -222,7 +233,6 @@ const ObTour = ({ card, setCard }) => {
   ];
   const c = cards[card];
   const heart = c.icon === "heart";
-  const big = { padding: "13px 44px", fontSize: 15 };
   return (
     <React.Fragment>
       <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 30 }}>{t.obTourTitle}</h1>
@@ -260,8 +270,8 @@ const ObTour = ({ card, setCard }) => {
         ))}
       </div>
       {card < 2
-        ? <button className="btn" style={big} onClick={() => setCard(card + 1)}>{t.next}</button>
-        : <button className="btn" style={big} onClick={app.finishOnboarding}>{t.obFinish}</button>}
+        ? <button className="btn ob-cta" onClick={() => setCard(card + 1)}>{t.next}</button>
+        : <button className="btn ob-cta" onClick={app.finishOnboarding}>{t.obFinish}</button>}
     </React.Fragment>
   );
 };

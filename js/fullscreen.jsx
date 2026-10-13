@@ -89,8 +89,8 @@ const FsControls = ({ tr, showLyrics }) => {
         </span>
         <PlusButton trackId={tr.id} size={48} className="ring" />
         <DLButton trackId={tr.id} size={48} className="ring fs-dl" />
-        <button className="btn ghost fs-donate" title={t.donate} aria-label={t.donate} onClick={() => app.openDonate({ kind: "track", id: tr.id })}>
-          <span className="mono">$</span><span className="fs-donate-l">{t.donate}</span>
+        <button className="btn ghost act-donate fs-donate" title={t.donate} aria-label={t.donate} onClick={() => app.openDonate({ kind: "track", id: tr.id })}>
+          <DonateMark /><span className="fs-donate-l">{t.donate}</span>
         </button>
       </div>
       <div className="fs-ctrl-c">
@@ -235,7 +235,7 @@ const FspHeader = ({ tr, al }) => {
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
       <button className="iconbtn ring" style={{ width: 44, height: 44 }} aria-label={t.collapse} onClick={() => app.setFull(false)}><Ic d={ICONS.chevD} size={18} /></button>
       <button onClick={() => { app.setFull(false); app.go("album", al.id); }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, minWidth: 0 }}>
-        <span className="mlabel" style={{ fontSize: 9 }}>{t[al.type]} · {al.year}</span>
+        <span className="mlabel ml-xs">{t[al.type]} · {al.year}</span>
         <span style={{ fontSize: 13, fontWeight: 500, maxWidth: "52vw", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{al.title}</span>
       </button>
       <button className="iconbtn ring" style={{ width: 44, height: 44 }} aria-label={t.more} onClick={(e) => app.openCtxAt(e.currentTarget, { kind: "track", id: tr.id })}><Ic d={ICONS.more} size={18} fill="currentColor" /></button>
@@ -266,7 +266,7 @@ const FspActions = ({ tr, view, toggle }) => {
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <PlusButton trackId={tr.id} size={46} className="ring" />
       <DLButton trackId={tr.id} size={46} className="ring" />
-      <button className="btn ghost fsp-donate" style={{ flex: 1, minHeight: 46, padding: "0 12px" }} aria-label={t.donate} onClick={() => app.openDonate({ kind: "track", id: tr.id })}><span className="mono">$</span><span className="fsp-donate-l">{t.donate}</span></button>
+      <button className="btn ghost act-donate fsp-donate" style={{ flex: 1, minHeight: 46, padding: "0 12px" }} aria-label={t.donate} onClick={() => app.openDonate({ kind: "track", id: tr.id })}><DonateMark /><span className="fsp-donate-l">{t.donate}</span></button>
       <button className="iconbtn ring" aria-pressed={view === "lyrics"} aria-label={t.lyrics} onClick={() => toggle("lyrics")}
         style={roundBtn(view === "lyrics")}><Ic d={ICONS.mic} size={18} /></button>
       <button className="iconbtn ring" aria-pressed={view === "queue"} aria-label={t.queue} onClick={() => toggle("queue")}

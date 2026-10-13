@@ -40,8 +40,8 @@ const PageAlbum = ({ id }) => {
           <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: "var(--mut)", flexWrap: "wrap" }}>
             <Cover art={"ar:" + ar.id} hue={ar.hue} size={28} round={true} />
             <button style={{ fontSize: 16, color: "var(--text)" }} onClick={() => app.go("artist", ar.id)}>{ar.name}</button>
-            <span className="mlabel no-phone" style={{ letterSpacing: "0.08em" }}>·</span>
-            <span className="mlabel" style={{ letterSpacing: "0.08em" }}>{t.incomeAvgShort(m.fmt(m.usd(ar.avgPerListener), true))}</span>
+            <span className="mlabel ml-w no-phone">·</span>
+            <span className="mlabel ml-w">{t.incomeAvgShort(m.fmt(m.usd(ar.avgPerListener), true))}</span>
           </div>
         </div>
       </header>
@@ -58,8 +58,8 @@ const PageAlbum = ({ id }) => {
           <DLButton size={34} albumId={id} />
           <span className="mono" style={{ fontSize: 12 }} aria-label={t.dlCount(dlN, ids.length)}>{dlN}/{ids.length}</span>
         </span>
-        <button className="btn ghost act-wide" style={{ padding: "0 20px", minHeight: 48 }} onClick={() => app.openDonate({ kind: "album", id: al.id })}>
-          <span className="mono">$</span>{t.supportRelease}
+        <button className="btn ghost act-wide act-donate" style={{ padding: "0 20px", minHeight: 48 }} onClick={() => app.openDonate({ kind: "album", id: al.id })}>
+          <DonateMark />{t.supportRelease}
         </button>
         <ShareBtn className="iconbtn ring no-phone" />
         <MoreBtn ctx={{ kind: "album", id }} />
@@ -77,7 +77,7 @@ const PageAlbum = ({ id }) => {
         {al.tracks.map((tr, i) => <TrackRow key={tr.id} trackId={tr.id} num={i + 1} showPlays={true} noCover={true} />)}
       </div>
 
-      <p className="mlabel" style={{ marginBottom: 40, letterSpacing: "0.08em" }}>
+      <p className="mlabel ml-w" style={{ marginBottom: 40 }}>
         {al.year} · {ar.name}. {t.rightsArtist}
       </p>
 
@@ -100,7 +100,7 @@ const PageAlbum = ({ id }) => {
 // Число с подписью в карточке «Об артисте»
 const ArtistStat = ({ label, value }) => (
   <span style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-    <span className="mlabel" style={{ fontSize: 10 }}>{label}</span>
+    <span className="mlabel ml-s">{label}</span>
     <span className="ty-light" style={{ fontSize: 26 }}>{value}</span>
   </span>
 );
@@ -152,8 +152,8 @@ const PageArtist = ({ id }) => {
         <button className={"btn " + (following ? "ghost" : "")} style={{ padding: "0 22px", minHeight: 48 }} aria-pressed={following} onClick={() => app.toggleFollow(id)}>
           {following && <Ic d={ICONS.check} size={15} />}{following ? t.following : t.follow}
         </button>
-        <button className="btn ghost act-wide" style={{ padding: "0 20px", minHeight: 48 }} onClick={() => app.openDonate({ kind: "artist", id })}>
-          <span className="mono">$</span>{t.supportArtist}
+        <button className="btn ghost act-wide act-donate" style={{ padding: "0 20px", minHeight: 48 }} onClick={() => app.openDonate({ kind: "artist", id })}>
+          <DonateMark />{t.supportArtist}
         </button>
         <ShareBtn className="iconbtn ring no-phone" />
         <MoreBtn ctx={{ kind: "artist", id }} />

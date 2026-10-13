@@ -154,6 +154,7 @@ const DLButton = ({ trackId, albumId, listIds, size = 42, className = "" }) => {
 // qIndex — позиция в очереди (для «убрать из очереди»). noCover — внутри страницы релиза.
 const TrackRow = ({ trackId, num, showPlays = false, plId, qIndex, noCover = false }) => {
   const app = useApp();
+  const kind = useStyle();
   const { tr, al, ar } = trackInfo(trackId);
   const playing = app.player.trackId === trackId;
   const payload = { kind: "track", id: trackId, plId, qIndex };
@@ -163,7 +164,7 @@ const TrackRow = ({ trackId, num, showPlays = false, plId, qIndex, noCover = fal
       {...lp} onContextMenu={(e) => isTouchUI() ? e.preventDefault() : app.openCtx(e, payload)}>
       <span className="num">{playing
         ? <span className="hot-dot" style={{ width: 7, height: 7, marginLeft: 2, display: "block" }} title={app.t.nowPlaying}></span>
-        : String(num).padStart(2, "0")}</span>
+        : zpad(num, 2, kind)}</span>
       {!noCover && (
         <button onClick={() => app.playTrack(trackId)} aria-label={`${app.t.play || "▶"} ${tr.t}`} style={{ display: "block", position: "relative" }}>
           <Cover art={al.id} hue={al.hue} size={40} radius={8} />
@@ -189,7 +190,7 @@ const TrackRow = ({ trackId, num, showPlays = false, plId, qIndex, noCover = fal
           <Ic d={ICONS.more} size={18} fill="currentColor" />
         </button>
       </div>
-      <span className="dur">{tr.dur.padStart(5, "0")}</span>
+      <span className="dur">{zpad(tr.dur, 5, kind)}</span>
     </div>
   );
 };

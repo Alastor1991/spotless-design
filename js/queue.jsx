@@ -7,8 +7,8 @@ const NextUpCard = ({ ids, onAll }) => {
   return (
     <div className="widget" style={{ padding: "16px 16px 10px", borderRadius: 20 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-        <span className="mlabel" style={{ fontSize: 10 }}>{t.nextUp}</span>
-        <button className="mlabel" style={{ fontSize: 10, color: "var(--mut)" }} onClick={onAll}>{t.showAll}</button>
+        <span className="mlabel ml-s">{t.nextUp}</span>
+        <button className="mlabel ml-s" style={{ color: "var(--mut)" }} onClick={onAll}>{t.showAll}</button>
       </div>
       {ids.map(id => {
         const { tr, al, ar } = trackInfo(id);
@@ -35,7 +35,7 @@ const AboutArtistCard = ({ ar }) => {
   const small = { padding: "7px 16px", fontSize: 12.5, minHeight: 36 };
   return (
     <div className="widget" style={{ padding: 16, borderRadius: 20 }}>
-      <div className="mlabel" style={{ fontSize: 10, marginBottom: 12 }}>{t.aboutArtist}</div>
+      <div className="mlabel ml-s" style={{ marginBottom: 12 }}>{t.aboutArtist}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 12 }}>
         <Cover art={"ar:" + ar.id} hue={ar.hue} size={44} round={true} />
         <div>
@@ -48,8 +48,8 @@ const AboutArtistCard = ({ ar }) => {
         <button className="btn outline" style={small} onClick={() => app.toggleFollow(ar.id)}>
           {app.followed.includes(ar.id) ? t.following : t.follow}
         </button>
-        <button className="btn ghost" style={small} onClick={() => app.openDonate({ kind: "artist", id: ar.id })}>
-          <span className="mono">$</span>{t.donate}
+        <button className="btn ghost act-donate" style={small} onClick={() => app.openDonate({ kind: "artist", id: ar.id })}>
+          <DonateMark />{t.donate}
         </button>
       </div>
     </div>

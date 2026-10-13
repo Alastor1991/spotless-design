@@ -43,6 +43,14 @@ const iconKey = (d) => {
   return ICON_KEY.get(d);
 };
 // Размеры значков Material — только из ряда; оптический размер — по размеру (класс i*, style-material.css)
+// Ведущие нули («01», «03:12») — часть цифрового табло «Точки»; в Material числа обычные.
+const zpad = (v, n, kind) => (kind === "material" ? String(v) : String(v).padStart(n, "0"));
+
+// Знак доната на кнопках «Поддержать»: у «Точки» — моноширинный $, у Material — значок paid
+const DonateMark = () => (useStyle() === "material"
+  ? <MsIcon name="paid" size={20} />
+  : <span className="mono">$</span>);
+
 const MS_SIZES = [14, 16, 18, 20, 24, 32, 40];
 const msSize = (px) => MS_SIZES.reduce((a, b) => (Math.abs(b - px) < Math.abs(a - px) ? b : a));
 
@@ -130,4 +138,4 @@ const useStyleAccent = (style, trackId, mAccent, active) => {
   }, [style, trackId, mAccent, active]);
 };
 
-Object.assign(window, { STYLE_PREVIEW, STYLE_WAVE, useStyleAccent, MBar, Logo, STYLE_LIST, StyleCtx, useStyle, MS_NAMES, iconKey, msSize, MsIcon, loadStyleFonts, M_ACCENTS, mAccentPair });
+Object.assign(window, { zpad, DonateMark, STYLE_PREVIEW, STYLE_WAVE, useStyleAccent, MBar, Logo, STYLE_LIST, StyleCtx, useStyle, MS_NAMES, iconKey, msSize, MsIcon, loadStyleFonts, M_ACCENTS, mAccentPair });

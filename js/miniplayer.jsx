@@ -125,6 +125,7 @@ const useCapsuleGestures = ({ stripRef, near, step, onOpen, onStep }) => {
 // Трек в капсуле: обложка и название. Соседи по краям ленты — такие же, с прогрессом с нуля
 const MpTrack = ({ id, pct, docked }) => {
   const app = useApp();
+  const kind = useStyle();
   const { tr, al, ar } = trackInfo(id);
   return (
     <React.Fragment>
@@ -132,7 +133,7 @@ const MpTrack = ({ id, pct, docked }) => {
       <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: docked ? 3 : 6 }}>
         <span style={{ fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tr.t}{!docked && <span style={{ color: "var(--mut2)" }}> · {ar.name}</span>}</span>
         {docked
-          ? <span className="mlabel" style={{ fontSize: 10, letterSpacing: "0.08em" }}>{ar.name} · {app.fmtTime(pct).padStart(5, "0")}</span>
+          ? <span className="mlabel ml-s ml-w">{ar.name} · {zpad(app.fmtTime(pct), 5, kind)}</span>
           : <DotBar track pct={pct} pitch={5} r={1.4} label={app.t.trackProgress} />}
       </div>
     </React.Fragment>

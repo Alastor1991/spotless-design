@@ -131,6 +131,7 @@ const VolumeDots = ({ width = 72, pitch = 6 }) => {
 
 const PlayerIsland = () => {
   const app = useApp();
+  const kind = useStyle();
   const pct = useProgress();
   const { tr, al, ar } = trackInfo(app.player.trackId);
   const t = app.t;
@@ -163,9 +164,9 @@ const PlayerIsland = () => {
           <RepeatBtn size={32} icon={16} className="isl-sr" />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, width: "100%" }}>
-          <span className="isl-time mono" style={{ fontSize: 11, color: "var(--mut2)", width: 36, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{app.fmtTime(pct).padStart(5, "0")}</span>
+          <span className="isl-time mono" style={{ fontSize: 11, color: "var(--mut2)", width: 36, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{zpad(app.fmtTime(pct), 5, kind)}</span>
           <DotBar track pct={pct} pitch={6} onSeek={app.seek} label={app.t.seek} />
-          <span className="isl-time mono" style={{ fontSize: 11, color: "var(--mut2)", width: 36, fontVariantNumeric: "tabular-nums" }}>{tr.dur.padStart(5, "0")}</span>
+          <span className="isl-time mono" style={{ fontSize: 11, color: "var(--mut2)", width: 36, fontVariantNumeric: "tabular-nums" }}>{zpad(tr.dur, 5, kind)}</span>
         </div>
       </div>
 
@@ -203,6 +204,7 @@ const PlayerIsland = () => {
 // отсеки с подписями, первый отсек — ровно под сайдбаром.
 const PlayerDock = () => {
   const app = useApp();
+  const kind = useStyle();
   const pct = useProgress();
   const t = app.t;
   const { tr, al, ar } = trackInfo(app.player.trackId);
@@ -212,7 +214,7 @@ const PlayerDock = () => {
       <DotBar track pct={pct} pitch={8} onSeek={app.seek} label={app.t.seek} />
       <div className="dock-cells">
         <div className="dock-cell" style={{ paddingLeft: 24 }}>
-          <span className="mlabel" style={{ fontSize: 9, display: "flex", alignItems: "center", gap: 7 }}>
+          <span className="mlabel ml-xs" style={{ display: "flex", alignItems: "center", gap: 7 }}>
             {app.player.playing && <span className="hot-dot" style={{ width: 5, height: 5 }}></span>}{t.dkNow}
           </span>
           <span className="row">
@@ -226,7 +228,7 @@ const PlayerDock = () => {
           </span>
         </div>
         <div className="dock-cell dk-rate">
-          <span className="mlabel" style={{ fontSize: 9 }}>{t.dkRate}</span>
+          <span className="mlabel ml-xs">{t.dkRate}</span>
           <span className="row" style={{ gap: 2 }}>
             <LikeButton trackId={tr.id} always={true} size={32} />
             <span style={{ margin: "0 4px 0 2px", display: "inline-flex" }}><RateScale value={st.rating} variant="inline" onCommit={(n) => app.setRating(tr.id, n)} /></span>
@@ -242,14 +244,14 @@ const PlayerDock = () => {
           <RepeatBtn size={38} icon={18} />
         </div>
         <div className="dock-cell dk-time">
-          <span className="mlabel" style={{ fontSize: 9 }}>{t.dkTime}</span>
+          <span className="mlabel ml-xs">{t.dkTime}</span>
           <span className="row" style={{ gap: 8 }}>
             <DotTime value={app.fmtTime(pct)} size={26} />
-            <span className="mono" style={{ fontSize: 11, color: "var(--mut2)" }}>/ {tr.dur.padStart(5, "0")}</span>
+            <span className="mono" style={{ fontSize: 11, color: "var(--mut2)" }}>/ {zpad(tr.dur, 5, kind)}</span>
           </span>
         </div>
         <div className="dock-cell dk-vol">
-          <span className="mlabel" style={{ fontSize: 9 }}>{t.dkVol}</span>
+          <span className="mlabel ml-xs">{t.dkVol}</span>
           <span className="row">
             <VolumeDots width={84} pitch={7} />
             <span className="mono" style={{ fontSize: 11, color: "var(--mut)" }}>{Math.round(app.volume * 100)}</span>
