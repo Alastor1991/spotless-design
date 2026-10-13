@@ -346,7 +346,7 @@ const SetAppearance = ({ openModal }) => {
         <Seg value={S.density} onChange={set("density")}
           options={[["c", t.stDensityC], ["n", t.stDensityN], ["s", t.stDensityS]]} />
       </SettingRow>
-      <SettingRow label={t.stWidgets} note={t.stWidgetsNote}>
+      <SettingRow label={t.stWidgets}>
         <Toggle on={S.homeWidgets} onClick={() => set("homeWidgets")(!S.homeWidgets)} />
       </SettingRow>
       <SettingRow label={t.stDots} note={t.stDotsNote}>
