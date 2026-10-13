@@ -671,6 +671,7 @@ button:disabled { cursor: default; pointer-events: none; }
 .genre-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
 .search-grid { display: grid; grid-template-columns: minmax(260px, 360px) minmax(0, 1fr); gap: 26px; margin: 26px 0; }
 .settings-grid { display: grid; grid-template-columns: 218px minmax(0, 720px); gap: 36px; }
+.set-title { font-size: 24px; font-weight: 800; margin-bottom: 18px; padding-left: 14px; }
 .set-pane { padding-top: 74px; }
 .trow-head {
   display: grid; grid-template-columns: 34px 44px minmax(0,1fr) minmax(0,0.7fr) 148px 52px;
@@ -760,6 +761,8 @@ button:disabled { cursor: default; pointer-events: none; }
   .set-pane { padding-top: 8px; }
   .set-nav { display: flex; flex-wrap: wrap; gap: 4px; padding-top: 18px; }
   .set-nav h1 { width: 100%; }
+  /* В одну колонку «Настройки» — заголовок страницы: размер и отступ как у «Медиатеки» и «Поиска» */
+  .set-nav .set-title { font-size: 34px; padding-left: 0; }
 }
 
 /* Сайдбар-рейл: класс .rail ставит JS — кнопкой или автоматом при узком окне */
@@ -1140,6 +1143,8 @@ button { touch-action: manipulation; }
 .ob-styles { justify-content: center; margin-bottom: 22px; }
 .ob-mcolors { display: flex; flex-direction: column; align-items: center; gap: 16px; }
 @media (max-width: 640px) {
-  .ob-styles { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
-  .ob-styles .style-pv { width: 100%; height: 92px; }
+  /* Карточки стилей во всю ширину — как палитры под ними (.theme-grid) */
+  .style-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  .style-grid .style-pv { width: 100%; }
+  .ob-styles .style-pv { height: 92px; }
 }

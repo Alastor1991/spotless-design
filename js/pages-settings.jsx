@@ -534,7 +534,7 @@ const PageSettings = () => {
   return (
     <div className="fade-in settings-grid" data-screen-label="Настройки">
       <nav className="set-nav" style={{ paddingTop: 26 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 18, paddingLeft: 14 }}>{t.stTitle}</h1>
+        <h1 className="set-title">{t.stTitle}</h1>
         {SETTINGS_SECTIONS.map(([k, label, icon]) => (
           <button key={k} className={"navitem setitem" + (section === k ? " active" : "")} style={{ fontSize: 14, padding: "9px 14px" }} onClick={() => setSection(k)}>
             <Ic d={ICONS[icon]} size={18} />{t[label]}
