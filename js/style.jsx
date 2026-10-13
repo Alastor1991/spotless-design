@@ -90,21 +90,16 @@ const MBar = ({ pct = 0, pitch, onSeek, on, width, label, track, style = {} }) =
 };
 
 // ---------- Шрифты стиля ----------
-// Шрифты Material грузим, только когда стиль выбран: «Точке» они не нужны
-const STYLE_FONTS = {
-  material: [
-    "https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..1000&display=swap",
-    // block: пока шрифт значков не пришёл, вместо значка не мелькает его имя («favorite»)
-    "https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block",
-  ],
-};
+// Ссылки на шрифты Material — в index.html: с ними @font-face известен сразу, а файлы браузер
+// скачивает, только когда шрифт нужен. Значки — шрифтом с лигатурами: пока файл не пришёл,
+// вместо значка видно его имя («favorite»). Поэтому значки (.ms) спрятаны, пока на корне нет
+// .ms-ready (style-material.css); файл не пришёл за 10 секунд — показываем как есть
 const loadStyleFonts = (style) => {
-  (STYLE_FONTS[style] || []).forEach(href => {
-    if (document.querySelector(`link[data-style-font="${style}"][href="${href}"]`)) return;
-    const l = document.createElement("link");
-    l.rel = "stylesheet"; l.href = href; l.setAttribute("data-style-font", style);
-    document.head.appendChild(l);
-  });
+  const de = document.documentElement;
+  if (style !== "material" || de.classList.contains("ms-ready") || !document.fonts) return;
+  const ready = () => de.classList.add("ms-ready");
+  setTimeout(ready, 10000);
+  document.fonts.load('24px "Material Symbols Rounded"').then(ready, ready);
 };
 
 // ---------- Material: цвет из обложки ----------

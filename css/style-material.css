@@ -92,6 +92,8 @@
   font-variation-settings: 'FILL' var(--fill), 'wght' var(--wght), 'GRAD' var(--m-grad, 0), 'opsz' var(--opsz);
 }
 .ms.f { --fill: 1; }
+/* Пока шрифт значков не пришёл — не показываем их имена (loadStyleFonts, style.jsx) */
+html:not(.ms-ready) .ms { visibility: hidden; }
 .ms.i14 { font-size: 14px; --opsz: 20; --wght: 600; }
 .ms.i16 { font-size: 16px; --opsz: 20; }
 .ms.i18 { font-size: 18px; --opsz: 20; }
@@ -243,6 +245,13 @@
 }
 [data-style="material"] .mplayer.square { border-radius: 16px; }
 [data-style="material"] .mplayer.docked { background: var(--m-s2); box-shadow: var(--island-shadow); }
+/* Капсула: название и артист двумя строками, прогресс — тонкая линия по нижнему краю (как в макете) */
+.mp-title { font-size: 14px; line-height: 18px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mp-artist { font-size: 12px; line-height: 16px; color: var(--mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mp-edge { position: absolute; left: 16px; right: 16px; bottom: 0; display: flex; pointer-events: none; }
+[data-style="material"] .mplayer:not(.docked) .mp-slot { gap: 12px; }
+/* Цифра оценки у сердца — и в мини-плеере (в «Точке» она там скрыта) */
+[data-style="material"] .mplayer .rate-n { display: block; }
 
 /* =================== Точки-метки =================== */
 /* «Живое» и «сейчас» — цвет обложки; непрочитанное (колокольчик) — красное */
