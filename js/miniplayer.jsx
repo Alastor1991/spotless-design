@@ -85,7 +85,7 @@ const MiniPlayer = ({ out }) => {
         <LikeButton trackId={tr.id} always={true} size={34} />
       </div>
       <div style={{ position: "absolute", bottom: 4, left: 12, right: 12, display: "flex" }}>
-        <DotBar pct={pct} pitch={5} onSeek={app.seek} label={app.t.seek} />
+        <DotBar track pct={pct} pitch={5} onSeek={app.seek} label={app.t.seek} />
       </div>
     </div>
   );
@@ -133,7 +133,7 @@ const MpTrack = ({ id, pct, docked }) => {
         <span style={{ fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tr.t}{!docked && <span style={{ color: "var(--mut2)" }}> · {ar.name}</span>}</span>
         {docked
           ? <span className="mlabel" style={{ fontSize: 10, letterSpacing: "0.08em" }}>{ar.name} · {app.fmtTime(pct).padStart(5, "0")}</span>
-          : <DotBar pct={pct} pitch={5} r={1.4} label={app.t.trackProgress} />}
+          : <DotBar track pct={pct} pitch={5} r={1.4} label={app.t.trackProgress} />}
       </div>
     </React.Fragment>
   );
@@ -160,7 +160,7 @@ const MobilePlayer = () => {
     <div className={"mplayer" + (docked ? " docked" : app.settings.island === "square" ? " square" : "")} data-screen-label="Мини-плеер (телефон)" {...gestures}
       role="button" tabIndex={0} aria-label={app.t.openFull + ": " + DB.trackIndex[id].t}
       onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); app.setFull(true); } }}>
-      {docked && <div style={{ display: "flex" }}><DotBar pct={pct} pitch={6} onSeek={app.seek} label={app.t.seek} /></div>}
+      {docked && <div style={{ display: "flex" }}><DotBar track pct={pct} pitch={6} onSeek={app.seek} label={app.t.seek} /></div>}
       <div className="mp-row">
         <div className="mp-pager">
           <div className="mp-strip" ref={stripRef}>{slot("prev", near.prev, -1)}{slot("cur", id, 0)}{slot("next", near.next, 1)}</div>

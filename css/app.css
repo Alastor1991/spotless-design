@@ -306,6 +306,19 @@ button:disabled { cursor: default; pointer-events: none; }
 [data-theme] .plitem { color: var(--text); }
 @media (hover: hover) { [data-theme] .plitem:hover { background: var(--bg2); } }
 
+/* «Любимые треки» в сайдбаре и аватар в шапке */
+.pl-liked { width: 40px; height: 40px; border-radius: 50%; background: var(--hot); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--hot-ink); }
+.avatar-btn {
+  border-radius: 50%; background: var(--acc); color: var(--acc-ink);
+  display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; flex-shrink: 0;
+  outline: none; outline-offset: 3px;
+}
+.avatar-btn.is-on { outline: 2px solid var(--hot); }
+.tb-search {
+  flex: 0 1 440px; display: flex; align-items: center; gap: 10px; background: var(--bg2);
+  border-radius: 22px; height: 44px; padding: 0 8px 0 16px; margin-left: 6px; cursor: text;
+}
+
 .netline { font-family: var(--mono, monospace); font-size: 10px; letter-spacing: 0.08em; color: var(--mut2); padding: 4px 12px 8px; display: flex; flex-direction: column; gap: 6px; }
 
 /* ---------- Общие элементы ---------- */
@@ -525,6 +538,10 @@ button:disabled { cursor: default; pointer-events: none; }
 [data-theme] .h-row h2 { font-family: var(--mono); font-size: 11px; font-weight: 400 !important; letter-spacing: 0.14em !important; text-transform: uppercase; color: var(--mut2); }
 [data-theme] .h-row .more { font-family: var(--mono); font-size: 11px; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; }
 .mono { font-family: var(--mono); }
+/* Роли крупного текста «Точки»: тонкие числа и заголовки. --ty-ls — свой межбуквенный интервал,
+   где он отличается. Другой стиль (style-material.css) задаёт им свою толщину */
+.ty-light { font-weight: 300; letter-spacing: var(--ty-ls, -0.04em); }
+.ty-reg { font-weight: 400; letter-spacing: var(--ty-ls, -0.04em); }
 .divider { height: 1px; background: var(--line); border: none; margin: 0; }
 
 .slider-track { height: 5px; border-radius: 99px; background: var(--bg2); position: relative; cursor: pointer; }
@@ -545,7 +562,8 @@ button:disabled { cursor: default; pointer-events: none; }
 @media (hover: hover) { .gal-card:hover { outline: 2px solid var(--acc); } }  /* галерея тем */
 .friend-now { background: var(--bg1); }
 @media (hover: hover) { .friend-now:hover { background: var(--bg2); } }  /* профиль друга: «Слушает сейчас» */
-@media (hover: hover) { .play-circle:hover { transform: scale(1.05); } }  /* главная кнопка плеера */
+.play-circle { border-radius: 50%; }  /* главная кнопка плеера (PlayBtn) */
+@media (hover: hover) { .play-circle:hover { transform: scale(1.05); } }
 .ob-choice { border: 1px solid var(--line); }
 @media (hover: hover) { .ob-google:hover { border-color: var(--acc); } }  /* онбординг: способ входа */
 @media (hover: hover) { .ob-seed:hover { border-color: var(--mut); } }
@@ -937,6 +955,9 @@ button { touch-action: manipulation; }
 .rate-inline .rate-cell > i { width: 6px; height: 6px; }
 .rate-inline .rate-cell > i.is-on { background: var(--text); }
 .rate-val { font-size: 12px; min-width: 14px; text-align: right; color: var(--text); }
+/* Цифра оценки у сердечка (LikeButton): только для оценки, отличной от быстрого лайка */
+.rate-n { position: absolute; top: -2px; right: -4px; font-size: 10px; font-weight: 500; color: var(--text); pointer-events: none; }
+.rate-n.is-bad { color: var(--bad); }
 .likebtn { touch-action: none; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
 
 /* Лайк: сердце коротко подпрыгивает (класс is-*, а не .pop — тот занят поповерами)… */

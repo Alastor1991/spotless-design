@@ -109,3 +109,132 @@
 }
 /* Цифры — не точечным шрифтом, а Roboto Flex */
 [data-style="material"] .dots { font-family: var(--font); font-variation-settings: normal; font-weight: 650; line-height: 1; letter-spacing: -0.02em; }
+
+/* ---------- Полоса (MBar, style.jsx) ----------
+   Заполнение | зазор, ручка, зазор | остаток с точкой-концом. --p — доля 0…1, --th — место под ручку */
+.mbar { --th: 0px; --h: 4px; position: relative; display: flex; align-items: center; height: 16px; min-width: 0; }
+.mbar.is-slider { --th: 12px; cursor: pointer; }
+.mbar.is-thin { --h: 3px; height: 3px; }
+.mbar-fill { position: relative; flex: none; width: calc(var(--p) * (100% - var(--th))); height: 100%; display: flex; align-items: center; }
+/* Прямая линия заполнения; у играющего трека её сменяет волна */
+.mbar-fill::before { content: ""; width: 100%; height: var(--h); border-radius: calc(var(--h) / 2); background: var(--mbar-on, var(--acc));
+  transition: opacity var(--t-2) var(--ease); }
+.mbar-wave {
+  position: absolute; inset: 0; background: var(--mbar-on, var(--acc)); opacity: 0; transform: scaleY(0.15);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='16'%3E%3Cpath d='M0 8q6-6.5 12 0t12 0' fill='none' stroke='%23000' stroke-width='3.5'/%3E%3C/svg%3E") 0 50% / 24px 16px repeat-x;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='16'%3E%3Cpath d='M0 8q6-6.5 12 0t12 0' fill='none' stroke='%23000' stroke-width='3.5'/%3E%3C/svg%3E") 0 50% / 24px 16px repeat-x;
+  animation: mwave 1.4s linear infinite; animation-play-state: paused;
+  transition: transform 380ms var(--ease-enter), opacity var(--t-2) var(--ease);
+}
+.mbar.is-playing .mbar-wave { opacity: 1; transform: none; animation-play-state: running; }
+.mbar.is-playing .mbar-fill::before { opacity: 0; }
+@keyframes mwave { to { -webkit-mask-position: 24px 50%; mask-position: 24px 50%; } }
+/* Ручка — вертикальная черта между заполнением и остатком */
+.mbar-thumb { flex: none; width: 4px; height: 16px; margin: 0 4px; border-radius: 2px; background: var(--mbar-on, var(--acc)); }
+.mbar-rest { flex: 1; min-width: 0; height: var(--h); border-radius: calc(var(--h) / 2); background: var(--dot-off); position: relative; }
+.mbar:not(.is-slider) .mbar-fill + .mbar-rest { margin-left: 0; }
+/* Точка-конец у полосы трека (Material 3) */
+.mbar.is-track.is-slider .mbar-rest::after { content: ""; position: absolute; right: 0; top: 50%; width: 4px; height: 4px; margin-top: -2px; border-radius: 2px; background: var(--mbar-on, var(--acc)); }
+.mbar.is-thin .mbar-fill::before { border-radius: 0 2px 2px 0; }
+@media (prefers-reduced-motion: reduce) { .mbar-wave { animation: none; } }
+
+/* Время под полосой (DotTime) */
+.m-time { font-size: 12px; line-height: 16px; color: var(--mut); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Главная кнопка плеера: пауза — круг, играет — скруглённый квадрат; форма перетекает с пружиной */
+[data-style="material"] .play-circle { border-radius: 50%; transition: border-radius 420ms var(--ease-enter), transform var(--t-1) var(--ease), background-color 400ms var(--ease); }
+[data-style="material"] .play-circle.is-playing { border-radius: 30%; }
+@media (hover: hover) { [data-style="material"] .play-circle:hover { transform: none; filter: brightness(1.06); } }
+/* Тонкий индикатор (мини-плеер) — всегда прямой: волна высотой 3 px не читается */
+.mbar.is-thin .mbar-wave { display: none; }
+.mbar.is-thin.is-playing .mbar-fill::before { opacity: 1; }
+
+/* =================== Каркас =================== */
+[data-style="material"] .sidebar { background: var(--bg1); border-right: none; padding: 8px 12px 12px; }
+[data-style="material"] .main { --pad: 32px; }
+[data-style="material"] .npanel { background: var(--bg1); border-left: none; }
+[data-style="material"] .topbar { padding: 12px var(--pad) 8px; }
+
+/* Логотип: слово, без точки */
+.m-logo { font-family: var(--font); font-weight: 700; letter-spacing: -0.01em; line-height: 1; color: var(--text); }
+[data-style="material"] .logo-row { height: 56px; margin-bottom: 4px !important; }
+
+/* Пункты меню: значок вместо номера, активный — серая подложка и залитый значок */
+[data-style="material"] .navitem {
+  min-height: 40px; padding: 8px 12px; gap: 14px; border-radius: 12px;
+  font-size: 14px; font-weight: 500; color: var(--mut);
+}
+[data-style="material"] .navitem .nav-ic { display: block; }
+[data-style="material"] .navitem .nav-num, [data-style="material"] .navitem .nav-dot { display: none !important; }
+[data-style="material"] .navitem .nav-ic .ms { font-size: 22px; }
+[data-style="material"] .navitem.active { background: var(--bg3); color: var(--text); font-weight: 600; }
+[data-style="material"] .navitem.active .ms { --fill: 1; }
+@media (hover: hover) { [data-style="material"] .navitem:hover { background: var(--bg2); color: var(--text); } }
+@media (hover: hover) { [data-style="material"] .navitem.active:hover { background: var(--bg3); } }
+[data-style="material"] .navitem .badge { font-family: var(--font); font-size: 12px; font-weight: 500; color: var(--mut2); background: none; padding: 0; font-variant-numeric: tabular-nums; }
+
+/* Плейлисты в меню */
+[data-style="material"] .plitem { padding: 4px 8px; border-radius: 12px; gap: 12px; color: var(--text); }
+@media (hover: hover) { [data-style="material"] .plitem:hover { background: var(--bg2); } }
+[data-style="material"] .plitem.active { background: var(--bg3); }
+[data-style="material"] .plitem .pl-sub { font-family: var(--font); font-size: 12px; letter-spacing: 0; text-transform: none; color: var(--mut); margin-top: 1px; }
+[data-style="material"] .pl-liked { border-radius: 10px; background: var(--m-ctl); color: var(--hot); }
+[data-style="material"] .netline { font-size: 11px; letter-spacing: 0.04em; }
+
+/* Шапка: поле поиска 40 со скруглением 12, кнопки-значки без колец */
+[data-style="material"] .tb-search { height: 40px; border-radius: 12px; background: var(--bg2); padding: 0 8px 0 12px; }
+[data-style="material"] .tb-k { border-color: var(--m-outline) !important; border-radius: 6px !important; padding: 2px 6px !important; font-size: 12px !important; }
+[data-style="material"] .iconbtn.ring { box-shadow: none; }
+[data-style="material"] .iconbtn { color: var(--m-icon); }
+@media (hover: hover) { [data-style="material"] .iconbtn:hover { background: var(--bg2); color: var(--text); } }
+/* Аватар — нейтральный, не цветом обложки */
+[data-style="material"] .avatar-btn { background: #6B4E3A; color: #FFF3E8; font-weight: 600; }
+[data-style="material"] .avatar-btn.is-on { outline-color: var(--text); }
+/* Непрочитанное — красная точка с обводкой цвета фона */
+[data-style="material"] .hot-dot { background: var(--m-badge); }
+
+/* Заголовки рядов: обычные, не моноширинным капсом */
+[data-style="material"] .h-row h2 { font-family: var(--font); font-size: 18px; line-height: 24px; font-weight: 600 !important; letter-spacing: 0 !important; text-transform: none; color: var(--text); }
+[data-style="material"] .h-row .more { font-family: var(--font); font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--mut); }
+
+/* =================== Кнопки и чипы =================== */
+[data-style="material"] .btn { min-height: 40px; padding: 0 16px; border-radius: 12px; font-size: 14px; font-weight: 700; gap: 6px; }
+@media (hover: hover) { [data-style="material"] .btn:hover { transform: none; filter: brightness(1.06); } }
+[data-style="material"] .btn.ghost { background: var(--m-ctl); box-shadow: none; color: var(--text); font-weight: 600; }
+@media (hover: hover) { [data-style="material"] .btn.ghost:hover { background: var(--bg3); filter: none; } }
+[data-style="material"] .btn.outline { background: transparent; border: none; box-shadow: inset 0 0 0 1px var(--m-outline); font-weight: 600; }
+[data-style="material"] .chip { height: 32px; padding: 0 12px; border-radius: 8px; font-size: 14px; font-weight: 500; box-shadow: inset 0 0 0 1px var(--m-outline); background: transparent; color: var(--m-icon); display: inline-flex; align-items: center; gap: 6px; }
+@media (hover: hover) { [data-style="material"] .chip:hover { background: var(--bg2); } }
+/* Выбранный чип — серая подложка и галочка (символ Material), без цвета */
+[data-style="material"] .chip.on { background: var(--bg3); box-shadow: none; color: var(--text); padding-left: 8px; }
+[data-style="material"] .chip.on::before {
+  content: "check"; font-family: 'Material Symbols Rounded'; font-size: 18px; line-height: 1; font-weight: normal;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' var(--m-grad, 0), 'opsz' 20;
+}
+[data-style="material"] .playbig { border-radius: 16px; width: 52px; height: 52px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.35); }
+
+/* =================== Карточки и виджеты =================== */
+[data-style="material"] .widget { background: var(--island); border-radius: 16px; padding: 16px; }
+[data-style="material"] .card { border-radius: 14px; }
+[data-style="material"] .card .t { font-weight: 600; font-size: 14px; }
+[data-style="material"] .card .s { font-size: 13px; }
+
+/* =================== Телефон: навигация и мини-плеер =================== */
+[data-style="material"] .shell.phone { --nav-h: calc(64px + env(safe-area-inset-bottom)); }
+[data-style="material"] .mobnav { background: var(--bg1); border-top: none; padding: 0 8px env(safe-area-inset-bottom); }
+[data-style="material"] .mn-item { gap: 4px; color: var(--mut); }
+[data-style="material"] .mn-item.active { color: var(--text); }
+/* Значок вкладки сидит в «пилюле»; у активной она серая, значок залитый */
+[data-style="material"] .mn-item .ms { width: 52px; height: 28px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; transition: background var(--t-2) var(--ease); }
+[data-style="material"] .mn-item.active .ms { background: var(--bg3); --fill: 1; }
+[data-style="material"] .mn-label { font-family: var(--font); font-size: 12px; letter-spacing: 0; text-transform: none; font-weight: 500; }
+[data-style="material"] .mn-item.active .mn-label { font-weight: 600; }
+[data-style="material"] .mn-label .hot-dot { display: none; }
+[data-style="material"] .mn-item.active svg, [data-style="material"] .mn-item.active .ms { transform: none; }
+
+[data-style="material"] .mplayer {
+  left: 8px; right: 8px; bottom: calc(var(--nav-h, 64px) + 8px); height: 56px; border-radius: 28px;
+  background: var(--m-s2); border: none; box-shadow: var(--island-shadow);
+}
+[data-style="material"] .mplayer.square { border-radius: 16px; }
+[data-style="material"] .mplayer.docked { background: var(--m-s2); box-shadow: var(--island-shadow); }

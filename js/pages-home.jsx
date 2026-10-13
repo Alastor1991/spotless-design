@@ -24,7 +24,7 @@ const ContinueWidget = () => {
       </button>
       <div className="cw-col">
         <span className="mlabel">{t.continueHere}</span>
-        <button onClick={() => app.go("album", al.id)} style={{ textAlign: "left", fontSize: "clamp(28px, 3.4cqi, 40px)", letterSpacing: "-0.045em", lineHeight: 1, fontWeight: 400 }}>{al.title}</button>
+        <button onClick={() => app.go("album", al.id)} className="ty-reg" style={{ textAlign: "left", fontSize: "clamp(28px, 3.4cqi, 40px)", "--ty-ls": "-0.045em", lineHeight: 1 }}>{al.title}</button>
         <span style={{ fontSize: 14, color: "var(--mut)" }}>{ar.name} · {t[al.type].toLowerCase()}, {al.year}</span>
         <span style={{ marginTop: "auto", display: "flex", alignItems: "baseline", gap: 10, fontSize: 14, minWidth: 0 }}>
           <span className="mono" style={{ fontSize: 11, color: "var(--mut2)" }}>{String(idx + 1).padStart(2, "0")}</span>
@@ -247,7 +247,7 @@ const SearchResults = ({ q }) => {
               display: "block", width: "100%", textAlign: "left", transition: "background 0.14s",
             }}>
               <Cover art={"ar:" + top.id} hue={top.hue} size={96} round={true} />
-              <div style={{ fontSize: 30, fontWeight: 400, letterSpacing: "-0.04em", margin: "18px 0 8px" }}>{top.name}</div>
+              <div className="ty-reg" style={{ fontSize: 30, margin: "18px 0 8px" }}>{top.name}</div>
               <span className="mlabel">{t.artist} · {top.listeners.toLocaleString(app.lang)} {t.listenersShort}</span>
             </button>
           </section>

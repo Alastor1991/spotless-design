@@ -3,6 +3,8 @@
 // Переключатель вида обложки: картинка или точечная матрица
 const CoverToggle = ({ glyph, setGlyph, h, bg }) => {
   const app = useApp();
+  // «Обложка / точки» — приём «Точки»; у Material обложка всегда обычная (Cover)
+  if (useStyle() === "material") return null;
   const opt = (on, label, pick) => (
     <button role="radio" aria-checked={on} className="mono" onClick={pick} style={{
       height: h, padding: "0 14px", borderRadius: h / 2, fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", transition: "background var(--t-2) var(--ease), color var(--t-2) var(--ease)",
@@ -167,7 +169,7 @@ const FullScreen = ({ out }) => {
 
       <div className="fs-time" style={{ display: "flex", alignItems: "center", gap: 28, padding: "0 4px" }}>
         <DotTime value={app.fmtTime(pct)} size={68} />
-        <DotBar pct={pct} pitch={12} r={3} onSeek={app.seek} label={t.seek} />
+        <DotBar track pct={pct} pitch={12} r={3} onSeek={app.seek} label={t.seek} />
         <DotTime value={tr.dur} size={68} color="var(--dot-off)" />
       </div>
 
@@ -337,7 +339,7 @@ const FullScreenPhone = ({ out }) => {
       {/* Название — во всю ширину: рядом с оценкой от него оставалась половина («Стеклянная в…») */}
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         <div key={tr.id} className="fade-in" style={{ minWidth: 0 }}>
-          <Marquee style={{ fontSize: "clamp(22px, 7vw, 28px)", fontWeight: 300, letterSpacing: "-0.045em", lineHeight: 1.15 }}>{tr.t}</Marquee>
+          <Marquee className="ty-light" style={{ fontSize: "clamp(22px, 7vw, 28px)", "--ty-ls": "-0.045em", lineHeight: 1.15 }}>{tr.t}</Marquee>
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <button key={ar.id} className="fade-in" style={{ fontSize: 15, color: "var(--mut)", minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
@@ -354,7 +356,7 @@ const FullScreenPhone = ({ out }) => {
           <DotTime value={app.fmtTime(pct)} size={40} />
           <span className="mono" style={{ fontSize: 12, color: "var(--mut2)" }}>−{Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")}</span>
         </div>
-        <DotBar pct={pct} pitch={8} r={2.4} onSeek={app.seek} label={t.seek} />
+        <DotBar track pct={pct} pitch={8} r={2.4} onSeek={app.seek} label={t.seek} />
       </div>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>

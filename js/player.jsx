@@ -32,17 +32,22 @@ const RepeatBtn = ({ size = 30, icon = 16, className = "" }) => {
 };
 
 // Главная кнопка: белый круг, чёрный значок; по наведению чуть растёт (.play-circle в app.css).
-// Play и пауза — в одном значке: старый уходит с поворотом, новый выходит навстречу (.pp-ic)
+// Play и пауза — в одном значке: старый уходит с поворотом, новый выходит навстречу (.pp-ic).
+// У Material форма кнопки меняется вместе с состоянием: пауза — круг, играет — скруглённый квадрат
+// (.play-circle.is-playing в style-material.css), значок — символ Material
 const PlayBtn = ({ size = 48 }) => {
   const app = useApp();
+  const material = useStyle() === "material";
   const playing = app.player.playing;
   return (
-    <button className="play-circle" onClick={app.togglePlay} aria-label={playing ? app.t.pause : app.t.playNow}
+    <button className={"play-circle" + (playing ? " is-playing" : "")} onClick={app.togglePlay} aria-label={playing ? app.t.pause : app.t.playNow}
       style={{
-        width: size, height: size, borderRadius: "50%", background: "var(--acc)", color: "var(--acc-ink)",
+        width: size, height: size, background: "var(--acc)", color: "var(--acc-ink)",
         display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
       }}>
-      <Ic d={[ICONS.play, ICONS.pauseFill]} size={Math.round(size * 0.38)} fill="currentColor" className={"pp-ic" + (playing ? " is-playing" : "")} />
+      {material
+        ? <MsIcon name={playing ? "pause" : "play_arrow"} size={size * 0.5} filled />
+        : <Ic d={[ICONS.play, ICONS.pauseFill]} size={Math.round(size * 0.38)} fill="currentColor" className={"pp-ic" + (playing ? " is-playing" : "")} />}
     </button>
   );
 };
@@ -159,7 +164,7 @@ const PlayerIsland = () => {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, width: "100%" }}>
           <span className="isl-time mono" style={{ fontSize: 11, color: "var(--mut2)", width: 36, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{app.fmtTime(pct).padStart(5, "0")}</span>
-          <DotBar pct={pct} pitch={6} onSeek={app.seek} label={app.t.seek} />
+          <DotBar track pct={pct} pitch={6} onSeek={app.seek} label={app.t.seek} />
           <span className="isl-time mono" style={{ fontSize: 11, color: "var(--mut2)", width: 36, fontVariantNumeric: "tabular-nums" }}>{tr.dur.padStart(5, "0")}</span>
         </div>
       </div>
@@ -204,7 +209,7 @@ const PlayerDock = () => {
   const st = app.trackState(tr.id);
   return (
     <footer className="dock" data-screen-label="Плеер-панель" onContextMenu={(e) => app.openCtx(e, { kind: "track", id: tr.id })}>
-      <DotBar pct={pct} pitch={8} onSeek={app.seek} label={app.t.seek} />
+      <DotBar track pct={pct} pitch={8} onSeek={app.seek} label={app.t.seek} />
       <div className="dock-cells">
         <div className="dock-cell" style={{ paddingLeft: 24 }}>
           <span className="mlabel" style={{ fontSize: 9, display: "flex", alignItems: "center", gap: 7 }}>

@@ -119,7 +119,10 @@ const coverBg = (art, hue, px, glyph) => {
   return `radial-gradient(circle, oklch(var(--dot-l) 0.12 ${hue}) 0 ${r}px, transparent ${(+r + 0.5).toFixed(1)}px) 0 0 / ${p}px ${p}px, var(--bg2)`;
 };
 
-const Cover = ({ hue = 60, art, size = 150, radius, round = false, glyph = false, style = {} }) => {
+const Cover = ({ hue = 60, art, size = 150, radius, round = false, glyph: glyphWanted = false, style = {} }) => {
+  // «Обложка точками» — приём «Точки»; у Material обложка всегда обычная
+  const kind = useStyle(); // хук — всегда, не внутри условия
+  const glyph = glyphWanted && kind !== "material";
   const numeric = typeof size === "number";
   const gp = numeric ? Math.max(4, Math.round(size / 27)) : 9;
   return (
@@ -133,9 +136,13 @@ const Cover = ({ hue = 60, art, size = 150, radius, round = false, glyph = false
   );
 };
 
-// ---------- Точечная полоса ----------
+// ---------- Полоса: прогресс, громкость, доли ----------
+// У «Точки» — точки (DotBarDots), у Material — линия, а прогресс трека — волна (MBar, style.jsx).
+// track — это прогресс играющего трека
+const DotBar = (props) => (useStyle() === "material" ? <MBar {...props} /> : <DotBarDots {...props} />);
+
 // Внешний блок тянется, внутренний — ровно целое число точек: на краю нет половинок.
-const DotBar = ({ pct = 0, pitch = 8, r, onSeek, on, off, width, label, style = {} }) => {
+const DotBarDots = ({ pct = 0, pitch = 8, r, onSeek, on, off, width, label, style = {} }) => {
   const ref = React.useRef(null);
   const w = useWidth(ref);
   const n = Math.max(0, Math.floor(w / pitch));
@@ -155,8 +162,10 @@ const DotBar = ({ pct = 0, pitch = 8, r, onSeek, on, off, width, label, style = 
   );
 };
 
-// Время точечным шрифтом: двоеточие — две точки, у шрифта оно рисуется криво
+// Время точечным шрифтом: двоеточие — две точки, у шрифта оно рисуется криво.
+// У Material время — обычная мелкая подпись под полосой (.m-time)
 const DotTime = ({ value, size = 72, color, label }) => {
+  if (useStyle() === "material") return <span className="m-time" aria-label={label || value} style={color ? { color: color === "var(--dot-off)" ? undefined : color } : undefined}>{value}</span>;
   const [m, s] = value.split(":");
   const d = Math.max(3, Math.round(size * 0.1));
   return (
@@ -214,7 +223,7 @@ const SheetGrip = ({ onClose }) => {
 };
 
 // Бегущая строка для длинных названий: едет туда-обратно с паузами по краям, только если не влезает
-const Marquee = ({ children, style }) => {
+const Marquee = ({ children, style, className }) => {
   const box = React.useRef(null);
   const inner = React.useRef(null);
   const [d, setD] = React.useState(0);
@@ -224,7 +233,7 @@ const Marquee = ({ children, style }) => {
     setD(over > 2 ? over + 8 : 0);
   }, [children]);
   return (
-    <div ref={box} style={{ overflow: "hidden", whiteSpace: "nowrap", minWidth: 0, ...style,
+    <div ref={box} className={className} style={{ overflow: "hidden", whiteSpace: "nowrap", minWidth: 0, ...style,
       WebkitMaskImage: d ? "linear-gradient(90deg, #000 0, #000 88%, transparent)" : undefined,
       maskImage: d ? "linear-gradient(90deg, #000 0, #000 88%, transparent)" : undefined }}>
       <span ref={inner} className={d ? "mq" : ""} style={{ display: "inline-block", "--mq": `-${d}px`, animationDuration: `${Math.max(7, d / 18)}s` }}>{children}</span>

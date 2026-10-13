@@ -151,10 +151,7 @@ const LikeButton = ({ trackId, size = 30, always = false }) => {
         </span>
       )}
       {showNum && (
-        <span className="rate-n mono" style={{
-          position: "absolute", top: -2, right: -4, fontSize: 10, fontWeight: 500,
-          color: neg ? "var(--bad)" : "var(--text)", pointerEvents: "none",
-        }}>{st.rating}</span>
+        <span className={"rate-n mono" + (neg ? " is-bad" : "")}>{st.rating}</span>
       )}
       {pop && (
         <RatingPop trackId={trackId} anchor={btnRef} scaleRef={scaleRef} draft={draft} out={popOut}

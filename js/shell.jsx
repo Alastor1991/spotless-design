@@ -115,8 +115,7 @@ const Sidebar = () => {
     <aside className="sidebar" data-screen-label="Сайдбар">
       <div className="logo-row" style={{ display: "flex", alignItems: "center", gap: 9, padding: "0 4px 0 12px", marginBottom: 22 }}>
         <button style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }} onClick={() => app.go("home")} aria-label="Spotless">
-          <span className="dots logo-word" style={{ fontSize: 24, letterSpacing: "0.02em" }}>SPOTLESS</span>
-          <span className="hot-dot" style={{ width: 7, height: 7 }}></span>
+          <Logo size={24} />
         </button>
         <button className="iconbtn sb-toggle" style={{ width: 30, height: 30, marginLeft: "auto" }}
           title={app.railPref ? t.sbExpand : t.sbCollapse} aria-label={app.railPref ? t.sbExpand : t.sbCollapse}
@@ -136,7 +135,7 @@ const Sidebar = () => {
       </div>
       <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2, minHeight: 0 }}>
         <button className={"plitem" + (r.page === "liked" ? " active" : "")} onClick={() => app.go("liked")} title={t.likedTracks}>
-          <span style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--hot)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "var(--hot-ink)" }}>
+          <span className="pl-liked">
             <Ic d={ICONS.heart} size={17} fill="currentColor" />
           </span>
           <span className="pl-text" style={{ minWidth: 0 }}>
@@ -190,11 +189,8 @@ const BellBtn = () => {
 const AvatarBtn = ({ size }) => {
   const app = useApp();
   return (
-    <button title={app.t.profile} aria-label={app.t.profile} onClick={() => app.go("profile", "me")} style={{
-      width: size, height: size, borderRadius: "50%", background: "var(--acc)", color: "var(--acc-ink)",
-      display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 600, flexShrink: 0,
-      outline: app.route.page === "profile" && app.route.id === "me" ? "2px solid var(--hot)" : "none", outlineOffset: 3,
-    }}>Л</button>
+    <button className={"avatar-btn" + (app.route.page === "profile" && app.route.id === "me" ? " is-on" : "")}
+      title={app.t.profile} aria-label={app.t.profile} onClick={() => app.go("profile", "me")} style={{ width: size, height: size }}>Л</button>
   );
 };
 
@@ -241,8 +237,7 @@ const TopBarPhone = () => {
       <div className={"tb-mid" + (sc.title ? " on" : "")}>
         {isTab && (
           <button className="tb-logo" onClick={() => app.go("home")} aria-label="Spotless">
-            <span className="dots" style={{ fontSize: 20, letterSpacing: "0.02em" }}>SPOTLESS</span>
-            <span className="hot-dot"></span>
+            <Logo size={20} />
           </button>
         )}
         <div className="tb-title" aria-hidden={!sc.title}>
@@ -285,10 +280,7 @@ const TopBarDesktop = () => {
           <Ic d={ICONS.fwd} size={17} />
         </button>
       </div>
-      <label className="tb-search" style={{
-        flex: "0 1 440px", display: "flex", alignItems: "center", gap: 10, background: "var(--bg2)",
-        borderRadius: 22, height: 44, padding: "0 8px 0 16px", marginLeft: 6, cursor: "text",
-      }} onClick={toSearch}>
+      <label className="tb-search" onClick={toSearch}>
         <Ic d={ICONS.search} size={17} style={{ color: "var(--mut2)" }} />
         <input ref={searchRef} value={app.query} placeholder={t.searchPh} aria-label={t.search}
           onChange={(e) => { app.setQuery(e.target.value); toSearch(); }}

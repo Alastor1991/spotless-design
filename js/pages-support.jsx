@@ -26,7 +26,7 @@ const BigMoney = ({ value, size: full = 150 }) => {
 const SupStat = ({ label, value }) => (
   <span style={{ display: "flex", flexDirection: "column", gap: 8 }}>
     <span className="mlabel" style={{ fontSize: 10, letterSpacing: "0.1em" }}>{label}</span>
-    <span style={{ fontSize: 30, fontWeight: 300, letterSpacing: "-0.04em", lineHeight: 1 }}>{value}</span>
+    <span className="ty-light" style={{ fontSize: 30, lineHeight: 1 }}>{value}</span>
   </span>
 );
 
@@ -96,7 +96,7 @@ const BalanceWidget = () => {
   return (
     <section className="widget" style={{ display: "flex", flexDirection: "column", gap: 12, padding: "26px 24px 22px" }}>
       <span className="mlabel">{t.supBalance}</span>
-      <span style={{ display: "flex", alignItems: "baseline", fontWeight: 300, lineHeight: 1, letterSpacing: "-0.04em", margin: "6px 0 6px" }}>
+      <span className="ty-light" style={{ display: "flex", alignItems: "baseline", lineHeight: 1, margin: "6px 0 6px" }}>
         <span ref={balRef} style={{ display: "inline-flex", alignItems: "baseline", gap: 2 }}>
           <span style={{ fontSize: 30 * k, color: "var(--mut)" }}>{m.sign}</span>
           <span style={{ fontSize: 60 * k }}>{whole}</span>

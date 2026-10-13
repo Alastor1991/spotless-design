@@ -101,7 +101,7 @@ const PageAlbum = ({ id }) => {
 const ArtistStat = ({ label, value }) => (
   <span style={{ display: "flex", flexDirection: "column", gap: 6 }}>
     <span className="mlabel" style={{ fontSize: 10 }}>{label}</span>
-    <span style={{ fontSize: 26, fontWeight: 300, letterSpacing: "-0.04em" }}>{value}</span>
+    <span className="ty-light" style={{ fontSize: 26 }}>{value}</span>
   </span>
 );
 

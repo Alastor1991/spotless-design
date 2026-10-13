@@ -44,6 +44,36 @@ const MsIcon = ({ name, size = 20, filled, style, className }) => (
   <span aria-hidden="true" className={"ms i" + msSize(size) + (filled ? " f" : "") + (className ? " " + className : "")} style={style}>{name}</span>
 );
 
+// ---------- Логотип ----------
+// «Точка» — капсом точечным шрифтом и красная точка; Material — слово обычным шрифтом
+const Logo = ({ size = 24 }) => (useStyle() === "material"
+  ? <span className="logo-word m-logo" style={{ fontSize: size - 4 }}>Spotless</span>
+  : <React.Fragment>
+      <span className="dots logo-word" style={{ fontSize: size, letterSpacing: "0.02em" }}>SPOTLESS</span>
+      <span className="hot-dot" style={size >= 24 ? { width: 7, height: 7 } : undefined}></span>
+    </React.Fragment>);
+
+// ---------- Material: полоса ----------
+// Вместо точек «Точки». Прогресс играющего трека (track) — волна, пока играет; на паузе выпрямляется.
+// Полоса, которую можно двигать (onSeek), — с ручкой-чертой (Expressive slider); доли и индикаторы — линия.
+// on — цвет заполнения (по умолчанию акцент), pitch ≤ 5 — тонкий индикатор (мини-плеер)
+const MBar = ({ pct = 0, pitch, onSeek, on, width, label, track, style = {} }) => {
+  const app = React.useContext(AppCtx);
+  const p = Math.max(0, Math.min(1, pct));
+  const playing = !!(track && app && app.player.playing);
+  const cls = "mbar" + (pitch != null && pitch <= 5 ? " is-thin" : "") + (onSeek ? " is-slider" : "") + (track ? " is-track" : "") + (playing ? " is-playing" : "");
+  return (
+    <div className={cls} onClick={onSeek}
+      role={onSeek ? "slider" : undefined} aria-label={label}
+      aria-valuemin={onSeek ? 0 : undefined} aria-valuemax={onSeek ? 100 : undefined} aria-valuenow={onSeek ? Math.round(p * 100) : undefined}
+      style={{ flex: width ? "none" : 1, width, "--p": p, ...(on ? { "--mbar-on": on } : {}), ...style }}>
+      <span className="mbar-fill">{track && <span className="mbar-wave"></span>}</span>
+      {onSeek && <span className="mbar-thumb"></span>}
+      <span className="mbar-rest"></span>
+    </div>
+  );
+};
+
 // ---------- Шрифты стиля ----------
 // Шрифты Material грузим, только когда стиль выбран: «Точке» они не нужны
 const STYLE_FONTS = {
@@ -93,4 +123,4 @@ const useStyleAccent = (style, trackId, mAccent, active) => {
   }, [style, trackId, mAccent, active]);
 };
 
-Object.assign(window, { useStyleAccent, STYLE_LIST, StyleCtx, useStyle, MS_NAMES, iconKey, msSize, MsIcon, loadStyleFonts, M_ACCENTS, mAccentPair });
+Object.assign(window, { useStyleAccent, MBar, Logo, STYLE_LIST, StyleCtx, useStyle, MS_NAMES, iconKey, msSize, MsIcon, loadStyleFonts, M_ACCENTS, mAccentPair });
